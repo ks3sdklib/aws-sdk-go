@@ -194,7 +194,7 @@ func (v2 *signer) buildCanonicalHeaders() {
 
 	headerValues := make([]string, len(headers))
 	for i, k := range headers {
-		headerValues[i] = k + ":" +
+		headerValues[i] = strings.ToLower(http.CanonicalHeaderKey(k)) + ":" +
 				strings.Join(v2.Request.Header[http.CanonicalHeaderKey(k)], ",")
 	}
 

@@ -1,6 +1,10 @@
 package main
 
 import(
+
+"os"  
+//"io"
+//"bufio"
 	"fmt"
 	"strings"
 	"github.com/aws/aws-sdk-go/aws"
@@ -33,9 +37,10 @@ func main(){
 	getObject(svc)
 	headObject(svc)
 	putObject(svc)
+	//putObjectByFile(svc)
 	getObjectAcl(svc)
 	multipart(svc)
-	//deleteObjects(svc)
+	deleteObjects(svc)
 	copyObject(svc)
 }
 func listBuckets(c *s3.S3){
@@ -228,6 +233,27 @@ func putObject(c *s3.S3) {
 	}
 	fmt.Println(out)
 }
+func putObjectByFile(c *s3.S3) {
+    fi,err := os.Open("/Users/lijunwei/Downloads/ks3_php_sdk_2015-06-08.log")  
+    if err != nil{panic(err)}  
+    defer fi.Close()  
+   // r := io.NewReader(fi) 
+    //readerSeeker,_ := fi.Seek(10,0)
+
+	bucket := "aa-go-sdk"
+	key := "中文/test.go"
+	out,err := c.PutObject(
+		&s3.PutObjectInput{
+			Bucket:&bucket,
+			Key:&key,
+			Body:fi,
+		},
+	)
+	if err != nil{
+		panic(err)
+	}
+	fmt.Println(out)
+}
 func getObjectAcl(c *s3.S3) {
 	bucket := "aa-go-sdk"
 	key := "中文/test.go"
@@ -295,7 +321,15 @@ func multipart(c *s3.S3){
 			UploadID:uploadid,
 		},
 		)
-
+	fmt.Println("123")
+	listP :=  listRet.Parts
+	for i:=0;i<len(listP);i++{
+		alistP := listP[i];
+		fmt.Println(*alistP.PartNumber)
+		fmt.Println(*alistP.ETag)
+	}
+	fmt.Println(*listRet.Key)
+	fmt.Println("123")
 	var parts [] *s3.CompletedPart;
 	apart := &s3.CompletedPart{
 		ETag:listRet.Parts[0].ETag,
