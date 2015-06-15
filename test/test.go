@@ -14,6 +14,7 @@ import(
 
 func main(){
 	credentials := credentials.NewStaticCredentials("lMQTr0hNlMpB0iOk/i+x","D4CsYLs75JcWEjbiI22zR3P7kJ/+5B1qdEje7A7I","")
+	//credentials := credentials.NewStaticCredentials("AKIAIN3WVZLXKDUS242Q","5iDtwjnwgFeeKxqXy8OQqs6hTOrx/4Dyk8YBBFwn","")
 	svc := s3.New(&aws.Config{
 		Region: "HANGZHOU",
 		Credentials: credentials,
@@ -23,25 +24,25 @@ func main(){
 		S3ForcePathStyle:true,
 		LogHTTPBody:true,
 		})
-	listBuckets(svc)
+	//listBuckets(svc)
 	//putBucket(svc)
-	headBucket(svc)
+	//headBucket(svc)
 	//deleteBucket(svc)
-	getBucketAcl(svc)
-	listObjects(svc)
-	getBucketLogging(svc)
+	//getBucketAcl(svc)
+	//listObjects(svc)
+	//getBucketLogging(svc)
 	//putBucketAcl(svc)
 	//putBucketLogging(svc)
-	getBucketLocation(svc)
+	//getBucketLocation(svc)
 	//deleteObject(svc)
-	getObject(svc)
-	headObject(svc)
+	//getObject(svc)
+	//headObject(svc)
 	putObject(svc)
 	//putObjectByFile(svc)
-	getObjectAcl(svc)
-	multipart(svc)
-	deleteObjects(svc)
-	copyObject(svc)
+	//getObjectAcl(svc)
+	//multipart(svc)
+	//deleteObjects(svc)
+	//copyObject(svc)
 }
 func listBuckets(c *s3.S3){
 	out,err := c.ListBuckets(nil)
@@ -220,12 +221,14 @@ func headObject(c *s3.S3) {
 }
 func putObject(c *s3.S3) {
 	bucket := "aa-go-sdk"
-	key := "中文/test.go"
+	key := "test.png"
+	contenttype := "application/ocet-stream"
 	out,err := c.PutObject(
 		&s3.PutObjectInput{
 			Bucket:&bucket,
 			Key:&key,
 			Body:strings.NewReader("content"),
+			ContentType:&contenttype,
 		},
 	)
 	if err != nil{

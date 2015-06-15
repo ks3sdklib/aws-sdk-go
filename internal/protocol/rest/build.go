@@ -116,7 +116,7 @@ func buildHeader(r *aws.Request, v reflect.Value, name string) {
 	if err != nil {
 		r.Error = apierr.New("Marshal", "failed to encode REST request", err)
 	} else if str != nil {
-		r.HTTPRequest.Header.Add(name, *str)
+		r.HTTPRequest.Header.Set(name, *str)
 	}
 }
 

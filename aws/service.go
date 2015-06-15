@@ -80,7 +80,6 @@ func (s *Service) buildEndpoint() {
 		s.Endpoint, s.SigningRegion =
 			endpoints.EndpointForRegion(s.ServiceName, s.Config.Region)
 	}
-
 	if s.Endpoint != "" && !schemeRE.MatchString(s.Endpoint) {
 		scheme := "https"
 		if s.Config.DisableSSL {

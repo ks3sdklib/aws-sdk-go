@@ -66,6 +66,7 @@ var reStatusCode = regexp.MustCompile(`^(\d+)`)
 // SendHandler is a request handler to send service request using HTTP client.
 func SendHandler(r *Request) {
 	var err error
+	
 	r.HTTPResponse, err = r.Service.Config.HTTPClient.Do(r.HTTPRequest)
 	if err != nil {
 		// Capture the case where url.Error is returned for error processing

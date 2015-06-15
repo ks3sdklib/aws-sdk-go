@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
-	//"fmt"
 )
 
 // A Request is the service request to be made.
@@ -66,7 +65,7 @@ func NewRequest(service *Service, operation *Operation, params interface{}, data
 	if p == "" {
 		p = "/"
 	}
-
+	
 	httpReq, _ := http.NewRequest(method, "", nil)
 	httpReq.URL, _ = url.Parse(service.Endpoint + p)
 
@@ -83,7 +82,6 @@ func NewRequest(service *Service, operation *Operation, params interface{}, data
 		Data:        data,
 	}
 	r.SetBufferBody([]byte{})
-
 	return r
 }
 
@@ -179,6 +177,7 @@ func (r *Request) Sign() error {
 func (r *Request) Send() error {
 	for {
 		r.Sign()
+		
 		if r.Error != nil {
 			return r.Error
 		}
