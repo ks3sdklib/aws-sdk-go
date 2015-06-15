@@ -55,6 +55,7 @@ var signQuerys = map[string]bool {
 }
 
 type signer struct {
+	Service     *aws.Service
 	Request     *http.Request
 	Time        time.Time
 	ExpireTime  time.Duration
@@ -93,6 +94,7 @@ func Sign(req *aws.Request) {
 	}
 
 	s := signer{
+		Service: req.Service,
 		Request:     req.HTTPRequest,
 		Time:        req.Time,
 		ExpireTime:  req.ExpireTime,
@@ -166,7 +168,11 @@ func (v2 *signer) build() {
 	v2.buildSignature()        // depends on string to sign
 
 	if v2.isPresign {
-		v2.Request.URL.RawQuery += "&Signature=" + v2.signature+"&KSSAccessKeyId"+v2.CredValues.AccessKeyID
+		var querys url.Values 
+		querys = make(map[string][]string)
+		querys.Add("Signature",v2.signature)
+		querys.Add("AWSAccessKeyId",v2.CredValues.AccessKeyID)
+		v2.Request.URL.RawQuery+= "&"+querys.Encode()
 	} else {
 		v2.Request.Header.Set("Authorization","AWS "+v2.CredValues.AccessKeyID+":"+v2.signature)
 	}
@@ -202,16 +208,37 @@ func (v2 *signer) buildCanonicalHeaders() {
 }
 
 func (v2 *signer) buildCanonicalResource(){
+	endpoint := v2.Service.Endpoint
+	
 	v2.Request.URL.RawQuery = strings.Replace(v2.Query.Encode(), "+", "%20", -1)
+	url := v2.Request.URL.String()
+	pathStyle := strings.HasPrefix(url,endpoint)
 	uri := v2.Request.URL.Opaque
+
+	bucketInHost:=""
+	if !pathStyle{
+		if strings.HasPrefix(url,"http://") {
+			url = url[7:]
+			endpoint = endpoint[7:]
+		}else if strings.HasPrefix(url,"https://")	{
+			url = url[8:]
+			endpoint = endpoint[8:]
+		}
+		bucketInHost = url[0:strings.Index(url,endpoint)-1]
+	}
 	if uri != "" {
 		uris := strings.Split(uri, "/")[3:]
 		append := false
-		if len(uris) == 1 && uris[0]!=""{
+		if len(uris) == 1 && uris[0]!=""&&bucketInHost == ""{
 			//只有bucket
+			append = true
+		}else if len(uris) == 0 && bucketInHost != ""{
 			append = true
 		}
 		uri = "/" + strings.Join(strings.Split(uri, "/")[3:],"/")
+		if bucketInHost != ""{
+			uri = "/"+bucketInHost +uri
+		}
 		if append{
 			uri += "/"
 		}

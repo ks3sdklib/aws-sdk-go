@@ -10,6 +10,7 @@ import(
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/s3"
+	//"net/url"
 )
 
 func main(){
@@ -35,9 +36,11 @@ func main(){
 	//putBucketLogging(svc)
 	//getBucketLocation(svc)
 	//deleteObject(svc)
-	//getObject(svc)
+	
 	//headObject(svc)
-	putObject(svc)
+	//putObject(svc)
+	getObjectPresignedUrl(svc)
+	//getObject(svc)
 	//putObjectByFile(svc)
 	//getObjectAcl(svc)
 	//multipart(svc)
@@ -171,7 +174,7 @@ func getBucketLocation(c *s3.S3){
 }
 func deleteObject(c *s3.S3) {
 	bucket := "aa-go-sdk"
-	key := "中文/"
+	key := "aws/config.go"
 	out,err := c.DeleteObject(
 		&s3.DeleteObjectInput{
 			Bucket:&bucket,
@@ -203,6 +206,20 @@ func getObject(c *s3.S3){
 	n, err := out.Body.Read(b)
 	fmt.Printf("%-20s %-2v %v\n", b[:n], n, err)
 }
+func getObjectPresignedUrl(c *s3.S3){
+	bucket := "aa-go-sdk"
+	key := "aws/config.go"
+	content := "text/html"
+	url,_ := c.GetObjectPresignedUrl(
+		&s3.GetObjectInput{
+			Bucket:&bucket,
+			Key:&key,
+			ResponseContentType:&content,
+		},
+		1444370289000000000,
+	)
+	fmt.Println(url)
+}
 func headObject(c *s3.S3) {
 	bucket := "aa-go-sdk"
 	key := "aws/config.go"
@@ -221,7 +238,7 @@ func headObject(c *s3.S3) {
 }
 func putObject(c *s3.S3) {
 	bucket := "aa-go-sdk"
-	key := "test.png"
+	key := "aws/config.go"
 	contenttype := "application/ocet-stream"
 	out,err := c.PutObject(
 		&s3.PutObjectInput{

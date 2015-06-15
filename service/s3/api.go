@@ -7,7 +7,7 @@ import (
 	"io"
 	"sync"
 	"time"
-
+	"net/url"
 	"github.com/aws/aws-sdk-go/aws"
 )
 
@@ -918,6 +918,12 @@ func (c *S3) GetObject(input *GetObjectInput) (*GetObjectOutput, error) {
 	req, out := c.GetObjectRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) GetObjectPresignedUrl(input *GetObjectInput,expires time.Duration) (* url.URL,error){
+	req,_ := c.GetObjectRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opGetObject *aws.Operation
