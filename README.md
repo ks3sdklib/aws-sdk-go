@@ -4,7 +4,7 @@ sdk应该放置在
 GO_PATH/src/github.com/aws/ 目录下
 
 较原版主要改动:
-service/aws/service.go s.Handlers.Build.PushBack(ContentTypeHandler) 
+service/s3/service.go s.Handlers.Build.PushBack(ContentTypeHandler) 
 aws/handler_functions.go ContentTypeHandler
 service/s3/service.go service.Handlers.Sign.PushBack(v2.Sign)
 internal/signer/v2/v2.go

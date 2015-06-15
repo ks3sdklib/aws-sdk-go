@@ -58,7 +58,9 @@ func UserAgentHandler(r *Request) {
 	r.HTTPRequest.Header.Set("User-Agent", SDKName+"/"+SDKVersion)
 }
 func ContentTypeHandler(r *Request){
-	r.HTTPRequest.Header.Set("Content-Type","application/xml")
+	if len(r.HTTPRequest.Header["Content-Type"])==0{
+		r.HTTPRequest.Header.Set("Content-Type","application/xml")
+	}
 }
 
 var reStatusCode = regexp.MustCompile(`^(\d+)`)
@@ -66,7 +68,7 @@ var reStatusCode = regexp.MustCompile(`^(\d+)`)
 // SendHandler is a request handler to send service request using HTTP client.
 func SendHandler(r *Request) {
 	var err error
-	
+
 	r.HTTPResponse, err = r.Service.Config.HTTPClient.Do(r.HTTPRequest)
 	if err != nil {
 		// Capture the case where url.Error is returned for error processing

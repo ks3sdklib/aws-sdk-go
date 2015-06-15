@@ -31,6 +31,7 @@ func New(config *aws.Config) *S3 {
 	// Handlers
 	service.Handlers.Sign.PushBack(v2.Sign)
 	service.Handlers.Build.PushBack(restxml.Build)
+	service.Handlers.Build.PushBack(aws.ContentTypeHandler)
 	service.Handlers.Unmarshal.PushBack(restxml.Unmarshal)
 	service.Handlers.UnmarshalMeta.PushBack(restxml.UnmarshalMeta)
 	service.Handlers.UnmarshalError.PushBack(restxml.UnmarshalError)
