@@ -2,8 +2,8 @@
 package cognitoidentity
 
 import (
-	"github.com/aws/aws-sdk-go/internal/features/shared"
-	"github.com/aws/aws-sdk-go/service/cognitoidentity"
+	"github.com/ks3sdklib/aws-sdk-go/internal/features/shared"
+	"github.com/ks3sdklib/aws-sdk-go/service/cognitoidentity"
 	. "github.com/lsegal/gucumber"
 )
 

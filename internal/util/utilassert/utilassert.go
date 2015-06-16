@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/internal/model/api"
-	"github.com/aws/aws-sdk-go/internal/util/utilsort"
+	"github.com/ks3sdklib/aws-sdk-go/internal/model/api"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util/utilsort"
 )
 
 // findMember searches the shape for the member with the matching key name.

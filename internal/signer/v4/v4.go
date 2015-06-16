@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/internal/protocol/rest"
+	"github.com/ks3sdklib/aws-sdk-go/aws/credentials"
+	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/rest"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/ks3sdklib/aws-sdk-go/aws"
 )
 
 const (

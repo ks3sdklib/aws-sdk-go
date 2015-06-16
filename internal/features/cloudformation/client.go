@@ -2,8 +2,8 @@
 package cloudformation
 
 import (
-	"github.com/aws/aws-sdk-go/internal/features/shared"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/ks3sdklib/aws-sdk-go/internal/features/shared"
+	"github.com/ks3sdklib/aws-sdk-go/service/cloudformation"
 	. "github.com/lsegal/gucumber"
 )
 

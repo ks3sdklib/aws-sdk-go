@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aws/aws-sdk-go/internal/apierr"
+	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 )
 
 var (

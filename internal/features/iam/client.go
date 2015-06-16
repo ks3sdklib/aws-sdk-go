@@ -2,8 +2,8 @@
 package iam
 
 import (
-	"github.com/aws/aws-sdk-go/internal/features/shared"
-	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/ks3sdklib/aws-sdk-go/internal/features/shared"
+	"github.com/ks3sdklib/aws-sdk-go/service/iam"
 	. "github.com/lsegal/gucumber"
 )
 

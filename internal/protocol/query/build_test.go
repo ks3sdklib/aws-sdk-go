@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/internal/protocol/query"
-	"github.com/aws/aws-sdk-go/internal/protocol/xml/xmlutil"
-	"github.com/aws/aws-sdk-go/internal/signer/v4"
-	"github.com/aws/aws-sdk-go/internal/util"
+	"github.com/ks3sdklib/aws-sdk-go/aws"
+	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/query"
+	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/xml/xmlutil"
+	"github.com/ks3sdklib/aws-sdk-go/internal/signer/v4"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util"
 	"github.com/stretchr/testify/assert"
 )
 

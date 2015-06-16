@@ -2,8 +2,8 @@
 package cloudwatch
 
 import (
-	"github.com/aws/aws-sdk-go/internal/features/shared"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/ks3sdklib/aws-sdk-go/internal/features/shared"
+	"github.com/ks3sdklib/aws-sdk-go/service/cloudwatch"
 	. "github.com/lsegal/gucumber"
 )
 

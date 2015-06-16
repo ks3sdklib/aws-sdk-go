@@ -3,5 +3,5 @@
 // See our Developer Guide for information for on getting started and using
 // the SDK.
 //
-// https://github.com/aws/aws-sdk-go/wiki
+// https://github.com/ks3sdklib/aws-sdk-go/wiki
 package sdk

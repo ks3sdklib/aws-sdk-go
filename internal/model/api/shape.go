@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/internal/util"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util"
 )
 
 // A ShapeRef defines the usage of a shape within the API.

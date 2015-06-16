@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 	"net/url"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/ks3sdklib/aws-sdk-go/aws"
 )
 
 var oprw sync.Mutex

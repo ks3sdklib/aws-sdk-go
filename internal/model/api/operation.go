@@ -8,7 +8,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/aws/aws-sdk-go/internal/util"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util"
 )
 
 // An Operation defines a specific API Operation.
