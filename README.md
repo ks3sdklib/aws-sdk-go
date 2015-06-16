@@ -73,7 +73,7 @@ go get  github.com/ks3sdklib/aws-sdk-go
 	n, err := resp.Body.Read(b)
 	fmt.Printf("%-20s %-2v %v\n", b[:n], n, err)
 
-### 4.3 生成文件下载外链
+###  4.3 生成文件下载外链
 
 	params := &s3.GetObjectInput{
 		Bucket:             aws.String("BucketName"), // bucket名称
@@ -89,3 +89,30 @@ go get  github.com/ks3sdklib/aws-sdk-go
 		panic(err)
 	}
 	fmt.Println(resp)//resp即生成的外链地址,类型为url.URL
+
+### 4.4 计算token
+
+	package main
+	import(
+		"crypto/hmac"
+		"crypto/sha1"
+		"encoding/base64"
+		"fmt"
+	)
+	func main(){
+		AccessKeyId := "AccessKeyId"
+		AccessKeySecret:= "AccessKeySecret"
+		stringToSign := "stringToSign"
+
+		signature := string(base64Encode(makeHmac([]byte(AccessKeySecret), []byte(stringToSign))))
+	token := "KSS "+AccessKeyId+":"+signature
+	fmt.Println(token)
+	}
+	func makeHmac(key []byte, data []byte) []byte {
+		hash := hmac.New(sha1.New, key)
+		hash.Write(data)
+		return hash.Sum(nil)
+	}	
+	func base64Encode(src []byte) []byte {  
+	    return []byte(base64.StdEncoding.EncodeToString(src))  
+	} 
