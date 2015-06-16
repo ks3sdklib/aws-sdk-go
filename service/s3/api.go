@@ -46,7 +46,12 @@ func (c *S3) AbortMultipartUpload(input *AbortMultipartUploadInput) (*AbortMulti
 	err := req.Send()
 	return out, err
 }
-
+func (c *S3) AbortMultipartUploadPresignedUrl(input *AbortMultipartUploadInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.AbortMultipartUploadRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 var opAbortMultipartUpload *aws.Operation
 
 // CompleteMultipartUploadRequest generates a request for the CompleteMultipartUpload operation.
@@ -77,6 +82,12 @@ func (c *S3) CompleteMultipartUpload(input *CompleteMultipartUploadInput) (*Comp
 	req, out := c.CompleteMultipartUploadRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) CompleteMultipartUploadPresignedUrl(input *CompleteMultipartUploadInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.CompleteMultipartUploadRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opCompleteMultipartUpload *aws.Operation
@@ -110,6 +121,12 @@ func (c *S3) CopyObject(input *CopyObjectInput) (*CopyObjectOutput, error) {
 	err := req.Send()
 	return out, err
 }
+func (c *S3) CopyObjectPresignedUrl(input *CopyObjectInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.CopyObjectRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opCopyObject *aws.Operation
 
@@ -141,6 +158,12 @@ func (c *S3) CreateBucket(input *CreateBucketInput) (*CreateBucketOutput, error)
 	req, out := c.CreateBucketRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) CreateBucketPresignedUrl(input *CreateBucketInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.CreateBucketRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opCreateBucket *aws.Operation
@@ -180,6 +203,12 @@ func (c *S3) CreateMultipartUpload(input *CreateMultipartUploadInput) (*CreateMu
 	err := req.Send()
 	return out, err
 }
+func (c *S3) CreateMultipartUploadPresignedUrl(input *CreateMultipartUploadInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.CreateMultipartUploadRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opCreateMultipartUpload *aws.Operation
 
@@ -213,6 +242,12 @@ func (c *S3) DeleteBucket(input *DeleteBucketInput) (*DeleteBucketOutput, error)
 	err := req.Send()
 	return out, err
 }
+func (c *S3) DeleteBucketPresignedUrl(input *DeleteBucketInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.DeleteBucketRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opDeleteBucket *aws.Operation
 
@@ -244,6 +279,12 @@ func (c *S3) DeleteBucketCORS(input *DeleteBucketCORSInput) (*DeleteBucketCORSOu
 	req, out := c.DeleteBucketCORSRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) DeleteBucketCORSPresignedUrl(input *DeleteBucketCORSInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.DeleteBucketCORSRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opDeleteBucketCORS *aws.Operation
@@ -277,6 +318,13 @@ func (c *S3) DeleteBucketLifecycle(input *DeleteBucketLifecycleInput) (*DeleteBu
 	err := req.Send()
 	return out, err
 }
+func (c *S3) DeleteBucketLifecyclePresignedUrl(input *DeleteBucketLifecycleInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.DeleteBucketLifecycleRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
+
 
 var opDeleteBucketLifecycle *aws.Operation
 
@@ -309,6 +357,12 @@ func (c *S3) DeleteBucketPolicy(input *DeleteBucketPolicyInput) (*DeleteBucketPo
 	err := req.Send()
 	return out, err
 }
+func (c *S3) DeleteBucketPolicyPresignedUrl(input *DeleteBucketPolicyInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.DeleteBucketPolicyRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opDeleteBucketPolicy *aws.Operation
 
@@ -339,6 +393,12 @@ func (c *S3) DeleteBucketReplication(input *DeleteBucketReplicationInput) (*Dele
 	req, out := c.DeleteBucketReplicationRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) DeleteBucketReplicationPresignedUrl(input *DeleteBucketReplicationInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.DeleteBucketReplicationRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opDeleteBucketReplication *aws.Operation
@@ -372,6 +432,12 @@ func (c *S3) DeleteBucketTagging(input *DeleteBucketTaggingInput) (*DeleteBucket
 	err := req.Send()
 	return out, err
 }
+func (c *S3) DeleteBucketTaggingPresignedUrl(input *DeleteBucketTaggingInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.DeleteBucketTaggingRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opDeleteBucketTagging *aws.Operation
 
@@ -403,6 +469,12 @@ func (c *S3) DeleteBucketWebsite(input *DeleteBucketWebsiteInput) (*DeleteBucket
 	req, out := c.DeleteBucketWebsiteRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) DeleteBucketWebsitePresignedUrl(input *DeleteBucketWebsiteInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.DeleteBucketWebsiteRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opDeleteBucketWebsite *aws.Operation
@@ -438,6 +510,12 @@ func (c *S3) DeleteObject(input *DeleteObjectInput) (*DeleteObjectOutput, error)
 	err := req.Send()
 	return out, err
 }
+func (c *S3) DeleteObjectPresignedUrl(input *DeleteObjectInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.DeleteObjectRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opDeleteObject *aws.Operation
 
@@ -471,6 +549,12 @@ func (c *S3) DeleteObjects(input *DeleteObjectsInput) (*DeleteObjectsOutput, err
 	err := req.Send()
 	return out, err
 }
+func (c *S3) DeleteObjectsPresignedUrl(input *DeleteObjectsInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.DeleteObjectsRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opDeleteObjects *aws.Operation
 
@@ -502,6 +586,12 @@ func (c *S3) GetBucketACL(input *GetBucketACLInput) (*GetBucketACLOutput, error)
 	req, out := c.GetBucketACLRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) GetBucketACLPresignedUrl(input *GetBucketACLInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetBucketACLRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opGetBucketACL *aws.Operation
@@ -535,6 +625,12 @@ func (c *S3) GetBucketCORS(input *GetBucketCORSInput) (*GetBucketCORSOutput, err
 	err := req.Send()
 	return out, err
 }
+func (c *S3) GetBucketCORSPresignedUrl(input *GetBucketCORSInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetBucketCORSRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opGetBucketCORS *aws.Operation
 
@@ -567,6 +663,12 @@ func (c *S3) GetBucketLifecycle(input *GetBucketLifecycleInput) (*GetBucketLifec
 	err := req.Send()
 	return out, err
 }
+func (c *S3) GetBucketLifecyclePresignedUrl(input *GetBucketLifecycleInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetBucketLifecycleRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opGetBucketLifecycle *aws.Operation
 
@@ -598,6 +700,12 @@ func (c *S3) GetBucketLocation(input *GetBucketLocationInput) (*GetBucketLocatio
 	req, out := c.GetBucketLocationRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) GetBucketLocationPresignedUrl(input *GetBucketLocationInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetBucketLocationRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opGetBucketLocation *aws.Operation
@@ -632,6 +740,12 @@ func (c *S3) GetBucketLogging(input *GetBucketLoggingInput) (*GetBucketLoggingOu
 	err := req.Send()
 	return out, err
 }
+func (c *S3) GetBucketLoggingPresignedUrl(input *GetBucketLoggingInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetBucketLoggingRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opGetBucketLogging *aws.Operation
 
@@ -663,6 +777,12 @@ func (c *S3) GetBucketNotification(input *GetBucketNotificationConfigurationRequ
 	req, out := c.GetBucketNotificationRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) GetBucketNotificationPresignedUrl(input *GetBucketNotificationConfigurationRequest,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetBucketNotificationRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opGetBucketNotification *aws.Operation
@@ -696,6 +816,12 @@ func (c *S3) GetBucketNotificationConfiguration(input *GetBucketNotificationConf
 	err := req.Send()
 	return out, err
 }
+func (c *S3) GetBucketNotificationConfigurationPresignedUrl(input *GetBucketNotificationConfigurationRequest,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetBucketNotificationConfigurationRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opGetBucketNotificationConfiguration *aws.Operation
 
@@ -728,6 +854,12 @@ func (c *S3) GetBucketPolicy(input *GetBucketPolicyInput) (*GetBucketPolicyOutpu
 	err := req.Send()
 	return out, err
 }
+func (c *S3) GetBucketPolicyPresignedUrl(input *GetBucketPolicyInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetBucketPolicyRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opGetBucketPolicy *aws.Operation
 
@@ -758,6 +890,12 @@ func (c *S3) GetBucketReplication(input *GetBucketReplicationInput) (*GetBucketR
 	req, out := c.GetBucketReplicationRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) GetBucketReplicationPresignedUrl(input *GetBucketReplicationInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetBucketReplicationRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opGetBucketReplication *aws.Operation
@@ -791,6 +929,12 @@ func (c *S3) GetBucketRequestPayment(input *GetBucketRequestPaymentInput) (*GetB
 	err := req.Send()
 	return out, err
 }
+func (c *S3) GetBucketRequestPaymentPresignedUrl(input *GetBucketRequestPaymentInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetBucketRequestPaymentRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opGetBucketRequestPayment *aws.Operation
 
@@ -822,6 +966,12 @@ func (c *S3) GetBucketTagging(input *GetBucketTaggingInput) (*GetBucketTaggingOu
 	req, out := c.GetBucketTaggingRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) GetBucketTaggingPresignedUrl(input *GetBucketTaggingInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetBucketTaggingRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opGetBucketTagging *aws.Operation
@@ -855,6 +1005,12 @@ func (c *S3) GetBucketVersioning(input *GetBucketVersioningInput) (*GetBucketVer
 	err := req.Send()
 	return out, err
 }
+func (c *S3) GetBucketVersioningPresignedUrl(input *GetBucketVersioningInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetBucketVersioningRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opGetBucketVersioning *aws.Operation
 
@@ -886,6 +1042,12 @@ func (c *S3) GetBucketWebsite(input *GetBucketWebsiteInput) (*GetBucketWebsiteOu
 	req, out := c.GetBucketWebsiteRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) GetBucketWebsitePresignedUrl(input *GetBucketWebsiteInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetBucketWebsiteRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opGetBucketWebsite *aws.Operation
@@ -957,6 +1119,12 @@ func (c *S3) GetObjectACL(input *GetObjectACLInput) (*GetObjectACLOutput, error)
 	err := req.Send()
 	return out, err
 }
+func (c *S3) GetObjectACLPresignedUrl(input *GetObjectACLInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetObjectACLRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opGetObjectACL *aws.Operation
 
@@ -988,6 +1156,12 @@ func (c *S3) GetObjectTorrent(input *GetObjectTorrentInput) (*GetObjectTorrentOu
 	req, out := c.GetObjectTorrentRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) GetObjectTorrentPresignedUrl(input *GetObjectTorrentInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.GetObjectTorrentRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opGetObjectTorrent *aws.Operation
@@ -1021,6 +1195,12 @@ func (c *S3) HeadBucket(input *HeadBucketInput) (*HeadBucketOutput, error) {
 	req, out := c.HeadBucketRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) HeadBucketPresignedUrl(input *HeadBucketInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.HeadBucketRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opHeadBucket *aws.Operation
@@ -1056,6 +1236,12 @@ func (c *S3) HeadObject(input *HeadObjectInput) (*HeadObjectOutput, error) {
 	err := req.Send()
 	return out, err
 }
+func (c *S3) HeadObjectPresignedUrl(input *HeadObjectInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.HeadObjectRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opHeadObject *aws.Operation
 
@@ -1087,6 +1273,12 @@ func (c *S3) ListBuckets(input *ListBucketsInput) (*ListBucketsOutput, error) {
 	req, out := c.ListBucketsRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) ListBucketsPresignedUrl(input *ListBucketsInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.ListBucketsRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opListBuckets *aws.Operation
@@ -1125,6 +1317,12 @@ func (c *S3) ListMultipartUploads(input *ListMultipartUploadsInput) (*ListMultip
 	req, out := c.ListMultipartUploadsRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) ListMultipartUploadsPresignedUrl(input *ListMultipartUploadsInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.ListMultipartUploadsRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 func (c *S3) ListMultipartUploadsPages(input *ListMultipartUploadsInput, fn func(p *ListMultipartUploadsOutput, lastPage bool) (shouldContinue bool)) error {
@@ -1170,6 +1368,12 @@ func (c *S3) ListObjectVersions(input *ListObjectVersionsInput) (*ListObjectVers
 	req, out := c.ListObjectVersionsRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) ListObjectVersionsPresignedUrl(input *ListObjectVersionsInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.ListObjectVersionsRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 func (c *S3) ListObjectVersionsPages(input *ListObjectVersionsInput, fn func(p *ListObjectVersionsOutput, lastPage bool) (shouldContinue bool)) error {
@@ -1218,6 +1422,12 @@ func (c *S3) ListObjects(input *ListObjectsInput) (*ListObjectsOutput, error) {
 	err := req.Send()
 	return out, err
 }
+func (c *S3) ListObjectsPresignedUrl(input *ListObjectsInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.ListObjectsRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 func (c *S3) ListObjectsPages(input *ListObjectsInput, fn func(p *ListObjectsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListObjectsRequest(input)
@@ -1263,6 +1473,12 @@ func (c *S3) ListParts(input *ListPartsInput) (*ListPartsOutput, error) {
 	err := req.Send()
 	return out, err
 }
+func (c *S3) ListPartsPresignedUrl(input *ListPartsInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.ListPartsRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 func (c *S3) ListPartsPages(input *ListPartsInput, fn func(p *ListPartsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListPartsRequest(input)
@@ -1302,6 +1518,12 @@ func (c *S3) PutBucketACL(input *PutBucketACLInput) (*PutBucketACLOutput, error)
 	err := req.Send()
 	return out, err
 }
+func (c *S3) PutBucketACLPresignedUrl(input *PutBucketACLInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutBucketACLRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opPutBucketACL *aws.Operation
 
@@ -1333,6 +1555,12 @@ func (c *S3) PutBucketCORS(input *PutBucketCORSInput) (*PutBucketCORSOutput, err
 	req, out := c.PutBucketCORSRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) PutBucketCORSPresignedUrl(input *PutBucketCORSInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutBucketCORSRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opPutBucketCORS *aws.Operation
@@ -1366,6 +1594,12 @@ func (c *S3) PutBucketLifecycle(input *PutBucketLifecycleInput) (*PutBucketLifec
 	req, out := c.PutBucketLifecycleRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) PutBucketLifecyclePresignedUrl(input *PutBucketLifecycleInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutBucketLifecycleRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opPutBucketLifecycle *aws.Operation
@@ -1401,6 +1635,12 @@ func (c *S3) PutBucketLogging(input *PutBucketLoggingInput) (*PutBucketLoggingOu
 	err := req.Send()
 	return out, err
 }
+func (c *S3) PutBucketLoggingPresignedUrl(input *PutBucketLoggingInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutBucketLoggingRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opPutBucketLogging *aws.Operation
 
@@ -1433,6 +1673,12 @@ func (c *S3) PutBucketNotification(input *PutBucketNotificationInput) (*PutBucke
 	err := req.Send()
 	return out, err
 }
+func (c *S3) PutBucketNotificationPresignedUrl(input *PutBucketNotificationInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutBucketNotificationRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opPutBucketNotification *aws.Operation
 
@@ -1464,6 +1710,12 @@ func (c *S3) PutBucketNotificationConfiguration(input *PutBucketNotificationConf
 	req, out := c.PutBucketNotificationConfigurationRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) PutBucketNotificationConfigurationPresignedUrl(input *PutBucketNotificationConfigurationInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutBucketNotificationConfigurationRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opPutBucketNotificationConfiguration *aws.Operation
@@ -1498,6 +1750,12 @@ func (c *S3) PutBucketPolicy(input *PutBucketPolicyInput) (*PutBucketPolicyOutpu
 	err := req.Send()
 	return out, err
 }
+func (c *S3) PutBucketPolicyPresignedUrl(input *PutBucketPolicyInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutBucketPolicyRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opPutBucketPolicy *aws.Operation
 
@@ -1530,6 +1788,12 @@ func (c *S3) PutBucketReplication(input *PutBucketReplicationInput) (*PutBucketR
 	req, out := c.PutBucketReplicationRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) PutBucketReplicationPresignedUrl(input *PutBucketReplicationInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutBucketReplicationRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opPutBucketReplication *aws.Operation
@@ -1567,6 +1831,12 @@ func (c *S3) PutBucketRequestPayment(input *PutBucketRequestPaymentInput) (*PutB
 	err := req.Send()
 	return out, err
 }
+func (c *S3) PutBucketRequestPaymentPresignedUrl(input *PutBucketRequestPaymentInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutBucketRequestPaymentRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opPutBucketRequestPayment *aws.Operation
 
@@ -1598,6 +1868,12 @@ func (c *S3) PutBucketTagging(input *PutBucketTaggingInput) (*PutBucketTaggingOu
 	req, out := c.PutBucketTaggingRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) PutBucketTaggingPresignedUrl(input *PutBucketTaggingInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutBucketTaggingRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opPutBucketTagging *aws.Operation
@@ -1632,6 +1908,12 @@ func (c *S3) PutBucketVersioning(input *PutBucketVersioningInput) (*PutBucketVer
 	err := req.Send()
 	return out, err
 }
+func (c *S3) PutBucketVersioningPresignedUrl(input *PutBucketVersioningInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutBucketVersioningRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opPutBucketVersioning *aws.Operation
 
@@ -1664,6 +1946,12 @@ func (c *S3) PutBucketWebsite(input *PutBucketWebsiteInput) (*PutBucketWebsiteOu
 	err := req.Send()
 	return out, err
 }
+func (c *S3) PutBucketWebsitePresignedUrl(input *PutBucketWebsiteInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutBucketWebsiteRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opPutBucketWebsite *aws.Operation
 
@@ -1695,6 +1983,12 @@ func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
 	req, out := c.PutObjectRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) PutObjectPresignedUrl(input *PutObjectInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutObjectRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opPutObject *aws.Operation
@@ -1729,6 +2023,12 @@ func (c *S3) PutObjectACL(input *PutObjectACLInput) (*PutObjectACLOutput, error)
 	err := req.Send()
 	return out, err
 }
+func (c *S3) PutObjectACLPresignedUrl(input *PutObjectACLInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.PutObjectACLRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opPutObjectACL *aws.Operation
 
@@ -1760,6 +2060,12 @@ func (c *S3) RestoreObject(input *RestoreObjectInput) (*RestoreObjectOutput, err
 	req, out := c.RestoreObjectRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) RestoreObjectPresignedUrl(input *RestoreObjectInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.RestoreObjectRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opRestoreObject *aws.Operation
@@ -1799,6 +2105,12 @@ func (c *S3) UploadPart(input *UploadPartInput) (*UploadPartOutput, error) {
 	err := req.Send()
 	return out, err
 }
+func (c *S3) UploadPartPresignedUrl(input *UploadPartInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.UploadPartRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
+}
 
 var opUploadPart *aws.Operation
 
@@ -1830,6 +2142,12 @@ func (c *S3) UploadPartCopy(input *UploadPartCopyInput) (*UploadPartCopyOutput, 
 	req, out := c.UploadPartCopyRequest(input)
 	err := req.Send()
 	return out, err
+}
+func (c *S3) UploadPartCopyPresignedUrl(input *UploadPartCopyInput,expires time.Duration)(* url.URL,error){
+	req,_ := c.UploadPartCopyRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL,err
 }
 
 var opUploadPartCopy *aws.Operation
