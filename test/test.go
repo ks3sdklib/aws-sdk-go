@@ -35,8 +35,8 @@ func main(){
 	//getBucketAcl(svc)
 	//listObjects(svc)
 	//getBucketLogging(svc)
-	putBucketAcl(svc)
-	//putBucketLogging(svc)
+	//putBucketAcl(svc)
+	putBucketLogging(svc)
 	//getBucketLocation(svc)
 	//deleteObject(svc)
 	
@@ -47,8 +47,9 @@ func main(){
 	//getObjectAcl(svc)
 	//multipart(svc)
 	//deleteObjects(svc)
-	///copyObject(svc)
+	
 	//getObjectPresignedUrl(svc)
+	//copyObject(svc)
 }
 func checkError(msg string,err error,code string){
 	if err == nil{
@@ -260,7 +261,7 @@ func putObject(c *s3.S3) {
 }
 func getObjectAcl(c *s3.S3) {
 	putObject(c)
-	key := "中文/test.go"
+	key := "aws/config.go"
 	out,err := c.GetObjectACL(
 		&s3.GetObjectACLInput{
 			Bucket:&bucket,
@@ -371,7 +372,7 @@ func deleteObjects(c *s3.S3){
 }
 func copyObject(c *s3.S3){
 	bucket := "aa-go-sdk"
-	source := "abcds/%E4%B8%AD%E6%96%87"
+	source := "aa-go-sdk/aws/config.go"
 	key := "test"
 
 	out,_ := c.CopyObject(
