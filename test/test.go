@@ -2,20 +2,23 @@ package main
 
 import(
 
-"os"  
+//"os"  
 //"io"
 //"bufio"
 	"fmt"
 	"strings"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/internal/apierr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/s3"
 	//"net/url"
 )
 
+var bucket =string("aa-go-sdk")
+
+
 func main(){
 	credentials := credentials.NewStaticCredentials("lMQTr0hNlMpB0iOk/i+x","D4CsYLs75JcWEjbiI22zR3P7kJ/+5B1qdEje7A7I","")
-	//credentials := credentials.NewStaticCredentials("AKIAIN3WVZLXKDUS242Q","5iDtwjnwgFeeKxqXy8OQqs6hTOrx/4Dyk8YBBFwn","")
 	svc := s3.New(&aws.Config{
 		Region: "HANGZHOU",
 		Credentials: credentials,
@@ -25,49 +28,62 @@ func main(){
 		S3ForcePathStyle:true,
 		LogHTTPBody:true,
 		})
-	//listBuckets(svc)
-	//putBucket(svc)
-	//headBucket(svc)
-	//deleteBucket(svc)
-	//getBucketAcl(svc)
-	//listObjects(svc)
-	//getBucketLogging(svc)
+	listBuckets(svc)
+ 	putBucket(svc)
+	headBucket(svc)
+	deleteBucket(svc)
+	getBucketAcl(svc)
+	listObjects(svc)
+	getBucketLogging(svc)
 	//putBucketAcl(svc)
 	//putBucketLogging(svc)
-	//getBucketLocation(svc)
-	//deleteObject(svc)
+	getBucketLocation(svc)
+	deleteObject(svc)
 	
-	//headObject(svc)
-	//putObject(svc)
+	headObject(svc)
+	putObject(svc)
 	getObjectPresignedUrl(svc)
-	//getObject(svc)
-	//putObjectByFile(svc)
-	//getObjectAcl(svc)
-	//multipart(svc)
-	//deleteObjects(svc)
-	//copyObject(svc)
+	getObject(svc)
+	getObjectAcl(svc)
+	multipart(svc)
+	deleteObjects(svc)
+	copyObject(svc)
+	getObjectPresignedUrl(svc)
+}
+func checkError(msg string,err error,code string){
+	if err == nil{
+		panic(msg+" expected error but error equals nil")
+	}
+	awserr:= err.(*apierr.RequestError)
+	if awserr.Code() !=code{
+		panic(msg+" expected "+code+",but "+awserr.Code())
+	}
 }
 func listBuckets(c *s3.S3){
 	out,err := c.ListBuckets(nil)
 	if err !=nil{
 		panic(err)
 	}
-	fmt.Println(out)
+	buckets := out.Buckets
+	found := false
+	for i:=0;i<len(buckets);i++{
+		if *buckets[i].Name == bucket{
+			found = true
+		}
+	}
+	if !found {
+		panic("list buckets expected found but not")
+	}
 }
 func putBucket(c *s3.S3) {
 	acl := "public-read"
-	bucket := "aa-go-sdk"
-	out,err := c.CreateBucket(&s3.CreateBucketInput{
+	_,err := c.CreateBucket(&s3.CreateBucketInput{
 		ACL:&acl,
 		Bucket:&bucket,
 		})
-	if err !=nil{
-		panic(err)
-	}
-	fmt.Println(out)
+	checkError("put bucket",err,"BucketAlreadyExists")
 }
 func headBucket(c *s3.S3) {
-	bucket := "aa-go-sdk"
 	out,err := c.HeadBucket(
 		&s3.HeadBucketInput{
 			Bucket:&bucket,
@@ -79,20 +95,16 @@ func headBucket(c *s3.S3) {
 	fmt.Println(out)
 }
 func deleteBucket(c *s3.S3) {
-	bucket := "aa-go-sdk"
-	out,err := c.DeleteBucket(
+	putObject(c)
+	_,err := c.DeleteBucket(
 		&s3.DeleteBucketInput{
 			Bucket:&bucket,
 		},
 	)
-	if err != nil{
-		panic(err)
-	}
-	fmt.Println(out)
+	checkError("delete bucket",err,"BucketNotEmpty")
 }
 func getBucketAcl(c *s3.S3) {
-	bucket := "aa-go-sdk"
-	out,err := c.GetBucketACL(
+	_,err := c.GetBucketACL(
 		&s3.GetBucketACLInput{
 			Bucket:&bucket,
 		},
@@ -100,12 +112,8 @@ func getBucketAcl(c *s3.S3) {
 	if err != nil{
 		panic(err)
 	}
-	for i:=0;i < len(out.Grants);i++ {
-		fmt.Println(len(out.Grants))
-	}
 }
 func listObjects(c *s3.S3){
-	bucket := "aa-go-sdk"
 	delimiter := "/"
 	out,err := c.ListObjects(
 		&s3.ListObjectsInput{
@@ -116,10 +124,11 @@ func listObjects(c *s3.S3){
 	if err != nil{
 		panic(err)
 	}
-	fmt.Println(*out.Delimiter)
+	if *out.Delimiter != "/"{
+		panic("list objects delimiter expected / but not")
+	}
 }
 func  getBucketLogging(c *s3.S3) {
-	bucket := "aa-go-sdk"
 	out,err := c.GetBucketLogging(
 		&s3.GetBucketLoggingInput{
 			Bucket:&bucket,
@@ -133,7 +142,6 @@ func  getBucketLogging(c *s3.S3) {
 }
 func putBucketAcl(c *s3.S3){
 	acl := "public-read"
-	bucket := "aaphp"
 	out,err := c.PutBucketACL(&s3.PutBucketACLInput{
 		ACL:&acl,
 		Bucket:&bucket,
@@ -144,7 +152,6 @@ func putBucketAcl(c *s3.S3){
 	fmt.Println(out)
 }
 func putBucketLogging(c *s3.S3){
-	bucket := "abcds"
 	prefix := "x-kss-"
 	out,err := c.PutBucketLogging(&s3.PutBucketLoggingInput{
 		Bucket:&bucket,
@@ -161,7 +168,6 @@ func putBucketLogging(c *s3.S3){
 	fmt.Println(out)
 }
 func getBucketLocation(c *s3.S3){
-	bucket := "aa-go-sdk"
 	out,err := c.GetBucketLocation(
 		&s3.GetBucketLocationInput{
 			Bucket:&bucket,
@@ -170,12 +176,14 @@ func getBucketLocation(c *s3.S3){
 	if err != nil{
 		panic(err)
 	}
-	fmt.Println(*out.LocationConstraint)
+	if *out.LocationConstraint!= "HANGZHOU"{
+		panic("location expected HANGZHOU but not")
+	}
 }
 func deleteObject(c *s3.S3) {
-	bucket := "aa-go-sdk"
+	putObject(c)
 	key := "aws/config.go"
-	out,err := c.DeleteObject(
+	_,err := c.DeleteObject(
 		&s3.DeleteObjectInput{
 			Bucket:&bucket,
 			Key:&key,
@@ -184,10 +192,9 @@ func deleteObject(c *s3.S3) {
 	if err != nil{
 		panic(err)
 	}
-	fmt.Println(out)
 }
 func getObject(c *s3.S3){
-	bucket := "aa-go-sdk"
+	putObject(c)
 	key := "aws/config.go"
 	out,err := c.GetObject(
 		&s3.GetObjectInput{
@@ -207,7 +214,6 @@ func getObject(c *s3.S3){
 	fmt.Printf("%-20s %-2v %v\n", b[:n], n, err)
 }
 func getObjectPresignedUrl(c *s3.S3){
-	bucket := "aa-go-sdk"
 	key := "aws/config.go"
 	content := "text/html"
 	url,_ := c.GetObjectPresignedUrl(
@@ -221,7 +227,7 @@ func getObjectPresignedUrl(c *s3.S3){
 	fmt.Println(url)
 }
 func headObject(c *s3.S3) {
-	bucket := "aa-go-sdk"
+	putObject(c)
 	key := "aws/config.go"
 	out,err := c.HeadObject(
 		&s3.HeadObjectInput{
@@ -237,7 +243,6 @@ func headObject(c *s3.S3) {
 	fmt.Println(*out.ContentType)
 }
 func putObject(c *s3.S3) {
-	bucket := "aa-go-sdk"
 	key := "aws/config.go"
 	contenttype := "application/ocet-stream"
 	out,err := c.PutObject(
@@ -253,29 +258,8 @@ func putObject(c *s3.S3) {
 	}
 	fmt.Println(out)
 }
-func putObjectByFile(c *s3.S3) {
-    fi,err := os.Open("/Users/lijunwei/Downloads/ks3_php_sdk_2015-06-08.log")  
-    if err != nil{panic(err)}  
-    defer fi.Close()  
-   // r := io.NewReader(fi) 
-    //readerSeeker,_ := fi.Seek(10,0)
-
-	bucket := "aa-go-sdk"
-	key := "中文/test.go"
-	out,err := c.PutObject(
-		&s3.PutObjectInput{
-			Bucket:&bucket,
-			Key:&key,
-			Body:fi,
-		},
-	)
-	if err != nil{
-		panic(err)
-	}
-	fmt.Println(out)
-}
 func getObjectAcl(c *s3.S3) {
-	bucket := "aa-go-sdk"
+	putObject(c)
 	key := "中文/test.go"
 	out,err := c.GetObjectACL(
 		&s3.GetObjectACLInput{
@@ -309,7 +293,6 @@ func getObjectAcl(c *s3.S3) {
 	}
 }
 func multipart(c *s3.S3){
-	bucket := "abcds"
 	key := "中文"
 	acl := "public-read"
 	out,_ := c.CreateMultipartUpload(
@@ -370,7 +353,6 @@ func multipart(c *s3.S3){
 	fmt.Println(comRet)
 }
 func deleteObjects(c *s3.S3){
-	bucket := "abcds"
 	key := "test"
 
 	var objects [] *s3.ObjectIdentifier
@@ -388,7 +370,7 @@ func deleteObjects(c *s3.S3){
 	fmt.Println(out)
 }
 func copyObject(c *s3.S3){
-	bucket := "abcds"
+	bucket := "aa-go-sdk"
 	source := "abcds/%E4%B8%AD%E6%96%87"
 	key := "test"
 
