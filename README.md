@@ -1,117 +1,91 @@
-# AWS SDK for Go
+# AWS S3 SDK For Go使用指南 
+---
 
-sdk应该放置在
-GO_PATH/src/github.com/ks3sdklib/ 目录下
+[TOC]
 
-较原版主要改动:
-service/s3/service.go s.Handlers.Build.PushBack(ContentTypeHandler) 
-aws/handler_functions.go ContentTypeHandler
-service/s3/service.go service.Handlers.Sign.PushBack(v2.Sign)
-internal/signer/v2/v2.go
-internal/protocol/rest/build.go updatePath,解决不能上传目录的问题
+## 1 概述
+此SDK是基于aws-sdk-go改造，适用于golang开发环境。
 
-[![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/ks3sdklib/aws-sdk-go)
-[![Build Status](https://img.shields.io/travis/aws/aws-sdk-go.svg)](https://travis-ci.org/aws/aws-sdk-go)
-[![Apache V2 License](http://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/ks3sdklib/aws-sdk-go/blob/master/LICENSE.txt)
+## 2 环境准备
+配置Go 开发环境  
 
-aws-sdk-go is the official AWS SDK for the Go programming language.
+## 3 初始化
+### 3.1 下载安装SDK
+go get  github.com/ks3sdklib/aws-sdk-go
+### 3.2 获取秘钥
+1、开通KS3服务，[http://www.ksyun.com/user/register](http://www.ksyun.com/user/register) 注册账号  
+2、进入控制台, [http://ks3.ksyun.com/console.html#/setting](http://ks3.ksyun.com/console.html#/setting) 获取AccessKeyID 、AccessKeySecret
+### 3.3 初始化
+1、引用相关包
 
-[**Check out the official Developer Preview announcement (New - June 3rd 2015)**](https://aws.amazon.com/blogs/aws/developer-preview-of-aws-sdk-for-go-is-now-available/)
+	import(
+		"github.com/ks3sdklib/aws-sdk-go/aws"
+		"github.com/ks3sdklib/aws-sdk-go/aws/credentials"
+		"github.com/ks3sdklib/aws-sdk-go/service/s3"
+	)
 
-## Caution
+2、初始化客户端
 
-The SDK is currently in the process of being developed, and not everything
-may be working fully yet. Please be patient and report any bugs or problems
-you experience. The APIs may change radically without much warning, so please
-vendor your dependencies with Godep or similar.
+	credentials := credentials.NewStaticCredentials("<AccessKeyID>","<AccessKeySecret>","")
+	client := s3.New(&aws.Config{
+		Region: "HANGZHOU",
+		Credentials: credentials,
+		Endpoint:"kss.ksyun.com",//s3地址
+		DisableSSL:true,//是否禁用https
+		LogLevel:1,//是否开启日志
+		S3ForcePathStyle:true,//是否强制使用path style方式访问
+		LogHTTPBody:true,//是否把HTTP请求body打入日志
+		Logger:os.Stdout,//打日志的位置
+		})
+## 4 使用示例
+输入参数params和返回结果resp详细结构请参考github.com/ks3sdklib/aws-sdk-go/service/s3/api.go  
+### 4.1 上传文件
 
-Please do not confuse this for a stable, feature-complete library.
-
-Note that while most AWS protocols are currently supported, not all services
-available in this package are implemented fully, as some require extra
-customizations to work with the SDK. If you've encountered such a scenario,
-please open a [GitHub issue](https://github.com/ks3sdklib/aws-sdk-go/issues)
-so we can track work for the service.
-
-## Installing
-
-Install your specific service package with the following `go get` command.
-For example, EC2 support might be installed with:
-
-    $ go get github.com/ks3sdklib/aws-sdk-go/service/ec2
-
-You can also install the entire SDK by installing the root package, including all of the SDK's dependancies:
-
-    $ go get -u github.com/ks3sdklib/aws-sdk-go/...
-
-## Configuring Credentials
-
-Before using the SDK, ensure that you've configured credentials. The best
-way to configure credentials on a development machine is to use the
-`~/.aws/credentials` file, which might look like:
-
-```
-[default]
-aws_access_key_id = AKID1234567890
-aws_secret_access_key = MY-SECRET-KEY
-```
-
-You can learn more about the credentials file from this
-[blog post](http://blogs.aws.amazon.com/security/post/Tx3D6U6WSFGOK2H/A-New-and-Standardized-Way-to-Manage-Credentials-in-the-AWS-SDKs).
-
-Alternatively, you can set the following environment variables:
-
-```
-AWS_ACCESS_KEY_ID=AKID1234567890
-AWS_SECRET_ACCESS_KEY=MY-SECRET-KEY
-```
-
-## Using
-
-To use a service in the SDK, create a service variable by calling the `New()`
-function. Once you have a service, you can call API operations which each
-return response data and a possible error.
-
-To list a set of instance IDs from EC2, you could run:
-
-```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/ks3sdklib/aws-sdk-go/aws"
-	"github.com/ks3sdklib/aws-sdk-go/service/ec2"
-)
-
-func main() {
-	// Create an EC2 service object in the "us-west-2" region
-	// Note that you can also configure your region globally by
-	// exporting the AWS_REGION environment variable
-	svc := ec2.New(&aws.Config{Region: "us-west-2"})
-
-	// Call the DescribeInstances Operation
-	resp, err := svc.DescribeInstances(nil)
-	if err != nil {
+	params := &s3.PutObjectInput{
+		Bucket:             aws.String("BucketName"), // bucket名称
+		Key:                aws.String("ObjectKey"),  // object key
+		ACL:                aws.String("ObjectCannedACL"),//权限，支持private(私有)，public-read(公开读)
+		Body:               bytes.NewReader([]byte("PAYLOAD")),//要上传的内容
+		ContentType:        aws.String("application/ocet-stream"),//设置content-type
+		Metadata: map[string]*string{
+			//"Key": aws.String("MetadataValue"), // 设置用户元数据
+			// More values...
+		},
+	}
+	resp, err := client.PutObject(params)
+	if err!= nil{
 		panic(err)
 	}
+	fmt.Println(resp)
 
-	// resp has all of the response data, pull out instance IDs:
-	fmt.Println("> Number of reservation sets: ", len(resp.Reservations))
-	for idx, res := range resp.Reservations {
-		fmt.Println("  > Number of instances: ", len(res.Instances))
-		for _, inst := range resp.Reservations[idx].Instances {
-			fmt.Println("    - Instance ID: ", *inst.InstanceID)
-		}
+### 4.2 下载文件
+
+	params := &s3.GetObjectInput{
+		Bucket:             aws.String("BucketName"), // bucket名称
+		Key:                aws.String("ObjectKey"),  // object key
 	}
-}
-```
+	resp, err := client.GetObject(params)
+	if err != nil{
+		panic(err)
+	}
+	//读取返回结果中body的前20个字节
+	b := make([]byte, 20)
+	n, err := resp.Body.Read(b)
+	fmt.Printf("%-20s %-2v %v\n", b[:n], n, err)
 
-You can find more information and operations in our
-[API documentation](http://godoc.org/github.com/ks3sdklib/aws-sdk-go).
+### 4.3 生成文件下载外链
 
-## License
-
-This SDK is distributed under the
-[Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0),
-see LICENSE.txt and NOTICE.txt for more information.
+	params := &s3.GetObjectInput{
+		Bucket:             aws.String("BucketName"), // bucket名称
+		Key:                aws.String("ObjectKey"),  // object key
+		ResponseCacheControl:       aws.String("ResponseCacheControl"),//控制返回的Cache-Control header
+		ResponseContentDisposition: aws.String("ResponseContentDisposition"),//控制返回的Content-Disposition header
+		ResponseContentEncoding:    aws.String("ResponseContentEncoding"),//控制返回的Content-Encoding header
+		ResponseContentLanguage:    aws.String("ResponseContentLanguage"),//控制返回的Content-Language header
+		ResponseContentType:        aws.String("ResponseContentType"),//控制返回的Content-Type header
+	}
+	resp, err := client.GetObjectPresignedUrl(params,1444370289000000000)//第二个参数为外链过期时间，第二个参数为time.Duration类型
+	if err!=nil {
+		panic(err)
+	}
+	fmt.Println(resp)//resp即生成的外链地址,类型为url.URL
