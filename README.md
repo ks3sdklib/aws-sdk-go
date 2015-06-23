@@ -96,6 +96,7 @@ go get  github.com/ks3sdklib/aws-sdk-go
 		Key:                aws.String("ObjectKey"),  // object key
 		ACL:				aws.String("public-read"),//设置ACL
 		ContentType:        aws.String("application/ocet-stream"),//设置文件的content-type
+		ContentMaxLength:	aws.Long(20),//设置允许的最大长度，对应的header：x-amz-content-maxlength
 	}
 	resp, err := client.PutObjectPresignedUrl(params,1444370289000000000)//第二个参数为外链过期时间，第二个参数为time.Duration类型
 	if err!=nil {

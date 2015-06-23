@@ -225,7 +225,8 @@ func TestPutObjectPresignedUrl(t *testing.T){
 			Bucket:aws.String(bucket),
 			Key:aws.String(key),
 			ACL:aws.String("public-read"),
-			ContentType:aws.String("application/ocet-stream"),
+			ContentType:aws.String("application/ocet-stream; charset=UTF-8"),
+			ContentMaxLength:aws.Long(20),
 		},
 		1544370289000000000,
 	)
