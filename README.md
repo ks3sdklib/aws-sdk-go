@@ -89,8 +89,21 @@ go get  github.com/ks3sdklib/aws-sdk-go
 		panic(err)
 	}
 	fmt.Println(resp)//resp即生成的外链地址,类型为url.URL
+### 4.4 生成文件上传外链
 
-### 4.4 计算token
+	params := &s3.PutObjectInput{
+		Bucket:             aws.String("BucketName"), // bucket名称
+		Key:                aws.String("ObjectKey"),  // object key
+		ACL:				aws.String("public-read"),//设置ACL
+		ContentType:        aws.String("application/ocet-stream"),//设置文件的content-type
+	}
+	resp, err := client.PutObjectPresignedUrl(params,1444370289000000000)//第二个参数为外链过期时间，第二个参数为time.Duration类型
+	if err!=nil {
+		panic(err)
+	}
+	fmt.Println(resp)//resp即生成的外链地址,类型为url.URL
+
+### 4.5 计算token
 
 	package main
 	import(

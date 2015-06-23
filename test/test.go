@@ -36,7 +36,7 @@ func main(){
 	//listObjects(svc)
 	//getBucketLogging(svc)
 	//putBucketAcl(svc)
-	putBucketLogging(svc)
+	//putBucketLogging(svc)
 	//getBucketLocation(svc)
 	//deleteObject(svc)
 	
@@ -46,7 +46,7 @@ func main(){
 	//getObject(svc)
 	//getObjectAcl(svc)
 	//multipart(svc)
-	//deleteObjects(svc)
+	deleteObjects(svc)
 	
 	//getObjectPresignedUrl(svc)
 	//copyObject(svc)
