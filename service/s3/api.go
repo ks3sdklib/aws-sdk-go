@@ -4830,7 +4830,7 @@ type PutObjectInput struct {
 	// the value of this header in the object metadata.
 	WebsiteRedirectLocation *string `location:"header" locationName:"x-amz-website-redirect-location" type:"string"`
 
-	ContentMaxLength *int64 `location:"header" locationName:"x-amz-content-maxlength" type:"string"`
+	ContentMaxLength *int64 `location:"header" locationName:"x-amz-content-maxlength" type:"integer"`
 
 	metadataPutObjectInput `json:"-" xml:"-"`
 }

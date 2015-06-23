@@ -13,13 +13,15 @@ import (
 )
 var bucket =string("aa-go-sdk")
 var key = string("中文/test.go")
+var key_encode = string("%E4%B8%AD%E6%96%87/test.go")
+var key_copy = string("中文/test.go.copy")
 var content = string("content")
 var cre = credentials.NewStaticCredentials("lMQTr0hNlMpB0iOk/i+x","D4CsYLs75JcWEjbiI22zR3P7kJ/+5B1qdEje7A7I","")
 var svc = s3.New(&aws.Config{
 		Region: "HANGZHOU",
 		Credentials: cre,
 		Endpoint:"kss.ksyun.com",
-		DisableSSL:true,
+		DisableSSL:false,
 		LogLevel:1,
 		S3ForcePathStyle:true,
 		LogHTTPBody:true,
@@ -219,6 +221,112 @@ func TestObjectAcl(t *testing.T){
 	privategrants := acp.Grants
 	assert.Equal(t,1,len(privategrants),"size of grants")
 }
+func TestCopyObject(t *testing.T) {
+	putObjectSimple();
+	svc.DeleteObject(&s3.DeleteObjectInput{
+			Bucket:aws.String(bucket),
+			Key:aws.String(key_copy),
+		})
+	_,err := svc.CopyObject(&s3.CopyObjectInput{
+		Bucket:aws.String(bucket),
+		Key:aws.String(key_copy),
+		CopySource:aws.String(bucket+"/"+key_encode),
+	})
+	assert.NoError(t,err)
+	assert.True(t,objectExists(bucket,key))
+
+	meta,err := svc.HeadObject(
+		&s3.HeadObjectInput{
+			Bucket:&bucket,
+			Key:&key_copy,
+		},
+	)
+	assert.NoError(t,err)
+	assert.Equal(t,int64(len(content)),*meta.ContentLength)
+}
+func TestMultipartUpload(t *testing.T) {
+	initRet,initErr := svc.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
+		Bucket:aws.String(bucket),
+		Key:aws.String(key),
+		ACL:aws.String("public-read"),
+		ContentType:aws.String("image/jpeg"),
+	})
+	assert.NoError(t,initErr)
+	assert.Equal(t,bucket,*initRet.Bucket)
+	assert.Equal(t,key,*initRet.Key)
+	assert.NotNil(t,*initRet.UploadID)
+
+	uploadId := *initRet.UploadID
+
+
+	upRet,upErr := svc.UploadPart(&s3.UploadPartInput{
+		Bucket:aws.String(bucket),
+		Key:aws.String(key),
+		PartNumber:aws.Long(1),
+		UploadID:aws.String(uploadId),
+		Body:strings.NewReader(content),
+		ContentLength:aws.Long(int64(len(content))),
+	})
+	assert.NoError(t,upErr)
+	assert.NotNil(t,upRet.ETag)
+
+
+	listRet,listErr := svc.ListParts(&s3.ListPartsInput{
+		Bucket:aws.String(bucket),
+		Key:aws.String(key),
+		UploadID:aws.String(uploadId),
+	})
+	assert.NoError(t,listErr)
+	assert.Equal(t,bucket,*listRet.Bucket)
+	assert.Equal(t,key,*listRet.Key)
+	assert.False(t,*listRet.IsTruncated)
+	assert.Equal(t,uploadId,*listRet.UploadID)
+	parts := listRet.Parts
+	assert.Equal(t,1,len(parts))
+	part := parts[0]
+
+	compParts := []*s3.CompletedPart{&s3.CompletedPart{PartNumber:part.PartNumber,ETag:part.ETag,}}
+	compRet,compErr := svc.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
+		Bucket:aws.String(bucket),
+		Key:aws.String(key),
+		UploadID:aws.String(uploadId),
+		MultipartUpload:&s3.CompletedMultipartUpload{
+			Parts:compParts,
+		},
+	})
+	assert.NoError(t,compErr)
+	assert.Equal(t,bucket,*compRet.Bucket)
+	assert.Equal(t,key,*compRet.Key)
+}
+func TestPutObjectWithUserMeta(t *testing.T) {
+	meta := make(map[string]*string)
+	meta["user"] = aws.String("lijunwei")
+	meta["edit-date"] = aws.String("20150623")
+	_,putErr := svc.PutObject(&s3.PutObjectInput{
+		Bucket:aws.String(bucket),
+		Key:aws.String(key),
+		Metadata:meta,
+	})
+	assert.NoError(t,putErr)
+
+	headRet,headErr := svc.HeadObject(&s3.HeadObjectInput{
+		Bucket:aws.String(bucket),
+		Key:aws.String(key),
+	})
+	assert.NoError(t,headErr)
+
+	outMeta := headRet.Metadata
+	user := outMeta["user"]
+	date := outMeta["edit-date"]
+	assert.NotNil(t,user)
+	assert.NotNil(t,date)
+	if user != nil{
+		assert.Equal(t,"lijunwei",*user)
+	}
+	if date != nil{
+		assert.Equal(t,"20150623",*date)
+	}
+}
 func TestPutObjectPresignedUrl(t *testing.T){
 	url,_ := svc.PutObjectPresignedUrl(
 		&s3.PutObjectInput{
@@ -231,6 +339,39 @@ func TestPutObjectPresignedUrl(t *testing.T){
 		1544370289000000000,
 	)
 	fmt.Println(url)
+}
+func TestPutObjectWithSSEC(t *testing.T) {
+	putRet,putErr := svc.PutObject(&s3.PutObjectInput{
+		Bucket:aws.String(bucket),
+		Key:aws.String(key),
+		SSECustomerAlgorithm:aws.String("AES256"),
+		SSECustomerKey:aws.String("12345678901234567890123456789012"),
+	})
+	assert.NoError(t,putErr)
+	assert.NotNil(t,putRet.SSECustomerAlgorithm)
+	if putRet.SSECustomerAlgorithm!=nil{
+		assert.Equal(t,"AES256",*putRet.SSECustomerAlgorithm)
+	}
+	assert.NotNil(t,putRet.SSECustomerKeyMD5)
+	if putRet.SSECustomerKeyMD5 != nil{
+		assert.NotNil(t,*putRet.SSECustomerKeyMD5)
+	}
+
+	headRet,headErr := svc.HeadObject(&s3.HeadObjectInput{
+		Bucket:aws.String(bucket),
+		Key:aws.String(key),
+		SSECustomerAlgorithm:aws.String("AES256"),
+		SSECustomerKey:aws.String("12345678901234567890123456789012"),
+	})
+	assert.NoError(t,headErr)
+	assert.NotNil(t,headRet.SSECustomerAlgorithm)
+	if headRet.SSECustomerAlgorithm != nil{
+		assert.Equal(t,"AES256",*headRet.SSECustomerAlgorithm)
+	}
+	assert.NotNil(t,headRet.SSECustomerKeyMD5)
+	if headRet.SSECustomerKeyMD5!=nil{
+		assert.NotNil(t,*headRet.SSECustomerKeyMD5)
+	}
 }
 func putObjectSimple() {
 	svc.PutObject(
