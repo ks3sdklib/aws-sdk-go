@@ -12,7 +12,7 @@ import (
 var errSSERequiresSSL = apierr.New("ConfigError", "cannot send SSE keys over HTTP.", nil)
 
 func validateSSERequiresSSL(r *aws.Request) {
-	if r.HTTPRequest.URL.Scheme != "https" {
+	if /*r.HTTPRequest.URL.Scheme != "https"*/false {
 		p := awsutil.ValuesAtPath(r.Params, "SSECustomerKey||CopySourceSSECustomerKey")
 		if len(p) > 0 {
 			r.Error = errSSERequiresSSL

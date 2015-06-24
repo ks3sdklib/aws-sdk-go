@@ -92,17 +92,28 @@ go get  github.com/ks3sdklib/aws-sdk-go
 ### 4.4 生成文件上传外链
 
 	params := &s3.PutObjectInput{
-		Bucket:             aws.String("BucketName"), // bucket名称
-		Key:                aws.String("ObjectKey"),  // object key
+		Bucket:             aws.String(bucket), // bucket名称
+		Key:                aws.String(key),  // object key
 		ACL:				aws.String("public-read"),//设置ACL
 		ContentType:        aws.String("application/ocet-stream"),//设置文件的content-type
 		ContentMaxLength:	aws.Long(20),//设置允许的最大长度，对应的header：x-amz-content-maxlength
 	}
-	resp, err := client.PutObjectPresignedUrl(params,1444370289000000000)//第二个参数为外链过期时间，第二个参数为time.Duration类型
+	resp, err := svc.PutObjectPresignedUrl(params,1444370289000000000)//第二个参数为外链过期时间，第二个参数为time.Duration类型
 	if err!=nil {
 		panic(err)
 	}
-	fmt.Println(resp)//resp即生成的外链地址,类型为url.URL
+	
+	httpReq, _ := http.NewRequest("PUT", "", strings.NewReader("123"))
+	httpReq.URL = resp
+	httpReq.Header["x-amz-acl"] = []string{"public-read"}
+	httpReq.Header["x-amz-content-maxlength"] = []string{"20"}
+	httpReq.Header.Add("Content-Type","application/ocet-stream")
+	fmt.Println(httpReq)
+ 	httpRep,err := http.DefaultClient.Do(httpReq)
+ 	fmt.Println(httpRep)
+	if err != nil{
+		panic(err)
+	}
 
 ### 4.5 生成设置文件ACL的外链
 

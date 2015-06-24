@@ -2724,8 +2724,6 @@ type CreateMultipartUploadInput struct {
 	// the value of this header in the object metadata.
 	WebsiteRedirectLocation *string `location:"header" locationName:"x-amz-website-redirect-location" type:"string"`
 
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
 	metadataCreateMultipartUploadInput `json:"-" xml:"-"`
 }
 

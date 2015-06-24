@@ -1,10 +1,11 @@
 package ks3test
 
 import (
-	"fmt"
 	"testing"
 	"strings"
 	"bufio"
+//	"io"
+	"fmt"
 	"net/http"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
@@ -22,7 +23,7 @@ var svc = s3.New(&aws.Config{
 		Region: "HANGZHOU",
 		Credentials: cre,
 		Endpoint:"kss.ksyun.com",
-		DisableSSL:false,
+		DisableSSL:true,
 		LogLevel:1,
 		S3ForcePathStyle:true,
 		LogHTTPBody:true,
@@ -246,7 +247,7 @@ func TestCopyObject(t *testing.T) {
 	assert.NoError(t,err)
 	assert.Equal(t,int64(len(content)),*meta.ContentLength)
 }
-/**func TestMultipartUpload(t *testing.T) {
+func TestMultipartUpload(t *testing.T) {
 	initRet,initErr := svc.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 		Bucket:aws.String(bucket),
 		Key:aws.String(key),
@@ -299,7 +300,7 @@ func TestCopyObject(t *testing.T) {
 	assert.NoError(t,compErr)
 	assert.Equal(t,bucket,*compRet.Bucket)
 	assert.Equal(t,key,*compRet.Key)
-}*/
+}
 func TestPutObjectWithUserMeta(t *testing.T) {
 	meta := make(map[string]*string)
 	meta["user"] = aws.String("lijunwei")
@@ -318,8 +319,8 @@ func TestPutObjectWithUserMeta(t *testing.T) {
 	assert.NoError(t,headErr)
 
 	outMeta := headRet.Metadata
-	user := outMeta["user"]
-	date := outMeta["edit-date"]
+	user := outMeta["User"]
+	date := outMeta["Edit-Date"]
 	assert.NotNil(t,user)
 	assert.NotNil(t,date)
 	if user != nil{
@@ -328,19 +329,6 @@ func TestPutObjectWithUserMeta(t *testing.T) {
 	if date != nil{
 		assert.Equal(t,"20150623",*date)
 	}
-}
-func TestPutObjectPresignedUrl(t *testing.T){
-	url,_ := svc.PutObjectPresignedUrl(
-		&s3.PutObjectInput{
-			Bucket:aws.String(bucket),
-			Key:aws.String(key),
-			ACL:aws.String("public-read"),
-			ContentType:aws.String("application/ocet-stream; charset=UTF-8"),
-			ContentMaxLength:aws.Long(20),
-		},
-		1544370289000000000,
-	)
-	fmt.Println(url)
 }
 func TestPutObjectWithSSEC(t *testing.T) {
 	putRet,putErr := svc.PutObject(&s3.PutObjectInput{
@@ -386,20 +374,50 @@ func TestPutObjectAclPresignedUrl(t *testing.T){
 	if err!=nil {
 		panic(err)
 	}
-	fmt.Println(resp)//resp即生成的外链地址,类型为url.URL
 
 	httpReq, _ := http.NewRequest("PUT", "", nil)
 	httpReq.URL = resp
 	httpReq.Header["x-amz-acl"] = []string{"private"}
 	httpReq.Header.Add("Content-Type","text/plain")
-	fmt.Println(httpReq)
  	httpRep,err := http.DefaultClient.Do(httpReq)
 	if err != nil{
 		panic(err)
 	}
-	fmt.Println(httpRep)
+	assert.Equal(t,"200 OK",httpRep.Status)
+}
+func TestPutObjectPresignedUrl(t *testing.T){
+	params := &s3.PutObjectInput{
+		Bucket:             aws.String(bucket), // bucket名称
+		Key:                aws.String(key),  // object key
+		ACL:				aws.String("public-read"),//设置ACL
+		ContentType:        aws.String("application/ocet-stream"),//设置文件的content-type
+		ContentMaxLength:	aws.Long(20),//设置允许的最大长度，对应的header：x-amz-content-maxlength
+	}
+	resp, err := svc.PutObjectPresignedUrl(params,1444370289000000000)//第二个参数为外链过期时间，第二个参数为time.Duration类型
+	if err!=nil {
+		panic(err)
+	}
+	
+	httpReq, _ := http.NewRequest("PUT", "", strings.NewReader("123"))
+	httpReq.URL = resp
+	httpReq.Header["x-amz-acl"] = []string{"public-read"}
+	httpReq.Header["x-amz-content-maxlength"] = []string{"20"}
+	httpReq.Header.Add("Content-Type","application/ocet-stream")
+	fmt.Println(httpReq)
+ 	httpRep,err := http.DefaultClient.Do(httpReq)
+ 	fmt.Println(httpRep)
+	if err != nil{
+		panic(err)
+	}
+	assert.Equal(t,"200 OK",httpRep.Status)
 }
 func putObjectSimple() {
+	svc.DeleteObject(
+		&s3.DeleteObjectInput{
+			Bucket:aws.String(bucket),
+			Key:aws.String(key),
+		},
+	)
 	svc.PutObject(
 		&s3.PutObjectInput{
 			Bucket:aws.String(bucket),
