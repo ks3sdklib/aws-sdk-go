@@ -104,7 +104,33 @@ go get  github.com/ks3sdklib/aws-sdk-go
 	}
 	fmt.Println(resp)//resp即生成的外链地址,类型为url.URL
 
-### 4.5 计算token
+### 4.5 生成设置文件ACL的外链
+
+	params := &s3.PutObjectACLInput{
+		Bucket:             aws.String(bucket), // bucket名称
+		Key:                aws.String(key),  // object key
+		ACL:				aws.String("private"),//设置ACL
+		ContentType:		aws.String("text/plain"),
+	}
+	resp, err := svc.PutObjectACLPresignedUrl(params,1444370289000000000)//第二个参数为外链过期时间，第二个参数为time.Duration类型
+	if err!=nil {
+		panic(err)
+	}
+	fmt.Println(resp)//resp即生成的外链地址,类型为url.URL
+
+	httpReq, _ := http.NewRequest("PUT", "", nil)
+	httpReq.URL = resp
+	httpReq.Header["x-amz-acl"] = []string{"private"}
+	httpReq.Header.Add("Content-Type","text/plain")
+	fmt.Println(httpReq)
+ 	httpRep,err := http.DefaultClient.Do(httpReq)
+	if err != nil{
+		panic(err)
+	}
+	fmt.Println(httpRep)
+
+
+### 4.6 计算token
 
 	package main
 	import(

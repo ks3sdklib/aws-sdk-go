@@ -5,6 +5,7 @@ import (
 	"testing"
 	"strings"
 	"bufio"
+	"net/http"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 	"github.com/ks3sdklib/aws-sdk-go/aws/credentials"
@@ -216,6 +217,7 @@ func TestObjectAcl(t *testing.T){
 
 	acp,getaclErr := svc.GetObjectACL(&s3.GetObjectACLInput{
 		Bucket:aws.String(bucket),
+		Key:aws.String(key),
 		})
 	assert.NoError(t,getaclErr)
 	privategrants := acp.Grants
@@ -244,7 +246,7 @@ func TestCopyObject(t *testing.T) {
 	assert.NoError(t,err)
 	assert.Equal(t,int64(len(content)),*meta.ContentLength)
 }
-func TestMultipartUpload(t *testing.T) {
+/**func TestMultipartUpload(t *testing.T) {
 	initRet,initErr := svc.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 		Bucket:aws.String(bucket),
 		Key:aws.String(key),
@@ -297,7 +299,7 @@ func TestMultipartUpload(t *testing.T) {
 	assert.NoError(t,compErr)
 	assert.Equal(t,bucket,*compRet.Bucket)
 	assert.Equal(t,key,*compRet.Key)
-}
+}*/
 func TestPutObjectWithUserMeta(t *testing.T) {
 	meta := make(map[string]*string)
 	meta["user"] = aws.String("lijunwei")
@@ -372,6 +374,30 @@ func TestPutObjectWithSSEC(t *testing.T) {
 	if headRet.SSECustomerKeyMD5!=nil{
 		assert.NotNil(t,*headRet.SSECustomerKeyMD5)
 	}
+}
+func TestPutObjectAclPresignedUrl(t *testing.T){
+	params := &s3.PutObjectACLInput{
+		Bucket:             aws.String(bucket), // bucket名称
+		Key:                aws.String(key),  // object key
+		ACL:				aws.String("private"),//设置ACL
+		ContentType:		aws.String("text/plain"),
+	}
+	resp, err := svc.PutObjectACLPresignedUrl(params,1444370289000000000)//第二个参数为外链过期时间，第二个参数为time.Duration类型
+	if err!=nil {
+		panic(err)
+	}
+	fmt.Println(resp)//resp即生成的外链地址,类型为url.URL
+
+	httpReq, _ := http.NewRequest("PUT", "", nil)
+	httpReq.URL = resp
+	httpReq.Header["x-amz-acl"] = []string{"private"}
+	httpReq.Header.Add("Content-Type","text/plain")
+	fmt.Println(httpReq)
+ 	httpRep,err := http.DefaultClient.Do(httpReq)
+	if err != nil{
+		panic(err)
+	}
+	fmt.Println(httpRep)
 }
 func putObjectSimple() {
 	svc.PutObject(

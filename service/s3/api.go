@@ -4721,6 +4721,8 @@ type PutObjectACLInput struct {
 	// at http://docs.aws.amazon.com/AmazonS3/latest/dev/ObjectsinRequesterPaysBuckets.html
 	RequestPayer *string `location:"header" locationName:"x-amz-request-payer" type:"string"`
 
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
 	metadataPutObjectACLInput `json:"-" xml:"-"`
 }
 
