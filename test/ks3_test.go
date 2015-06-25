@@ -156,6 +156,7 @@ func TestDelMulti(t *testing.T) {
 		Delete:&s3.Delete{
 			Objects:objects,
 		},
+		ContentType:aws.String("application/xml"),
 	})
 	assert.NoError(t,err)
 	assert.False(t,objectExists(bucket,key))
@@ -412,12 +413,12 @@ func TestPutObjectPresignedUrl(t *testing.T){
 	assert.Equal(t,"200 OK",httpRep.Status)
 }
 func putObjectSimple() {
-	svc.DeleteObject(
+/*	svc.DeleteObject(
 		&s3.DeleteObjectInput{
 			Bucket:aws.String(bucket),
 			Key:aws.String(key),
 		},
-	)
+	)*/
 	svc.PutObject(
 		&s3.PutObjectInput{
 			Bucket:aws.String(bucket),
