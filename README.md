@@ -30,10 +30,10 @@ go get  github.com/ks3sdklib/aws-sdk-go
 	client := s3.New(&aws.Config{
 		Region: "HANGZHOU",
 		Credentials: credentials,
-		Endpoint:"kss.ksyun.com",//s3地址
+		Endpoint:"kssws.ks-cdn.com",//s3地址
 		DisableSSL:true,//是否禁用https
 		LogLevel:1,//是否开启日志
-		S3ForcePathStyle:true,//是否强制使用path style方式访问
+		S3ForcePathStyle:false,//是否强制使用path style方式访问
 		LogHTTPBody:true,//是否把HTTP请求body打入日志
 		Logger:os.Stdout,//打日志的位置
 		})
