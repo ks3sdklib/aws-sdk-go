@@ -212,6 +212,7 @@ func (v2 *signer) buildCanonicalResource(){
 	
 	v2.Request.URL.RawQuery = strings.Replace(v2.Query.Encode(), "+", "%20", -1)
 	url := v2.Request.URL.String()
+	//在aws.service.go,buildEndpoint会把sheme也加上
 	pathStyle := strings.HasPrefix(url,endpoint)
 	uri := v2.Request.URL.Opaque
 

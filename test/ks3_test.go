@@ -22,10 +22,10 @@ var cre = credentials.NewStaticCredentials("lMQTr0hNlMpB0iOk/i+x","D4CsYLs75JcWE
 var svc = s3.New(&aws.Config{
 		Region: "HANGZHOU",
 		Credentials: cre,
-		Endpoint:"kss.ksyun.com",
+		Endpoint:"kssws.ks-cdn.com",
 		DisableSSL:true,
 		LogLevel:1,
-		S3ForcePathStyle:true,
+		S3ForcePathStyle:false,
 		LogHTTPBody:true,
 		})
 

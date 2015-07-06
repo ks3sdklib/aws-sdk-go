@@ -141,7 +141,7 @@ go get  github.com/ks3sdklib/aws-sdk-go
 	fmt.Println(httpRep)
 
 
-### 4.6 计算token
+### 4.6 计算token（移动端相关）
 
 	package main
 	import(
