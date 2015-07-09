@@ -57,6 +57,8 @@ go get  github.com/ks3sdklib/aws-sdk-go
 		panic(err)
 	}
 	fmt.Println(resp)
+	//获取新的文件名
+	fmt.Println(*resp.NewFileName)
 
 ### 4.2 下载文件
 

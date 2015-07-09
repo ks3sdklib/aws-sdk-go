@@ -4963,6 +4963,8 @@ type PutObjectOutput struct {
 	// Version of the object.
 	VersionID *string `location:"header" locationName:"x-amz-version-id" type:"string"`
 
+	NewFileName *string `location:"header" locationName:"newfilename" type:"string"`
+
 	metadataPutObjectOutput `json:"-" xml:"-"`
 }
 
