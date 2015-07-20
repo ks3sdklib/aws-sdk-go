@@ -32,7 +32,7 @@ go get  github.com/ks3sdklib/aws-sdk-go
 		Credentials: credentials,
 		Endpoint:"kssws.ks-cdn.com",//s3地址
 		DisableSSL:true,//是否禁用https
-		LogLevel:1,//是否开启日志
+		LogLevel:1,//是否开启日志,0为关闭日志，1为开启日志
 		S3ForcePathStyle:false,//是否强制使用path style方式访问
 		LogHTTPBody:true,//是否把HTTP请求body打入日志
 		Logger:os.Stdout,//打日志的位置
@@ -100,7 +100,7 @@ go get  github.com/ks3sdklib/aws-sdk-go
 		ContentType:        aws.String("application/ocet-stream"),//设置文件的content-type
 		ContentMaxLength:	aws.Long(20),//设置允许的最大长度，对应的header：x-amz-content-maxlength
 	}
-	resp, err := svc.PutObjectPresignedUrl(params,1444370289000000000)//第二个参数为外链过期时间，第二个参数为time.Duration类型
+	resp, err := client.PutObjectPresignedUrl(params,1444370289000000000)//第二个参数为外链过期时间，第二个参数为time.Duration类型
 	if err!=nil {
 		panic(err)
 	}
@@ -125,7 +125,7 @@ go get  github.com/ks3sdklib/aws-sdk-go
 		ACL:				aws.String("private"),//设置ACL
 		ContentType:		aws.String("text/plain"),
 	}
-	resp, err := svc.PutObjectACLPresignedUrl(params,1444370289000000000)//第二个参数为外链过期时间，第二个参数为time.Duration类型
+	resp, err := client.PutObjectACLPresignedUrl(params,1444370289000000000)//第二个参数为外链过期时间，第二个参数为time.Duration类型
 	if err!=nil {
 		panic(err)
 	}
@@ -141,9 +141,84 @@ go get  github.com/ks3sdklib/aws-sdk-go
 		panic(err)
 	}
 	fmt.Println(httpRep)
+### 4.7 初始化分块上传
 
+	params := &s3.CreateMultipartUploadInput{
+		Bucket:             aws.String("BucketName"), // bucket名称
+		Key:                aws.String("ObjectKey"),  // object key
+		ACL:                aws.String("ObjectCannedACL"),//权限，支持private(私有)，public-read(公开读)
+		ContentType:        aws.String("application/ocet-stream"),//设置content-type
+		Metadata: map[string]*string{
+			//"Key": aws.String("MetadataValue"), // 设置用户元数据
+			// More values...
+		},
+	}
+	resp, err := client.CreateMultipartUpload(params)
+	if err != nil{
+		panic(err)
+	}
+	//获取这次初始化的uploadid
+	fmt.Println(*resp.UploadID)
 
-### 4.6 计算token（移动端相关）
+### 4.8 分块上传-上传块
+
+	params := &s3.UploadPartInput{
+		Bucket:aws.String(bucket),//bucket名称
+		Key:aws.String(key),//文件名
+		PartNumber:aws.Long(1),//当前块的序号
+		UploadID:aws.String(uploadId),//由初始化获取到得uploadid
+		Body:strings.NewReader(content),//当前块的内容
+		ContentLength:aws.Long(int64(len(content))),//内容长度
+	}
+	resp,err := client.UploadPart(params)
+	if err != nil{
+		panic(err)
+	}
+	fmt.Println(resp)
+
+### 4.9 完成分块上传并合并块
+
+	params := &s3.CompleteMultipartUploadInput{
+		Bucket:aws.String(bucket),//bucket名称
+		Key:aws.String(key),//文件名
+		UploadID:aws.String(uploadId),//由初始化获取到得uploadid
+		MultipartUpload:&s3.CompletedMultipartUpload{
+			Parts:<已经完成的块列表>,//类型为*s3.CompletedPart数组
+		},
+	}
+	resp,err := client.CompleteMultipartUpload(params)
+	if err != nil{
+		panic(err)
+	}
+	fmt.Println(resp)
+
+### 4.10 取消分块上传
+
+	params := &s3.AbortMultipartUploadInput{
+		Bucket:aws.String(bucket),//bucket名称
+		Key:aws.String(key),//文件名
+		UploadID:aws.String(uploadId),//由初始化获取到得uploadid
+	}
+	resp,err := client.AbortMultipartUpload(params)
+	if err != nil{
+		panic(err)
+	}
+	fmt.Println(resp)
+
+### 4.11 罗列分块上传已经上传的块
+
+	params := &s3.ListPartsInput{
+		Bucket:aws.String(bucket),//bucket名称
+		Key:aws.String(key),//文件名
+		UploadID:aws.String(uploadId),//由初始化获取到得uploadid
+	}
+	resp,err := client.ListParts(params)
+	if err != nil{
+		panic(err)
+	}
+	fmt.Println(resp)
+
+### 4.12 计算token（移动端相关）
 
 	package main
 	import(
