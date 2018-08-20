@@ -2604,7 +2604,7 @@ type CreateBucketInput struct {
 
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	CreateBucketConfiguration *CreateBucketConfiguration `locationName:"CreateBucketConfiguration" type:"structure"`
+	CreateBucketConfiguration *CreateBucketConfiguration `locationName:"CreateBucketConfiguration" type:"structure" xmlURI:"http://s3.amazonaws.com/doc/2006-03-01/"`
 
 	// Allows grantee the read, write, read ACP, and write ACP permissions on the
 	// bucket.
@@ -2624,10 +2624,11 @@ type CreateBucketInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
-	metadataCreateBucketInput `json:"-" xml:"-"`
+
+	MetadataCreateBucketInput `json:"-" xml:"-"`
 }
 
-type metadataCreateBucketInput struct {
+type MetadataCreateBucketInput struct {
 	SDKShapeTraits bool `type:"structure" payload:"CreateBucketConfiguration"`
 }
 
