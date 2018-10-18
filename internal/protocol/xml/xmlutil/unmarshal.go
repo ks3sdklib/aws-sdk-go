@@ -250,7 +250,10 @@ func parseScalar(r reflect.Value, node *XMLNode, tag reflect.StructTag) error {
 		const ISO8601UTC = "2006-01-02T15:04:05Z"
 		t, err := time.Parse(ISO8601UTC, node.Text)
 		if err != nil {
-			return err
+			t, err = time.Parse("2006-01-02T15:04:05-07:00", node.Text)
+			if err != nil {
+				return err
+			}
 		}
 		r.Set(reflect.ValueOf(&t))
 	default:
