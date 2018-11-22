@@ -4928,6 +4928,9 @@ type PutObjectInput struct {
 
 	ContentMaxLength *int64 `location:"header" locationName:"x-amz-content-maxlength" type:"integer"`
 
+	CallbackUrl *string `location:"header" locationName:"x-kss-callbackurl" type:"string"`
+	CallbackBody *string `location:"header" locationName:"x-kss-callbackbody" type:"string"`
+
 	metadataPutObjectInput `json:"-" xml:"-"`
 }
 
