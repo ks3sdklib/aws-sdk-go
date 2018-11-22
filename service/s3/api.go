@@ -3894,6 +3894,10 @@ type LifecycleExpiration struct {
 	metadataLifecycleExpiration `json:"-" xml:"-"`
 }
 
+type LifecycleFilter struct {
+	Prefix *string `type:"string" required:"true"`
+}
+
 type metadataLifecycleExpiration struct {
 	SDKShapeTraits bool `type:"structure"`
 }
@@ -3919,7 +3923,7 @@ type LifecycleRule struct {
 	NoncurrentVersionTransition *NoncurrentVersionTransition `type:"structure"`
 
 	// Prefix identifying one or more objects to which the rule applies.
-	Prefix *string `type:"string" required:"true"`
+	Filter *LifecycleFilter `type:"structure"`
 
 	// If 'Enabled', the rule is currently being applied. If 'Disabled', the rule
 	// is not currently being applied.
