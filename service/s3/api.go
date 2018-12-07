@@ -4535,7 +4535,7 @@ type metadataPutBucketACLOutput struct {
 type PutBucketCORSInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	CORSConfiguration *CORSConfiguration `locationName:"CORSConfiguration" type:"structure"`
+	CORSConfiguration *CORSConfiguration `locationName:"CORSConfiguration" type:"structure" xmlURI:"http://s3.amazonaws.com/doc/2006-03-01/"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
