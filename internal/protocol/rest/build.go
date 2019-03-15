@@ -160,10 +160,22 @@ func updatePath(url *url.URL, urlPath string) {
 	if urlPath[len(urlPath)-1] == '/'&&len(urlPath)>1{
 		add = true
 	}
+
+	// path.Clean will remove duplicate leading /
+	// this will make deleting / started key impossible
+	// so escape it here first
+	addFirst := false
+	if len(urlPath) > 1 && urlPath[1] == '/' {
+		addFirst = true
+	}
+
 	// clean up path
 	urlPath = path.Clean(urlPath)
 	if add{
 		urlPath += "/"
+	}
+	if addFirst {
+		urlPath = "/%2F" + urlPath[1:]
 	}
 
 	// get formatted URL minus scheme so we can build this into Opaque
