@@ -157,22 +157,7 @@ func TestDelObject(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, objectExists(bucket, key))
 }
-func TestDelMulti(t *testing.T) {
-	putObjectSimple()
-	assert.True(t, objectExists(bucket, key))
 
-	var objects []*s3.ObjectIdentifier
-	objects = append(objects, &s3.ObjectIdentifier{Key: &key})
-	_, err := svc.DeleteObjects(&s3.DeleteObjectsInput{
-		Bucket: aws.String(bucket),
-		Delete: &s3.Delete{
-			Objects: objects,
-		},
-		ContentType: aws.String("application/xml"),
-	})
-	assert.NoError(t, err)
-	assert.False(t, objectExists(bucket, key))
-}
 func TestGetObject(t *testing.T) {
 	putObjectSimple()
 	out, err := svc.GetObject(&s3.GetObjectInput{
