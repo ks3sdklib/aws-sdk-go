@@ -2,12 +2,13 @@ package ks3test
 
 import (
 	"bufio"
+	"bytes"
+	"io/ioutil"
 	"log"
 	"strings"
 	"testing"
 	"time"
 	//	"io"
-	"bytes"
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/credentials"
@@ -18,17 +19,17 @@ import (
 	"os"
 )
 
-var bucket = string("bucket")
-var key = string("key")
-var key_encode = string("key")
-var key_copy = string("key")
+var bucket = string("yourbucket")
+var key = string("yourkey")
+var key_encode = string("yourkey")
+var key_copy = string("yourkey")
 var content = string("content")
-var cre = credentials.NewStaticCredentials("ak", "sk", "")
+var cre = credentials.NewStaticCredentials("ak", "sk", "") //online
 var svc = s3.New(&aws.Config{
-	Region:      "HANGZHOU",
+	Region:      "BEIJING",
 	Credentials: cre,
 	//Endpoint:"ks3-sgp.ksyun.com",
-	Endpoint:         "kss.ksyun.com",
+	Endpoint:         "ks3-cn-beijing.ksyun.com",
 	DisableSSL:       true,
 	LogLevel:         1,
 	S3ForcePathStyle: true,
@@ -112,33 +113,16 @@ func TestDeleteBucket(t *testing.T) {
 	assert.Equal(t, "BucketNotEmpty", err.(*apierr.RequestError).Code())
 }
 func TestListObjects(t *testing.T) {
-	putObjectSimple()
-	objects, err := svc.ListObjects(&s3.ListObjectsInput{
-		Bucket:    aws.String(bucket),
-		Delimiter: aws.String("/"),
-		MaxKeys:   aws.Long(999),
-		Prefix:    aws.String(""),
-	})
-	assert.NoError(t, err)
-	assert.Equal(t, "/", *objects.Delimiter)
-	assert.Equal(t, *aws.Long(999), *objects.MaxKeys)
-	assert.Equal(t, "", *objects.Prefix)
-	assert.False(t, *objects.IsTruncated)
-
+	//putObjectSimple()
 	objects1, err := svc.ListObjects(&s3.ListObjectsInput{
 		Bucket: aws.String(bucket),
 	})
 	assert.NoError(t, err)
 	objectList := objects1.Contents
-	found := false
 	for i := 0; i < len(objectList); i++ {
 		object := objectList[i]
-		assert.Equal(t, "STANDARD", *object.StorageClass)
-		if *object.Key == key {
-			found = true
-		}
+		println(*object.Key)
 	}
-	assert.True(t, found, "expected found "+key+"in object listing")
 }
 
 func TestListObjectPages(t *testing.T) {
@@ -208,6 +192,8 @@ func TestGetObject(t *testing.T) {
 
 func TestGetObjectPresignedUrl(t *testing.T) {
 	//putObjectSimple();
+	bucket = "zlytest-shanghai"
+	key = "1.txt"
 	url, err := svc.GetObjectPresignedUrl(&s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
@@ -302,12 +288,13 @@ func TestModifyObjectMeta(t *testing.T) {
 }
 
 func TestMultipartUpload(t *testing.T) {
-	fileName := "d:/go.msi"
+	key = "jdexe"
+	fileName := "d:/upload-test/jd.exe"
 	initRet, initErr := svc.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-		ACL:    aws.String("public-read"),
-		//ContentType:aws.String("image/jpeg"),
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		ACL:         aws.String("public-read"),
+		ContentType: aws.String("application/octet-stream"),
 	})
 	assert.NoError(t, initErr)
 	assert.Equal(t, bucket, *initRet.Bucket)
@@ -486,13 +473,17 @@ func putObjectSimple() {
 	)
 }
 
-func putObjectFile() {
-
+func TestPutObjectFile(t *testing.T) {
+	file, err := ioutil.ReadFile("d:/upload-test/py.exe")
+	if err != nil {
+		fmt.Println("Failed to open file", err)
+		os.Exit(1)
+	}
 	svc.PutObject(
 		&s3.PutObjectInput{
 			Bucket: aws.String(bucket),
 			Key:    aws.String(key),
-			Body:   aws.ReadSeekCloser(strings.NewReader("d:/py.log")),
+			Body:   bytes.NewReader(file),
 		},
 	)
 }
@@ -534,7 +525,7 @@ func TestBug(t *testing.T) {
 
 	log.Println(url)
 
-	httpReq, _ := http.NewRequest("PUT", "kss.ksyun.com/testkey&122", strings.NewReader("123123413412341241241241241241243124123412412341241343242342134"))
+	httpReq, _ := http.NewRequest("PUT", "ks3-sgp.ksyun.com/testkey&122", strings.NewReader("123123413412341241241241241241243124123412412341241343242342134"))
 	httpReq.URL = url
 	httpReq.Header["x-amz-acl"] = []string{"Private"}
 	httpReq.Header["x-kss-callbackurl"] = []string{"http://ip:port"}
