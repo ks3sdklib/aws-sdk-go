@@ -177,14 +177,12 @@ func TestGetObject(t *testing.T) {
 
 func TestGetObjectPresignedUrl(t *testing.T) {
 	//putObjectSimple();
-	bucket = "zlytest-shanghai"
-	key = "1.txt"
-	url, err := svc.GetObjectPresignedUrl(&s3.GetObjectInput{
+	rl, err := svc.GetObjectPresignedUrl(&s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
-	}, time.Minute*10)
+	}, time.Second*time.Duration(time.Now().Add(time.Second*600).Unix()))
 	assert.NoError(t, err)
-	println(url)
+	println(rl)
 }
 
 func TestObjectAcl(t *testing.T) {
