@@ -4580,7 +4580,7 @@ type metadataPutBucketLifecycleOutput struct {
 type PutBucketLoggingInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	BucketLoggingStatus *BucketLoggingStatus `locationName:"BucketLoggingStatus" type:"structure" required:"true"`
+	BucketLoggingStatus *BucketLoggingStatus `locationName:"BucketLoggingStatus" type:"structure" required:"true" xmlURI:"http://s3.amazonaws.com/doc/2006-03-01/"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
