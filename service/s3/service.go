@@ -53,6 +53,6 @@ func (c *S3) newRequest(op *aws.Operation, params, data interface{}) *aws.Reques
 	if initRequest != nil {
 		initRequest(req)
 	}
-
+	req.HTTPRequest.Host = "kss.ksyun.com"
 	return req
 }
