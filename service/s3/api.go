@@ -1984,6 +1984,14 @@ func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
 	err := req.Send()
 	return out, err
 }
+
+func (c *S3) PutObjectMD5Check(input *PutObjectInput) (*PutObjectOutput, error) {
+	req, out := c.PutObjectRequest(input)
+	req.Handlers.Build.PushBack(contentMD5)
+	err := req.Send()
+	return out, err
+}
+
 func (c *S3) PutObjectPresignedUrl(input *PutObjectInput, expires time.Duration) (*url.URL, error) {
 	req, _ := c.PutObjectRequest(input)
 	req.ExpireTime = expires
