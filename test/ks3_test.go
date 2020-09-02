@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"log"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -110,7 +111,6 @@ func TestDeleteBucket(t *testing.T) {
 		Bucket: aws.String(bucket),
 	})
 	assert.Error(t, err)
-	assert.Equal(t, "BucketNotEmpty", err.(*apierr.RequestError).Code())
 }
 func TestListObjects(t *testing.T) {
 	//putObjectSimple()
@@ -455,22 +455,6 @@ func putObjectSimple() {
 		},
 	)
 }
-
-func TestPutObjectFile(t *testing.T) {
-	file, err := ioutil.ReadFile("d:/upload-test/py.exe")
-	if err != nil {
-		fmt.Println("Failed to open file", err)
-		os.Exit(1)
-	}
-	svc.PutObject(
-		&s3.PutObjectInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(key),
-			Body:   bytes.NewReader(file),
-		},
-	)
-}
-
 func objectExists(bucket, key string) bool {
 	_, err := svc.HeadObject(
 		&s3.HeadObjectInput{
@@ -479,10 +463,10 @@ func objectExists(bucket, key string) bool {
 		},
 	)
 	if err != nil {
-		if err.(*apierr.RequestError).StatusCode() == 404 {
+		aerr, ok := err.(awserr.Error)
+		if ok && (aerr.Code() == strconv.Itoa(403) || aerr.Code() == strconv.Itoa(404)) {
+			// Specific error code handling
 			return false
-		} else {
-			panic(err)
 		}
 	}
 	return true
