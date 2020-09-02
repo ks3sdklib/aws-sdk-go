@@ -1,6 +1,6 @@
 package aws
 
-import "aws-sdk-go/service/s3"
+import "github.com/ks3sdklib/aws-sdk-go/service/s3"
 import "github.com/deckarep/golang-set"
 
 type CannedAccessControlType int32
