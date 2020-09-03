@@ -4,6 +4,7 @@
 package s3
 
 import (
+	mapset "github.com/deckarep/golang-set"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"io"
 	"net/url"
@@ -5516,4 +5517,35 @@ type WebsiteConfiguration struct {
 
 type metadataWebsiteConfiguration struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+
+/**
+  ACL类型
+ */
+const AllUsersUri = "http://acs.amazonaws.com/groups/global/AllUsers"
+type CannedAccessControlType int32
+const (
+	PublicReadWrite      CannedAccessControlType = 0
+	PublicRead      CannedAccessControlType = 1
+	Private      CannedAccessControlType = 2
+)
+
+func GetAcl(resp GetObjectACLOutput) (CannedAccessControlType)  {
+
+	allUsersPermissions := mapset.NewSet()
+	for _, value:= range resp.Grants {
+		if value.Grantee.URI !=nil && *value.Grantee.URI == AllUsersUri{
+			allUsersPermissions.Add(value.Permission)
+		}
+	}
+	read := allUsersPermissions.Contains("READ");
+	write := allUsersPermissions.Contains("WRITE");
+	if (read && write) {
+		return PublicReadWrite;
+	} else if (read) {
+		return PublicRead;
+	} else {
+		return Private;
+	}
 }
