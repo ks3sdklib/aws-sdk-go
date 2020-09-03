@@ -141,6 +141,20 @@ go get  github.com/ks3sdklib/aws-sdk-go
 		panic(err)
 	}
 	fmt.Println(httpRep)
+	
+### 4.6 获取OBJECTACL
+    
+    func  GetObcjetAcl() {
+    	params := &s3.GetObjectACLInput{
+    		Bucket: aws.String("BucketName"),
+    		Key: aws.String("ObjectKey"),
+    	}
+    	resp, err := client.GetObjectACL(params)
+    	if err == nil {
+    	    //解析acl
+    		fmt.Println(s3.GetAcl(*resp))
+    	}
+    }
 ### 4.7 初始化分块上传
 
 	params := &s3.CreateMultipartUploadInput{
