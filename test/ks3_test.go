@@ -3,7 +3,7 @@ package ks3test
 import (
 	"bufio"
 	"bytes"
-	"io/ioutil"
+	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"log"
 	"strconv"
 	"strings"
@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/credentials"
-	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
+
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -471,7 +471,6 @@ func objectExists(bucket, key string) bool {
 	}
 	return true
 }
-
 func TestBug(t *testing.T) {
 
 	input := &s3.PutObjectInput{
@@ -503,3 +502,42 @@ func TestBug(t *testing.T) {
 	}
 	log.Println(httpResp)
 }
+
+/**
+批量删除对象
+*/
+func DeleteObjects() {
+
+	params := &s3.DeleteObjectsInput{
+		Bucket: aws.String(""), // Required
+		Delete: &s3.Delete{ // Required
+			Objects: []*s3.ObjectIdentifier{
+				{
+					Key:       aws.String("1"), // Required
+				},
+				{
+					Key:       aws.String("2"), // Required
+				},
+				// More values...
+			},
+		},
+	}
+	resp := svc.DeleteObjects(params)
+	fmt.Println("error keys:",resp.Errors)
+	fmt.Println("deleted keys:",resp.Deleted)
+}
+
+/**
+删除前缀
+*/
+func DeleteBucketPrefix(prefix string) {
+
+	params := &s3.DeleteBucketPrefixInput{
+		Bucket: aws.String(""), // Required
+		Prefix: aws.String(prefix),
+	}
+	resp, _ := svc.DeleteBucketPrefix(params)
+	fmt.Println("error keys:",resp.Errors)
+	fmt.Println("deleted keys:",resp.Deleted)
+}
+
