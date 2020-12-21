@@ -4,6 +4,7 @@
 package s3
 
 import (
+	"fmt"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
@@ -609,6 +610,28 @@ func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsO
 	}
 	return output,nil
 }
+
+/**
+重试删除前缀
+*/
+func (c *S3) TryDeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
+
+	params := input
+	var output *DeleteObjectsOutput
+	err := Do(func(attempt int) (bool, error) {
+		var err error
+		output, err = c.DeleteBucketPrefix(params)
+		if err != nil {
+			fmt.Println("DeleteBucketPrefix - ", err)
+		}
+		return attempt < 3, err // 重试3次
+	})
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	return output,nil
+}
+
 func (c *S3) DeleteObjectsPresignedUrl(input *DeleteObjectsInput, expires time.Duration) (*url.URL, error) {
 	req, _ := c.DeleteObjectsRequest(input)
 	req.ExpireTime = expires

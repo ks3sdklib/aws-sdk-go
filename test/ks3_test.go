@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
+	"ks3sdklib/aws-sdk-go/internal/apierr"
 	"log"
 	"strconv"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/credentials"
-
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -541,3 +541,16 @@ func DeleteBucketPrefix(prefix string) {
 	fmt.Println("deleted keys:",resp.Deleted)
 }
 
+/**
+ 删除前缀(包含三次重试)
+*/
+func TryDeleteBucketPrefix(prefix string) {
+
+	params := &s3.DeleteBucketPrefixInput{
+		Bucket: aws.String(""),
+		Prefix: aws.String(prefix),
+	}
+	resp, _ := svc.TryDeleteBucketPrefix(params)
+	fmt.Println("error keys:",resp.Errors)
+	fmt.Println("deleted keys:",resp.Deleted)
+}
