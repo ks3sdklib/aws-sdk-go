@@ -455,6 +455,7 @@ func putObjectSimple() {
 		},
 	)
 }
+
 func objectExists(bucket, key string) bool {
 	_, err := svc.HeadObject(
 		&s3.HeadObjectInput{
@@ -553,4 +554,28 @@ func TryDeleteBucketPrefix(prefix string) {
 	resp, _ := svc.TryDeleteBucketPrefix(params)
 	fmt.Println("error keys:",resp.Errors)
 	fmt.Println("deleted keys:",resp.Deleted)
+}
+
+func PutFile() {
+
+	filename := "/Users/cqc/Desktop/zs.java"
+	// 读取本地文件。
+	fd, err := os.Open(filename)
+	params := &s3.PutReaderRequest{
+		Bucket:      aws.String("ks3tools-test"),                // bucket名称
+		Key:         aws.String("go-demo/test"),            // object key
+		ACL:         aws.String("private"),             //权限，支持private(私有)，public-read(公开读)
+		Body:        fd,                 //要上传的内容
+		ContentType: aws.String("application/ocet-stream"), //设置content-type
+		Metadata: map[string]*string{
+			//"Key": aws.String("MetadataValue"), // 设置用户元数据
+			// More values...
+		},
+	}
+	resp, err := client.PutReader(params)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(resp)
+
 }
