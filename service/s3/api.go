@@ -4,12 +4,22 @@
 package s3
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/base64"
+	"encoding/xml"
 	"fmt"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
+	"hash"
 	"io"
+	"io/ioutil"
+	"net/http"
 	"net/url"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -547,37 +557,36 @@ func (c *S3) DeleteObjectsRequest(input *DeleteObjectsInput) (req *aws.Request, 
 
 // This operation enables you to delete multiple objects from a bucket using
 // a single HTTP request. You may specify up to 1000 keys.
-func (c *S3) DeleteObjects(input *DeleteObjectsInput) (*DeleteObjectsOutput) {
-	var errors [] *Error;
-	var okList [] *DeletedObject;
+func (c *S3) DeleteObjects(input *DeleteObjectsInput) *DeleteObjectsOutput {
+	var errors []*Error
+	var okList []*DeletedObject
 	for _, t := range input.Delete.Objects {
 		_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
 		if err != nil {
 			aerr, _ := err.(awserr.Error)
-			errors = append(errors,&Error{Key: t.Key,Code:aws.String(aerr.Code()),Message: aws.String(aerr.Message())})
-		}else {
-			okList = append(okList,&DeletedObject{Key: t.Key})
+			errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
+		} else {
+			okList = append(okList, &DeletedObject{Key: t.Key})
 		}
 	}
 	output := &DeleteObjectsOutput{
-		Deleted:okList,
-		Errors: errors,
+		Deleted: okList,
+		Errors:  errors,
 	}
 	return output
 }
 func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
 
+	var errors []*Error
+	var okList []*DeletedObject
 
-	var errors [] *Error;
-	var okList [] *DeletedObject;
-
-	var objects [] *Object;
+	var objects []*Object
 	count := 0
 	marker := aws.String("")
 	prefix := input.Prefix
 	var output = &DeleteObjectsOutput{
-		Deleted:okList,
-		Errors: errors,
+		Deleted: okList,
+		Errors:  errors,
 	}
 	for {
 		resp, err := c.ListObjects(&ListObjectsInput{
@@ -587,28 +596,28 @@ func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsO
 			MaxKeys: aws.Long(1000),
 		})
 		if err == nil {
-			objects = append(objects,resp.Contents... )
+			objects = append(objects, resp.Contents...)
 			for _, t := range objects {
 				_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
 				if err != nil {
 					aerr, _ := err.(awserr.Error)
-					errors = append(errors,&Error{Key: t.Key,Code:aws.String(aerr.Code()),Message: aws.String(aerr.Message())})
+					errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
 					output.Errors = errors
-				}else {
-					okList = append(okList,&DeletedObject{Key: t.Key})
+				} else {
+					okList = append(okList, &DeletedObject{Key: t.Key})
 					output.Deleted = okList
 				}
 			}
 			count += len(objects)
-			if *resp.IsTruncated == false{
+			if *resp.IsTruncated == false {
 				break
 			}
 			marker = objects[999].Key
-		}else {
-			return output,err
+		} else {
+			return output, err
 		}
 	}
-	return output,nil
+	return output, nil
 }
 
 /**
@@ -629,7 +638,7 @@ func (c *S3) TryDeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjec
 	if err != nil {
 		fmt.Println("error:", err)
 	}
-	return output,nil
+	return output, nil
 }
 
 func (c *S3) DeleteObjectsPresignedUrl(input *DeleteObjectsInput, expires time.Duration) (*url.URL, error) {
@@ -2060,7 +2069,7 @@ func (c *S3) PutObjectRequest(input *PutObjectInput) (req *aws.Request, output *
 	req.Data = output
 	return
 }
-func (c *S3) PutReader(input *PutReaderRequest)  (*PutObjectOutput,error) {
+func (c *S3) PutReader(input *PutReaderRequest) (*PutObjectOutput, error) {
 	oprw.Lock()
 	defer oprw.Unlock()
 
@@ -2081,6 +2090,7 @@ func (c *S3) PutReader(input *PutReaderRequest)  (*PutObjectOutput,error) {
 	err := req.Send()
 	return out, err
 }
+
 // Adds an object to a bucket.
 func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
 	req, out := c.PutObjectRequest(input)
@@ -5355,11 +5365,7 @@ type metadataRestoreObjectInput struct {
 }
 
 type RestoreObjectOutput struct {
-	// If present, indicates that the requester was successfully charged for the
-	// request.
-	RequestCharged *string `location:"header" locationName:"x-amz-request-charged" type:"string"`
-
-	metadataRestoreObjectOutput `json:"-" xml:"-"`
+	Ks3WebServiceResponse
 }
 
 type metadataRestoreObjectOutput struct {
@@ -5723,6 +5729,91 @@ type metadataWebsiteConfiguration struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+type Header map[string][]string
+
+type Ks3WebServiceResponse struct {
+	HttpCode  int    `xml:"HttpCode"`
+	Code      string `xml:"Code"`
+	Message   string `xml:"Message"`
+	Resource  string `xml:"Resource"`
+	RequestId string `xml:"RequestId"`
+	Header    Header
+	Body      []byte
+}
+
+func (c *S3) SignedReq(req *http.Request, canonicalizedResource string) {
+
+	ossHeadersMap := make(map[string]string)
+	for k, v := range req.Header {
+		if strings.HasPrefix(strings.ToLower(k), "x-kss-") {
+			ossHeadersMap[strings.ToLower(k)] = v[0]
+		}
+	}
+	hs := newHeaderSorter(ossHeadersMap)
+	hs.Sort()
+	canonicalizedKS3Headers := ""
+	for i := range hs.Keys {
+		canonicalizedKS3Headers += hs.Keys[i] + ":" + hs.Vals[i] + "\n"
+	}
+	date := req.Header.Get(HTTPHeaderDate)
+	contentType := req.Header.Get(HTTPHeaderContentType)
+	contentMd5 := req.Header.Get(HTTPHeaderContentMD5)
+	signStr := req.Method + "\n" + contentMd5 + "\n" + contentType + "\n" + date + "\n" + canonicalizedKS3Headers + canonicalizedResource
+	if c.Config.LogHTTPBody {
+		fmt.Print("signStr : ", signStr+"\n")
+	}
+	config, _ := c.Config.Credentials.Get()
+	h := hmac.New(func() hash.Hash { return sha1.New() }, []byte(config.SecretAccessKey))
+	io.WriteString(h, signStr)
+	signedStr := "KSS " + config.AccessKeyID + ":" + base64.StdEncoding.EncodeToString(h.Sum(nil))
+	if c.Config.LogHTTPBody {
+		fmt.Print("signedStr : ", signedStr+"\n")
+	}
+	req.Header.Set(HTTPHeaderAuthorization, signedStr)
+
+}
+
+// headerSorter defines the key-value structure for storing the sorted data in signHeader.
+type headerSorter struct {
+	Keys []string
+	Vals []string
+}
+
+// Sort is an additional function for function SignHeader.
+func (hs *headerSorter) Sort() {
+	sort.Sort(hs)
+}
+
+// Len is an additional function for function SignHeader.
+func (hs *headerSorter) Len() int {
+	return len(hs.Vals)
+}
+
+// Less is an additional function for function SignHeader.
+func (hs *headerSorter) Less(i, j int) bool {
+	return bytes.Compare([]byte(hs.Keys[i]), []byte(hs.Keys[j])) < 0
+}
+
+// Swap is an additional function for function SignHeader.
+func (hs *headerSorter) Swap(i, j int) {
+	hs.Vals[i], hs.Vals[j] = hs.Vals[j], hs.Vals[i]
+	hs.Keys[i], hs.Keys[j] = hs.Keys[j], hs.Keys[i]
+}
+
+// newHeaderSorter is an additional function for function SignHeader.
+func newHeaderSorter(m map[string]string) *headerSorter {
+	hs := &headerSorter{
+		Keys: make([]string, 0, len(m)),
+		Vals: make([]string, 0, len(m)),
+	}
+
+	for k, v := range m {
+		hs.Keys = append(hs.Keys, k)
+		hs.Vals = append(hs.Vals, v)
+	}
+	return hs
+}
+
 /**
   ACL类型
 */
@@ -5753,4 +5844,42 @@ func GetAcl(resp GetObjectACLOutput) CannedAccessControlType {
 	} else {
 		return Private
 	}
+}
+
+func (c *S3) RestoreObject(input *RestoreObjectInput) (*RestoreObjectOutput, error) {
+	oprw.Lock()
+	defer oprw.Unlock()
+
+	if input == nil {
+		input = &RestoreObjectInput{}
+	}
+	out := &RestoreObjectOutput{}
+
+	date := time.Now().UTC().Format(http.TimeFormat)
+	client := &http.Client{}
+	objectKey := *input.Key + "?restore"
+	resource := "/" + *input.Bucket + objectKey
+	url := c.Endpoint + resource
+	req, err := http.NewRequest("POST", url, nil)
+	req.Header.Set(HTTPHeaderDate, date)
+	req.Header.Set(HTTPHeaderHost, c.Endpoint)
+	c.SignedReq(req, resource)
+	res, err := client.Do(req)
+	if res != nil {
+		defer res.Body.Close()
+		body, _ := ioutil.ReadAll(res.Body)
+		xml.Unmarshal((body), &out)
+		if err != nil {
+			fmt.Println(err)
+		}
+		if res.Header != nil {
+			out.Header = Header(res.Header)
+			out.HttpCode = res.StatusCode
+		}
+		if body != nil {
+			out.Body = body
+		}
+	}
+	return out, err
+
 }

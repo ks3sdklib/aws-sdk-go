@@ -572,10 +572,24 @@ func PutFile() {
 			// More values...
 		},
 	}
-	resp, err := client.PutReader(params)
+	resp, err := svc.PutReader(params)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(resp)
 
+}
+
+func RestoreObject() {
+
+	params := &s3.RestoreObjectInput{
+		Bucket:      aws.String("ks3tools-test"),                 // bucket名称
+		Key:         aws.String("/restore/big.txt"),      // object key
+	}
+	resp, err := svc.RestoreObject(params)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(resp.HttpCode)
+	fmt.Println(resp.Message)
 }
