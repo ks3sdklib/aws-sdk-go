@@ -2176,12 +2176,6 @@ func (c *S3) RestoreObjectRequest(input *RestoreObjectInput) (req *aws.Request, 
 	return
 }
 
-// Restores an archived copy of an object back into Amazon S3
-func (c *S3) RestoreObject(input *RestoreObjectInput) (*RestoreObjectOutput, error) {
-	req, out := c.RestoreObjectRequest(input)
-	err := req.Send()
-	return out, err
-}
 func (c *S3) RestoreObjectPresignedUrl(input *RestoreObjectInput, expires time.Duration) (*url.URL, error) {
 	req, _ := c.RestoreObjectRequest(input)
 	req.ExpireTime = expires
