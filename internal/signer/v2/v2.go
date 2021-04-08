@@ -43,8 +43,6 @@ var signQuerys = map[string]bool {
 	"cors":true,
 	"pfop":true,
 	"querypfop":true,
-	"adp":true,
-	"queryadp":true,
 	"partNumber":true,
 	"response-content-type":true,
 	"response-content-language":true,
@@ -52,6 +50,9 @@ var signQuerys = map[string]bool {
 	"response-cache-control":true,
 	"response-content-disposition":true, 
 	"response-content-encoding":true,
+	"tagging":true,
+	"fetch":true,
+	"copy":true,
 }
 
 type signer struct {

@@ -2633,6 +2633,10 @@ type CopyObjectInput struct {
 	// the value of this header in the object metadata.
 	WebsiteRedirectLocation *string `location:"header" locationName:"x-amz-website-redirect-location" type:"string"`
 
+	XAmzTaggingDirective *string `location:"header" locationName:"x-kss-tagging-Directive" type:"string"`
+
+	XAmzTagging *string `location:"header" locationName:"x-kss-tagging" type:"string"`
+
 	metadataCopyObjectInput `json:"-" xml:"-"`
 }
 
@@ -2761,6 +2765,8 @@ type metadataCreateBucketOutput struct {
 type CreateMultipartUploadInput struct {
 	// The canned ACL to apply to the object.
 	ACL *string `location:"header" locationName:"x-amz-acl" type:"string"`
+
+	XAmzTagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
 
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -3267,6 +3273,21 @@ type GetBucketLifecycleInput struct {
 }
 
 type metadataGetBucketLifecycleInput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+type LifecycleFilter struct {
+	And *And `locationName:"And" type :"structure"`
+	metadataLifecycleFilter `json:"-" xml:"-"`
+}
+type metadataLifecycleFilter struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+type And struct {
+	Prefix *string `type:"string" required:"true"`
+	Tag  []*Tag `locationNameList:"Tag" type:"list" flattened:"true"`
+	metadataAnd `json:"-" xml:"-"`
+}
+type metadataAnd struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
@@ -4015,10 +4036,6 @@ type LifecycleExpiration struct {
 	metadataLifecycleExpiration `json:"-" xml:"-"`
 }
 
-type LifecycleFilter struct {
-	Prefix *string `type:"string" required:"true"`
-}
-
 type metadataLifecycleExpiration struct {
 	SDKShapeTraits bool `type:"structure"`
 }
@@ -4050,7 +4067,7 @@ type LifecycleRule struct {
 	// is not currently being applied.
 	Status *string `type:"string" required:"true"`
 
-	Transition *Transition `type:"structure"`
+	Transitions []*Transition `locationName:"Transition" type:"list" flattened:"true"`
 
 	metadataLifecycleRule `json:"-" xml:"-"`
 }
@@ -5007,6 +5024,7 @@ type PutObjectInput struct {
 	// A map of metadata to store with the object in S3.
 	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
 
+	XAmzTagging *string `location:"header" locationName:"X-Amz-Tagging" type:"string"`
 	// Confirms that the requester knows that she or he will be charged for the
 	// request. Bucket owners need not specify this parameter in their requests.
 	// Documentation on downloading objects from requester pays buckets can be found
@@ -5877,3 +5895,365 @@ func (c *S3) RestoreObject(input *RestoreObjectInput) (*RestoreObjectOutput, err
 	return out, err
 
 }
+
+
+//----obj tag start--
+
+func (c *S3) DeleteObjectTaggingRequest(input *DeleteObjectTaggingInput) (req *aws.Request, output *DeleteObjectTaggingOutput) {
+	oprw.Lock()
+	defer oprw.Unlock()
+
+	if opDeleteObjectTagging == nil {
+		opDeleteObjectTagging = &aws.Operation{
+			Name:       "DeleteObjectTagging",
+			HTTPMethod: "DELETE",
+			HTTPPath:   "/{Bucket}/{Key+}?tagging",
+		}
+	}
+
+	if input == nil {
+		input = &DeleteObjectTaggingInput{}
+	}
+
+	req = c.newRequest(opDeleteObjectTagging, input, output)
+	output = &DeleteObjectTaggingOutput{}
+	req.Data = output
+	return
+}
+
+func (c *S3) DeleteObjectTagging(input *DeleteObjectTaggingInput) (*DeleteObjectTaggingOutput, error) {
+	req, out := c.DeleteObjectTaggingRequest(input)
+	err := req.Send()
+	return out, err
+}
+func (c *S3) DeleteObjectTaggingPresignedUrl(input *DeleteObjectTaggingInput, expires time.Duration) (*url.URL, error) {
+	req, _ := c.DeleteObjectTaggingRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL, err
+}
+
+var opDeleteObjectTagging *aws.Operation
+
+type DeleteObjectTaggingInput struct {
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	metadataDeleteObjectTaggingInput `json:"-" xml:"-"`
+}
+
+type metadataDeleteObjectTaggingInput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+type DeleteObjectTaggingOutput struct {
+	metadataDeleteObjectTaggingOutput `json:"-" xml:"-"`
+}
+
+type metadataDeleteObjectTaggingOutput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+
+//get 对象标签
+func (c *S3) GetObjectTaggingRequest(input *GetObjectTaggingInput) (req *aws.Request, output *GetObjectTaggingOutput) {
+	oprw.Lock()
+	defer oprw.Unlock()
+
+	if opGetObjectTagging == nil {
+		opGetObjectTagging = &aws.Operation{
+			Name:       "GetObjectTagging",
+			HTTPMethod: "GET",
+			HTTPPath:   "/{Bucket}/{Key+}?tagging",
+		}
+	}
+
+	if input == nil {
+		input = &GetObjectTaggingInput{}
+	}
+
+	req = c.newRequest(opGetObjectTagging, input, output)
+	output = &GetObjectTaggingOutput{}
+	req.Data = output
+	return
+}
+
+func (c *S3) GetObjectTagging(input *GetObjectTaggingInput) (*GetObjectTaggingOutput, error) {
+	req, out := c.GetObjectTaggingRequest(input)
+	err := req.Send()
+	return out, err
+}
+func (c *S3) GetObjectTaggingPresignedUrl(input *GetObjectTaggingInput, expires time.Duration) (*url.URL, error) {
+	req, _ := c.GetObjectTaggingRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL, err
+}
+
+var opGetObjectTagging *aws.Operation
+
+//
+type GetObjectTaggingInput struct {
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	metadataGetObjectTaggingInput `json:"-" xml:"-"`
+}
+
+type metadataGetObjectTaggingInput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+type GetObjectTaggingOutput struct {
+	Tagging *Tagging `locationName:"Tagging" type:"structure"`
+
+	metadataGetObjectTaggingOutput `json:"-" xml:"-"`
+}
+
+type metadataGetObjectTaggingOutput struct {
+	SDKShapeTraits bool `type:"structure" payload:"Tagging"`
+}
+//对象标签 put
+func (c *S3) PutObjectTaggingRequest(input *PutObjectTaggingInput) (req *aws.Request, output *PutObjectTaggingOutput) {
+	oprw.Lock()
+	defer oprw.Unlock()
+
+	if opPutObjectTagging == nil {
+		opPutObjectTagging = &aws.Operation{
+			Name:       "PutObjectTagging",
+			HTTPMethod: "PUT",
+			HTTPPath:   "/{Bucket}/{Key+}?tagging",
+		}
+	}
+
+	if input == nil {
+		input = &PutObjectTaggingInput{}
+	}
+	req = c.newRequest(opPutObjectTagging, input, output)
+	output = &PutObjectTaggingOutput{}
+	req.Data = output
+	return
+}
+
+func (c *S3) PutObjectTagging(input *PutObjectTaggingInput) (*PutObjectTaggingOutput, error) {
+	input.ContentType = aws.String("application/xml")
+	req, out := c.PutObjectTaggingRequest(input)
+	err := req.Send()
+	return out, err
+}
+func (c *S3) PutObjectTaggingPresignedUrl(input *PutObjectTaggingInput, expires time.Duration) (*url.URL, error) {
+	req, _ := c.PutObjectTaggingRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL, err
+}
+
+var opPutObjectTagging *aws.Operation
+
+type PutObjectTaggingInput struct {
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+
+	Tagging *Tagging `locationName:"Tagging" type:"structure"`
+
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	metadataPutObjectTaggingInput `json:"-" xml:"-"`
+}
+
+type metadataPutObjectTaggingInput struct {
+	SDKShapeTraits bool `type:"structure" payload:"Tagging"`
+}
+
+type PutObjectTaggingOutput struct {
+	metadataPutObjectTaggingOutput `json:"-" xml:"-"`
+}
+
+type metadataPutObjectTaggingOutput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+//----obj tag end--
+
+
+// FetchObjectRequest generates a request for the FetchObject operation.
+func (c *S3) FetchObjectRequest(input *FetchObjectInput) (req *aws.Request, output *FetchObjectOutput) {
+	oprw.Lock()
+	defer oprw.Unlock()
+
+	if opFetchObject == nil {
+		opFetchObject = &aws.Operation{
+			Name:       "FetchObject",
+			HTTPMethod: "PUT",
+			HTTPPath:   "/{Bucket}/{Key+}?fetch",
+		}
+	}
+
+	if input == nil {
+		input = &FetchObjectInput{}
+	}
+
+	req = c.newRequest(opFetchObject, input, output)
+	output = &FetchObjectOutput{}
+	req.Data = output
+	return
+}
+
+func (c *S3) FetchObject(input *FetchObjectInput) (*FetchObjectOutput, error) {
+	req, out := c.FetchObjectRequest(input)
+	err := req.Send()
+	return out, err
+}
+func (c *S3) FetchObjectPresignedUrl(input *FetchObjectInput, expires time.Duration) (*url.URL, error) {
+	req, _ := c.FetchObjectRequest(input)
+	req.ExpireTime = expires
+	err := req.Sign()
+	return req.HTTPRequest.URL, err
+}
+
+var opFetchObject *aws.Operation
+
+
+type FetchObjectInput struct {
+	// The canned ACL to apply to the object.
+	ACL *string `location:"header" locationName:"x-kss-acl" type:"string"`
+
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Specifies caching behavior along the request/reply chain.
+	CacheControl *string `location:"header" locationName:"Cache-Control" type:"string"`
+
+	// Specifies presentational information for the object.
+	ContentDisposition *string `location:"header" locationName:"Content-Disposition" type:"string"`
+
+	// Specifies what content encodings have been applied to the object and thus
+	// what decoding mechanisms must be applied to obtain the media-type referenced
+	// by the Content-Type header field.
+	ContentEncoding *string `location:"header" locationName:"Content-Encoding" type:"string"`
+
+	// The language the content is in.
+	ContentLanguage *string `location:"header" locationName:"Content-Language" type:"string"`
+
+	// A standard MIME type describing the format of the object data.
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// The name of the source bucket and key name of the source object, separated
+	// by a slash (/). Must be URL-encoded.
+	SourceUrl *string `location:"header" locationName:"x-kss-sourceurl" type:"string" required:"true"`
+
+	CallbackUrl *string `location:"header" locationName:"x-kss-callbackurl" type:"string"`
+
+	// The date and time at which the object is no longer cacheable.
+	Expires *time.Time `location:"header" locationName:"Expires" type:"timestamp" timestampFormat:"rfc822"`
+
+	// Gives the grantee READ, READ_ACP, and WRITE_ACP permissions on the object.
+	GrantFullControl *string `location:"header" locationName:"x-amz-grant-full-control" type:"string"`
+
+	// Allows grantee to read the object data and its metadata.
+	GrantRead *string `location:"header" locationName:"x-amz-grant-read" type:"string"`
+
+	// Allows grantee to read the object ACL.
+	GrantReadACP *string `location:"header" locationName:"x-amz-grant-read-acp" type:"string"`
+
+	// Allows grantee to write the ACL for the applicable object.
+	GrantWriteACP *string `location:"header" locationName:"x-amz-grant-write-acp" type:"string"`
+
+	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+
+	// A map of metadata to store with the object in S3.
+	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
+
+	// Specifies whether the metadata is copied from the source object or replaced
+	// with metadata provided in the request.
+	MetadataDirective *string `location:"header" locationName:"x-amz-metadata-directive" type:"string"`
+
+	// Confirms that the requester knows that she or he will be charged for the
+	// request. Bucket owners need not specify this parameter in their requests.
+	// Documentation on downloading objects from requester pays buckets can be found
+	// at http://docs.aws.amazon.com/AmazonS3/latest/dev/ObjectsinRequesterPaysBuckets.html
+	RequestPayer *string `location:"header" locationName:"x-amz-request-payer" type:"string"`
+
+	// Specifies the algorithm to use to when encrypting the object (e.g., AES256,
+	// aws:kms).
+	SSECustomerAlgorithm *string `location:"header" locationName:"x-amz-server-side-encryption-customer-algorithm" type:"string"`
+
+	// Specifies the customer-provided encryption key for Amazon S3 to use in encrypting
+	// data. This value is used to store the object and then it is discarded; Amazon
+	// does not store the encryption key. The key must be appropriate for use with
+	// the algorithm specified in the x-amz-server-side​-encryption​-customer-algorithm
+	// header.
+	SSECustomerKey *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key" type:"string"`
+
+	// Specifies the 128-bit MD5 digest of the encryption key according to RFC 1321.
+	// Amazon S3 uses this header for a message integrity check to ensure the encryption
+	// key was transmitted without error.
+	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
+
+	// Specifies the AWS KMS key ID to use for object encryption. All GET and PUT
+	// requests for an object protected by AWS KMS will fail if not made via SSL
+	// or using SigV4. Documentation on configuring any of the officially supported
+	// AWS SDKs and CLI can be found at http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingAWSSDK.html#specify-signature-version
+	SSEKMSKeyID *string `location:"header" locationName:"x-amz-server-side-encryption-aws-kms-key-id" type:"string"`
+
+	// The Server-side encryption algorithm used when storing this object in S3
+	// (e.g., AES256, aws:kms).
+	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
+
+	// The type of storage to use for the object. Defaults to 'STANDARD'.
+	StorageClass *string `location:"header" locationName:"x-amz-storage-class" type:"string"`
+
+	// If the bucket is configured as a website, redirects requests for this object
+	// to another object in the same bucket or to an external URL. Amazon S3 stores
+	// the value of this header in the object metadata.
+	WebsiteRedirectLocation *string `location:"header" locationName:"x-amz-website-redirect-location" type:"string"`
+
+	XAmzTagging *string `location:"header" locationName:"X-Amz-Tagging" type:"string"`
+
+	metadataFetchObjectInput `json:"-" xml:"-"`
+}
+
+type metadataFetchObjectInput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+type FetchObjectOutput struct {
+
+	// If the object expiration is configured, the response includes this header.
+	Expiration *string `location:"header" locationName:"x-amz-expiration" type:"string"`
+
+	// If present, indicates that the requester was successfully charged for the
+	// request.
+	RequestCharged *string `location:"header" locationName:"x-amz-request-charged" type:"string"`
+
+	// If server-side encryption with a customer-provided encryption key was requested,
+	// the response will include this header confirming the encryption algorithm
+	// used.
+	SSECustomerAlgorithm *string `location:"header" locationName:"x-amz-server-side-encryption-customer-algorithm" type:"string"`
+
+	// If server-side encryption with a customer-provided encryption key was requested,
+	// the response will include this header to provide round trip message integrity
+	// verification of the customer-provided encryption key.
+	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
+
+	// If present, specifies the ID of the AWS Key Management Service (KMS) master
+	// encryption key that was used for the object.
+	SSEKMSKeyID *string `location:"header" locationName:"x-amz-server-side-encryption-aws-kms-key-id" type:"string"`
+
+	// The Server-side encryption algorithm used when storing this object in S3
+	// (e.g., AES256, aws:kms).
+	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
+
+	metadataFetchObjectOutput `json:"-" xml:"-"`
+}
+
+type metadataFetchObjectOutput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+//--------fetch object end-------
