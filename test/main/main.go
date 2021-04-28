@@ -1,6 +1,7 @@
 package main
 
 import (
+	"aws-sdk-go/service/s3/s3manager"
 	"bytes"
 	"errors"
 	"fmt"
@@ -22,7 +23,7 @@ var (
 	sk         = ""
 	endpoint   = "ks3-cn-shanghai.ksyun.com"
 	bucketname = ""
-	key        = ""
+	key        = "1.ipa"
 	prefix  = "test/" //目录名称
 	objname = "file1.mp4"
 )
@@ -48,7 +49,7 @@ func main() {
 	//分块上传3/3 完成分块上传
 	//completeUpload(client)
 
-	/fetchObj(client) //返回成功，但是未查看到fetch效果 也无法查看tag效果
+	//fetchObj(client) //返回成功，但是未查看到fetch效果 也无法查看tag效果
 	//copyObj(client) //成功，能查看到copy结果，但是无法查看到tag,需要ks3协助排查
 	 // putObj(client)
 	//getObj(client)
@@ -59,8 +60,10 @@ func main() {
 	//getLifecycle(client)
 
 
-	getTag(client)
+	//getTag(client)
 	//delTag(client)
+	//testUpload(client)
+	PutBucketMirror(client)
 }
 
 var (
@@ -605,4 +608,119 @@ func testUploadPart(client *s3.S3, uploadId string) {
 	}
 
 	fmt.Println(resp)
+}
+
+//设置镜像回源规则
+func PutBucketMirrorRules() {
+
+	params := &s3.PutBucketMirrorInput{
+		Bucket: aws.String(BucketName), // Required
+		BucketMirror: &s3.BucketMirror{
+			Version:          "V3",
+			UseDefaultRobots: false,
+			AsyncMirrorRule: s3.AsyncMirrorRule{
+				MirrorUrls: []string{
+					"http://abc.om",
+					"http://www.wps.cn",
+				},
+				SavingSetting: s3.SavingSetting{
+					ACL: "private",
+				},
+			},
+			SyncMirrorRules: []s3.SyncMirrorRules{
+				{
+					MatchCondition: s3.MatchCondition{
+						HTTPCodes: []string{
+							"404",
+						},
+						KeyPrefixes: []string{
+							"abc",
+						},
+					},
+					MirrorURL: "http://v-ks-a-i.originalvod.com",
+					MirrorRequestSetting: s3.MirrorRequestSetting{
+						PassQueryString: false,
+						Follow3Xx:       false,
+						HeaderSetting: s3.HeaderSetting{
+							SetHeaders: []s3.SetHeaders{
+								{
+									Key:   "d",
+									Value: "b",
+								},
+							},
+							RemoveHeaders: []s3.RemoveHeaders{
+								{
+									Key: "d",
+								},
+								{
+									Key: "d",
+								},
+							},
+							PassAll: false,
+							PassHeaders: []s3.PassHeaders{
+								{
+									Key: "asdb",
+								},
+							},
+						},
+					},
+					SavingSetting: s3.SavingSetting{
+						ACL: "private",
+					},
+				},
+			},
+		},
+	}
+	resp, err := client.PutBucketMirror(params)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
+	}
+
+	fmt.Println("resp.code is:", resp.HttpCode)
+	fmt.Println("resp.Header is:", resp.Header)
+	// Pretty-print the response data.
+	var bodyStr = string(resp.Body[:])
+	fmt.Println("resp.Body is:", bodyStr)
+
+}
+
+//获取镜像回源规则
+func GetBucketMirrorRules() {
+
+	params := &s3.GetBucketMirrorInput{
+		Bucket: aws.String(BucketName),
+	}
+	resp, _ := client.GetBucketMirror(params)
+	fmt.Println("resp.code is:", resp.HttpCode)
+	fmt.Println("resp.Header is:", resp.Header)
+	// Pretty-print the response data.
+	var bodyStr = string(resp.Body[:])
+	fmt.Println("resp.Body is:", bodyStr)
+
+}
+
+//删除镜像回源规则
+func DeleteBucketMirrorRules() {
+
+	params := &s3.DeleteBucketMirrorInput{
+		Bucket: aws.String(BucketName),
+	}
+	resp, _ := client.DeleteBucketMirror(params)
+	fmt.Println("resp.code is:", resp.HttpCode)
+	fmt.Println("resp.Header is:", resp.Header)
+	// Pretty-print the response data.
+	var bodyStr = string(resp.Body[:])
+	fmt.Println("resp.Body is:", bodyStr)
+
 }

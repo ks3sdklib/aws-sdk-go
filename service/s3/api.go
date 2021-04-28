@@ -8,7 +8,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
+	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
@@ -3276,15 +3278,15 @@ type metadataGetBucketLifecycleInput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 type LifecycleFilter struct {
-	And *And `locationName:"And" type :"structure"`
+	And                     *And `locationName:"And" type :"structure"`
 	metadataLifecycleFilter `json:"-" xml:"-"`
 }
 type metadataLifecycleFilter struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 type And struct {
-	Prefix *string `type:"string" required:"true"`
-	Tag  []*Tag `locationNameList:"Tag" type:"list" flattened:"true"`
+	Prefix      *string `type:"string" required:"true"`
+	Tag         []*Tag  `locationNameList:"Tag" type:"list" flattened:"true"`
 	metadataAnd `json:"-" xml:"-"`
 }
 type metadataAnd struct {
@@ -5896,7 +5898,6 @@ func (c *S3) RestoreObject(input *RestoreObjectInput) (*RestoreObjectOutput, err
 
 }
 
-
 //----obj tag start--
 
 func (c *S3) DeleteObjectTaggingRequest(input *DeleteObjectTaggingInput) (req *aws.Request, output *DeleteObjectTaggingOutput) {
@@ -5956,7 +5957,6 @@ type DeleteObjectTaggingOutput struct {
 type metadataDeleteObjectTaggingOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
-
 
 //get 对象标签
 func (c *S3) GetObjectTaggingRequest(input *GetObjectTaggingInput) (req *aws.Request, output *GetObjectTaggingOutput) {
@@ -6019,6 +6019,7 @@ type GetObjectTaggingOutput struct {
 type metadataGetObjectTaggingOutput struct {
 	SDKShapeTraits bool `type:"structure" payload:"Tagging"`
 }
+
 //对象标签 put
 func (c *S3) PutObjectTaggingRequest(input *PutObjectTaggingInput) (req *aws.Request, output *PutObjectTaggingOutput) {
 	oprw.Lock()
@@ -6082,7 +6083,6 @@ type metadataPutObjectTaggingOutput struct {
 
 //----obj tag end--
 
-
 // FetchObjectRequest generates a request for the FetchObject operation.
 func (c *S3) FetchObjectRequest(input *FetchObjectInput) (req *aws.Request, output *FetchObjectOutput) {
 	oprw.Lock()
@@ -6119,7 +6119,6 @@ func (c *S3) FetchObjectPresignedUrl(input *FetchObjectInput, expires time.Durat
 }
 
 var opFetchObject *aws.Operation
-
 
 type FetchObjectInput struct {
 	// The canned ACL to apply to the object.
@@ -6256,4 +6255,206 @@ type FetchObjectOutput struct {
 type metadataFetchObjectOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
+
 //--------fetch object end-------
+
+//--------镜像回源-------
+type BucketMirror struct {
+	Version          string            `json:"version"`
+	UseDefaultRobots bool              `json:"use_default_robots"`
+	AsyncMirrorRule  AsyncMirrorRule   `json:"async_mirror_rule"`
+	SyncMirrorRules  []SyncMirrorRules `json:"sync_mirror_rules"`
+}
+type SavingSetting struct {
+	ACL string `json:"acl"`
+}
+type AsyncMirrorRule struct {
+	MirrorUrls    []string      `json:"mirror_urls"`
+	SavingSetting SavingSetting `json:"saving_setting"`
+}
+type MatchCondition struct {
+	HTTPCodes   []string `json:"http_codes"`
+	KeyPrefixes []string `json:"key_prefixes"`
+}
+type SetHeaders struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+type RemoveHeaders struct {
+	Key string `json:"key"`
+}
+type PassHeaders struct {
+	Key string `json:"key"`
+}
+type HeaderSetting struct {
+	SetHeaders    []SetHeaders    `json:"set_headers"`
+	RemoveHeaders []RemoveHeaders `json:"remove_headers"`
+	PassAll       bool            `json:"pass_all"`
+	PassHeaders   []PassHeaders   `json:"pass_headers"`
+}
+type MirrorRequestSetting struct {
+	PassQueryString bool          `json:"pass_query_string"`
+	Follow3Xx       bool          `json:"follow3xx"`
+	HeaderSetting   HeaderSetting `json:"header_setting"`
+}
+type SyncMirrorRules struct {
+	MatchCondition       MatchCondition       `json:"match_condition"`
+	MirrorURL            string               `json:"mirror_url"`
+	MirrorRequestSetting MirrorRequestSetting `json:"mirror_request_setting"`
+	SavingSetting        SavingSetting        `json:"saving_setting"`
+}
+
+func (c *S3) PutBucketMirror(input *PutBucketMirrorInput) (*PutBucketMirrorOutput, error) {
+
+	oprw.Lock()
+	defer oprw.Unlock()
+
+	if input == nil {
+		input = &PutBucketMirrorInput{}
+	}
+	out := &PutBucketMirrorOutput{}
+	date := time.Now().UTC().Format(http.TimeFormat)
+	resource := "/" + *input.Bucket + "?mirror"
+	signResource := "/" + *input.Bucket + "/?mirror"
+	url := c.Endpoint + resource
+	data, err := json.Marshal(input.BucketMirror)
+	if err != nil {
+		panic(errors.New("解析失败：" + string(data)))
+	}
+	request, _ := http.NewRequest("PUT", url, bytes.NewReader(data))
+	request.Header.Set(HTTPHeaderContentType, "application/json")
+	request.Header.Set(HTTPHeaderDate, date)
+	request.Header.Set(HTTPHeaderHost, c.Endpoint)
+	c.SignedReq(request, signResource)
+	client := &http.Client{}
+	res, err := client.Do(request)
+	if res != nil {
+		defer res.Body.Close()
+		body, _ := ioutil.ReadAll(res.Body)
+		xml.Unmarshal((body), &out)
+		if err != nil {
+			fmt.Println(err)
+		}
+		if res.Header != nil {
+			out.Header = Header(res.Header)
+			out.HttpCode = res.StatusCode
+		}
+		if body != nil {
+			out.Body = body
+		}
+	}
+	return out, err
+
+}
+
+var opPutBucketMirror *aws.Operation
+
+type PutBucketMirrorInput struct {
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	BucketMirror *BucketMirror `locationName:"Mirror" type:"structure"`
+
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+}
+
+type PutBucketMirrorOutput struct {
+	Ks3WebServiceResponse `json:"-" xml:"-"`
+}
+
+type GetBucketMirrorInput struct {
+	Bucket      *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+}
+type GetBucketMirrorOutput struct {
+	Ks3WebServiceResponse `json:"-" xml:"-"`
+	BucketMirror          *BucketMirror `locationName:"Mirror" type:"structure"`
+}
+
+func (c *S3) GetBucketMirror(input *GetBucketMirrorInput) (*GetBucketMirrorOutput, error) {
+
+	oprw.Lock()
+	defer oprw.Unlock()
+
+	if input == nil {
+		input = &GetBucketMirrorInput{}
+	}
+	out := &GetBucketMirrorOutput{}
+	date := time.Now().UTC().Format(http.TimeFormat)
+	resource := "/" + *input.Bucket + "?mirror"
+	signResource := "/" + *input.Bucket + "/?mirror"
+	url := c.Endpoint + resource
+	request, _ := http.NewRequest("GET", url, nil)
+	request.Header.Set(HTTPHeaderContentType, "application/json")
+	request.Header.Set(HTTPHeaderDate, date)
+	request.Header.Set(HTTPHeaderHost, c.Endpoint)
+	c.SignedReq(request, signResource)
+	client := &http.Client{}
+	res, err := client.Do(request)
+	if res != nil {
+		defer res.Body.Close()
+		body, _ := ioutil.ReadAll(res.Body)
+		xml.Unmarshal((body), &out)
+		if err != nil {
+			fmt.Println(err)
+		}
+		if res.Header != nil {
+			out.Header = Header(res.Header)
+			out.HttpCode = res.StatusCode
+			if res.StatusCode == 200 {
+				json.Unmarshal(out.Body, &out.BucketMirror)
+			}
+		}
+		if body != nil {
+			out.Body = body
+		}
+	}
+	return out, err
+
+}
+
+type DeleteBucketMirrorInput struct {
+	Bucket      *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+}
+type DeleteBucketMirrorOutput struct {
+	Ks3WebServiceResponse `json:"-" xml:"-"`
+}
+
+func (c *S3) DeleteBucketMirror(input *DeleteBucketMirrorInput) (*DeleteBucketMirrorOutput, error) {
+
+	oprw.Lock()
+	defer oprw.Unlock()
+
+	if input == nil {
+		input = &DeleteBucketMirrorInput{}
+	}
+	out := &DeleteBucketMirrorOutput{}
+	date := time.Now().UTC().Format(http.TimeFormat)
+	resource := "/" + *input.Bucket + "?mirror"
+	signResource := "/" + *input.Bucket + "/?mirror"
+	url := c.Endpoint + resource
+	request, _ := http.NewRequest("DELETE", url, nil)
+	request.Header.Set(HTTPHeaderContentType, "application/json")
+	request.Header.Set(HTTPHeaderDate, date)
+	request.Header.Set(HTTPHeaderHost, c.Endpoint)
+	c.SignedReq(request, signResource)
+	client := &http.Client{}
+	res, err := client.Do(request)
+	if res != nil {
+		defer res.Body.Close()
+		body, _ := ioutil.ReadAll(res.Body)
+		xml.Unmarshal((body), &out)
+		if err != nil {
+			fmt.Println(err)
+		}
+		if res.Header != nil {
+			out.Header = Header(res.Header)
+			out.HttpCode = res.StatusCode
+		}
+		if body != nil {
+			out.Body = body
+		}
+	}
+	return out, err
+
+}
