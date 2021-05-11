@@ -6260,48 +6260,48 @@ type metadataFetchObjectOutput struct {
 
 //--------镜像回源-------
 type BucketMirror struct {
-	Version          string            `json:"version"`
-	UseDefaultRobots bool              `json:"use_default_robots"`
-	AsyncMirrorRule  AsyncMirrorRule   `json:"async_mirror_rule"`
-	SyncMirrorRules  []SyncMirrorRules `json:"sync_mirror_rules"`
+	Version          *string            `json:"version"`
+	UseDefaultRobots *bool              `json:"use_default_robots"`
+	AsyncMirrorRule  *AsyncMirrorRule   `json:"async_mirror_rule,omitempty"`
+	SyncMirrorRules  []*SyncMirrorRules `json:"sync_mirror_rules,omitempty"`
 }
 type SavingSetting struct {
-	ACL string `json:"acl"`
+	ACL *string `json:"acl,omitempty"  required:"true"`
 }
 type AsyncMirrorRule struct {
-	MirrorUrls    []string      `json:"mirror_urls"`
-	SavingSetting SavingSetting `json:"saving_setting"`
+	MirrorUrls    []*string      `json:"mirror_urls,omitempty" required:"true"`
+	SavingSetting *SavingSetting `json:"saving_setting,omitempty" required:"true"`
 }
 type MatchCondition struct {
-	HTTPCodes   []string `json:"http_codes"`
-	KeyPrefixes []string `json:"key_prefixes"`
+	HTTPCodes   []*string `json:"http_codes,omitempty"`
+	KeyPrefixes []*string `json:"key_prefixes,omitempty"`
 }
 type SetHeaders struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+	Key   *string `json:"key,omitempty"`
+	Value *string `json:"value,omitempty"`
 }
 type RemoveHeaders struct {
-	Key string `json:"key"`
+	Key *string `json:"key,omitempty"`
 }
 type PassHeaders struct {
-	Key string `json:"key"`
+	Key *string `json:"key,omitempty"`
 }
 type HeaderSetting struct {
-	SetHeaders    []SetHeaders    `json:"set_headers"`
-	RemoveHeaders []RemoveHeaders `json:"remove_headers"`
-	PassAll       bool            `json:"pass_all"`
-	PassHeaders   []PassHeaders   `json:"pass_headers"`
+	SetHeaders    []*SetHeaders    `json:"set_headers,omitempty"`
+	RemoveHeaders []*RemoveHeaders `json:"remove_headers,omitempty"`
+	PassAll       *bool            `json:"pass_all,omitempty"`
+	PassHeaders   []*PassHeaders   `json:"pass_headers,omitempty"`
 }
 type MirrorRequestSetting struct {
-	PassQueryString bool          `json:"pass_query_string"`
-	Follow3Xx       bool          `json:"follow3xx"`
-	HeaderSetting   HeaderSetting `json:"header_setting"`
+	PassQueryString *bool          `json:"pass_query_string,omitempty"`
+	Follow3Xx       *bool          `json:"follow3xx,omitempty"`
+	HeaderSetting   *HeaderSetting `json:"header_setting,omitempty"`
 }
 type SyncMirrorRules struct {
-	MatchCondition       MatchCondition       `json:"match_condition"`
-	MirrorURL            string               `json:"mirror_url"`
-	MirrorRequestSetting MirrorRequestSetting `json:"mirror_request_setting"`
-	SavingSetting        SavingSetting        `json:"saving_setting"`
+	MatchCondition       MatchCondition        `json:"match_condition"`
+	MirrorURL            *string               `json:"mirror_url,omitempty"`
+	MirrorRequestSetting *MirrorRequestSetting `json:"mirror_request_setting,omitempty"`
+	SavingSetting        *SavingSetting        `json:"saving_setting,omitempty"`
 }
 
 func (c *S3) PutBucketMirror(input *PutBucketMirrorInput) (*PutBucketMirrorOutput, error) {
