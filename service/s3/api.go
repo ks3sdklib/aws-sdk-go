@@ -5872,7 +5872,7 @@ func (c *S3) RestoreObject(input *RestoreObjectInput) (*RestoreObjectOutput, err
 	date := time.Now().UTC().Format(http.TimeFormat)
 	client := &http.Client{}
 	objectKey := *input.Key + "?restore"
-	resource := "/" + *input.Bucket + objectKey
+	resource := "/" + *input.Bucket + "/" + objectKey
 	url := c.Endpoint + resource
 	req, err := http.NewRequest("POST", url, nil)
 	req.Header.Set(HTTPHeaderDate, date)
