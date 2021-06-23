@@ -193,17 +193,20 @@ func (v2 *signer) buildTime() {
 
 func (v2 *signer) buildCanonicalHeaders() {
 	var headers []string
-	for k := range v2.Request.Header {
-		if strings.HasPrefix(strings.ToLower(http.CanonicalHeaderKey(k)), "x-amz-"){
-			headers = append(headers, k)
+	for k ,v := range v2.Request.Header {
+		if strings.HasPrefix(k, "X-Amz-"){
+			key:= strings.ToLower(http.CanonicalHeaderKey(k));
+			v2.Request.Header[key] = v;
+			v2.Request.Header.Del(http.CanonicalHeaderKey(k))
+			headers = append(headers, key)
 		}
 	}
 	sort.Strings(headers)
 
 	headerValues := make([]string, len(headers))
 	for i, k := range headers {
-		headerValues[i] = strings.ToLower(http.CanonicalHeaderKey(k)) + ":" +
-				strings.Join(v2.Request.Header[http.CanonicalHeaderKey(k)], ",")
+		key:= strings.ToLower(http.CanonicalHeaderKey(k));
+		headerValues[i] = key + ":" +strings.Join(v2.Request.Header[key], ",")
 	}
 
 	v2.canonicalHeaders = strings.Join(headerValues, "\n")
