@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
-	"ks3sdklib/aws-sdk-go/internal/apierr"
+	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"log"
+	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -25,97 +26,28 @@ var key = string("yourkey")
 var key_encode = string("yourkey")
 var key_copy = string("yourkey")
 var content = string("content")
+var prefix  = "test/" //目录名称
+
 var cre = credentials.NewStaticCredentials("ak", "sk", "") //online
 var svc = s3.New(&aws.Config{
 	Region:      "BEIJING",
 	Credentials: cre,
 	//Endpoint:"ks3-sgp.ksyun.com",
-	Endpoint:         "ks3-cn-beijing.ksyun.com",
+	Endpoint:         "ks3-cn-beijing.ksyuncs.com",
 	DisableSSL:       true,
 	LogLevel:         1,
 	S3ForcePathStyle: true,
 	LogHTTPBody:      true,
 })
 
-func TestCreateBucket(t *testing.T) {
-	_, err := svc.CreateBucket(&s3.CreateBucketInput{
-		ACL:    aws.String("public-read"),
-		Bucket: aws.String(bucket),
-	})
-	assert.Error(t, err)
-	assert.Equal(t, "BucketAlreadyExists", err.(*apierr.RequestError).Code())
-}
-func TestBucketAcl(t *testing.T) {
-	_, err := svc.PutBucketACL(&s3.PutBucketACLInput{
-		Bucket: aws.String(bucket),
-		ACL:    aws.String("public-read"),
-	})
-	assert.NoError(t, err)
-
-	acp, err := svc.GetBucketACL(&s3.GetBucketACLInput{
-		Bucket: aws.String(bucket),
-	})
-	assert.NoError(t, err)
-	grants := acp.Grants
-	assert.Equal(t, 2, len(grants), "size of grants")
-
-	foundFull := false
-	foundRead := false
-	for i := 0; i < len(grants); i++ {
-		grant := grants[i]
-		if *grant.Permission == "FULL_CONTROL" {
-			foundFull = true
-			assert.NotNil(t, *grant.Grantee.ID, "grantee userid should not null")
-			assert.NotNil(t, *grant.Grantee.DisplayName, "grantee displayname should not null")
-		} else if *grant.Permission == "READ" {
-			foundRead = true
-			assert.NotNil(t, *grant.Grantee.URI, "grantee uri should not null")
-		}
-	}
-	assert.True(t, foundRead, "acp should contains READ")
-	assert.True(t, foundFull, "acp should contains FULL_CONTROL")
-
-	_, putaclErr := svc.PutBucketACL(&s3.PutBucketACLInput{
-		Bucket: aws.String(bucket),
-		ACL:    aws.String("private"),
-	})
-	assert.NoError(t, putaclErr)
-
-	acp, getaclErr := svc.GetBucketACL(&s3.GetBucketACLInput{
-		Bucket: aws.String(bucket),
-	})
-	assert.NoError(t, getaclErr)
-	privategrants := acp.Grants
-	assert.Equal(t, 1, len(privategrants), "size of grants")
-}
-func TestListBuckets(t *testing.T) {
-	out, err := svc.ListBuckets(nil)
-	assert.NoError(t, err)
-	buckets := out.Buckets
-	found := false
-	for i := 0; i < len(buckets); i++ {
-		fmt.Println(*buckets[i].Name)
-		fmt.Println(*buckets[i].Region)
-	}
-	assert.True(t, found, "list buckets expected contains "+bucket)
-}
-func TestHeadBucket(t *testing.T) {
-	_, err := svc.HeadBucket(&s3.HeadBucketInput{
-		Bucket: aws.String(bucket),
-	})
-	assert.NoError(t, err)
-}
-func TestDeleteBucket(t *testing.T) {
-	putObjectSimple()
-	_, err := svc.DeleteBucket(&s3.DeleteBucketInput{
-		Bucket: aws.String(bucket),
-	})
-	assert.Error(t, err)
-}
 func TestListObjects(t *testing.T) {
 	//putObjectSimple()
 	objects1, err := svc.ListObjects(&s3.ListObjectsInput{
 		Bucket: aws.String(bucket),
+		Delimiter: aws.String("/"),
+		MaxKeys:   aws.Long(int64(30)),
+		Prefix:    aws.String(prefix),
+		Marker:    aws.String(""),
 	})
 	assert.NoError(t, err)
 	objectList := objects1.Contents
@@ -173,6 +105,18 @@ func TestGetObject(t *testing.T) {
 	br := bufio.NewReader(out.Body)
 	w, _ := br.ReadString('\n')
 	assert.Equal(t, content[:2], w)
+
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			fmt.Println(err.Error())
+		}
+	}
 }
 
 func TestGetObjectPresignedUrl(t *testing.T) {
@@ -237,6 +181,12 @@ func TestObjectAcl(t *testing.T) {
 func TestCopyObject(t *testing.T) {
 	//key_modify_meta := string("yourkey")
 
+	v := url.Values{}
+	v.Add("schoole", "yz")
+	v.Add("class", "11")
+	XAmzTagging := v.Encode()
+
+
 	metadata := make(map[string]*string)
 	metadata["yourmetakey1"] = aws.String("yourmetavalue1")
 	metadata["yourmetakey2"] = aws.String("yourmetavalue2")
@@ -247,10 +197,46 @@ func TestCopyObject(t *testing.T) {
 		CopySource:        aws.String("/" + bucket + "/" + key_copy),
 		MetadataDirective: aws.String("REPLACE"),
 		Metadata:          metadata,
+		XAmzTagging:          aws.String(XAmzTagging),
+		XAmzTaggingDirective: aws.String("REPLACE"),
 	})
 	assert.NoError(t, err)
 	assert.True(t, objectExists(bucket, key))
 }
+
+
+//fetch obj
+func fetchObj(svc *s3.S3) {
+	v := url.Values{}
+	v.Add("schoole", "bbvvvvvv")
+	v.Add("class", "123123123123")
+	XAmzTagging := v.Encode()
+
+	sourceUrl := "https://img0.pconline.com.cn/pconline/1111/04/2483449_20061139501.jpg"
+
+	input := s3.FetchObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String("dst/testa"),
+		SourceUrl:   aws.String(sourceUrl),
+		XAmzTagging: aws.String(XAmzTagging),
+		ACL:         aws.String("public-read"),
+	}
+	resp, err := svc.FetchObject(&input)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			fmt.Println(err.Error())
+		}
+	}
+
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
+}
+
 
 func TestModifyObjectMeta(t *testing.T) {
 	key_modify_meta := string("yourkey")
@@ -456,6 +442,39 @@ func putObjectSimple() {
 	)
 }
 
+//put obj and tag
+func putObj(svc *s3.S3) {
+
+	fd, err := os.Open("D:\\suiyi.jpg")
+	v := url.Values{}
+	v.Add("name", "yz")
+	v.Add("age", "11")
+	XAmzTagging := v.Encode()
+
+	input := s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		ACL:         aws.String("public-read"),
+		Body:        fd,
+		XAmzTagging: aws.String(XAmzTagging),
+	}
+	resp, err := svc.PutObject(&input)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			fmt.Println(err.Error())
+		}
+	}
+
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
+}
+
+
 func objectExists(bucket, key string) bool {
 	_, err := svc.HeadObject(
 		&s3.HeadObjectInput{
@@ -593,3 +612,90 @@ func RestoreObject() {
 	fmt.Println(resp.HttpCode)
 	fmt.Println(resp.Message)
 }
+
+
+//delObjectTagging
+func DelTag(svc *s3.S3) {
+
+	params := &s3.DeleteObjectTaggingInput{
+		Bucket: aws.String(bucket), // Required
+		Key:    aws.String(key),
+	}
+	resp, err := svc.DeleteObjectTagging(params)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			fmt.Println(err.Error())
+		}
+	}
+
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
+}
+
+//getObjectTagging
+func GetTag(svc *s3.S3) {
+
+	params := &s3.GetObjectTaggingInput{
+		Bucket: aws.String(bucket), // Required
+		Key:    aws.String(key),
+	}
+	resp, err := svc.GetObjectTagging(params)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			fmt.Println(err.Error())
+		}
+	}
+
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
+}
+
+//putObjectTagging
+func PutTag(svc *s3.S3) {
+
+	tagkey := "name"
+	tagval := "yz"
+	tagkey2 := "sex"
+	tagval2 := "female"
+	objTagging := s3.Tagging{
+		TagSet: []*s3.Tag{&s3.Tag{
+			Key:   aws.String(tagkey),
+			Value: aws.String(tagval),
+		}, &s3.Tag{
+			Key:   aws.String(tagkey2),
+			Value: aws.String(tagval2),
+		},
+		},
+	}
+
+	params := &s3.PutObjectTaggingInput{
+		Bucket:  aws.String(bucket), // Required
+		Key:     aws.String(key),
+		Tagging: &objTagging,
+	}
+	resp, err := svc.PutObjectTagging(params)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			fmt.Println(err.Error())
+		}
+	}
+
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
+}
+

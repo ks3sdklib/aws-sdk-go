@@ -564,11 +564,13 @@ func (c *S3) DeleteObjects(input *DeleteObjectsInput) *DeleteObjectsOutput {
 	var okList []*DeletedObject
 	for _, t := range input.Delete.Objects {
 		_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-		if err != nil {
-			aerr, _ := err.(awserr.Error)
-			errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
-		} else {
-			okList = append(okList, &DeletedObject{Key: t.Key})
+		if *input.isReTurnResults {
+			if err != nil {
+				aerr, _ := err.(awserr.Error)
+				errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
+			} else {
+				okList = append(okList, &DeletedObject{Key: t.Key})
+			}
 		}
 	}
 	output := &DeleteObjectsOutput{
@@ -582,8 +584,6 @@ func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsO
 	var errors []*Error
 	var okList []*DeletedObject
 
-	var objects []*Object
-	count := 0
 	marker := aws.String("")
 	prefix := input.Prefix
 	var output = &DeleteObjectsOutput{
@@ -598,23 +598,23 @@ func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsO
 			MaxKeys: aws.Long(1000),
 		})
 		if err == nil {
-			objects = append(objects, resp.Contents...)
-			for _, t := range objects {
+			for _, t := range resp.Contents {
 				_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-				if err != nil {
-					aerr, _ := err.(awserr.Error)
-					errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
-					output.Errors = errors
-				} else {
-					okList = append(okList, &DeletedObject{Key: t.Key})
-					output.Deleted = okList
+				if *input.isReTurnResults {
+					if err != nil {
+						aerr, _ := err.(awserr.Error)
+						errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
+						output.Errors = errors
+					} else {
+						okList = append(okList, &DeletedObject{Key: t.Key})
+						output.Deleted = okList
+					}
 				}
 			}
-			count += len(objects)
 			if *resp.IsTruncated == false {
 				break
 			}
-			marker = objects[999].Key
+			marker = resp.Contents[999].Key
 		} else {
 			return output, err
 		}
@@ -3100,6 +3100,7 @@ type DeleteObjectInput struct {
 type DeleteBucketPrefixInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 	Prefix *string `type:"string"`
+	isReTurnResults  *bool `type:"boolean"`
 }
 
 type metadataDeleteObjectInput struct {
@@ -3131,6 +3132,8 @@ type DeleteObjectsInput struct {
 
 	Delete *Delete `locationName:"Delete" type:"structure" required:"true"`
 
+	isReTurnResults  *bool `type:"boolean"`
+
 	// The concatenation of the authentication device's serial number, a space,
 	// and the value that is displayed on your authentication device.
 	MFA *string `location:"header" locationName:"x-amz-mfa" type:"string"`
@@ -3151,9 +3154,12 @@ type metadataDeleteObjectsInput struct {
 }
 
 type DeleteObjectsOutput struct {
+
 	Deleted []*DeletedObject `type:"list" flattened:"true"`
 
 	Errors []*Error `locationName:"Error" type:"list" flattened:"true"`
+
+	ErrorsCount  *int64 `locationName:"ErrorsCount" type:"integer"`
 
 	// If present, indicates that the requester was successfully charged for the
 	// request.
