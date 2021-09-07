@@ -4,8 +4,8 @@
   * bucket_sample/sample.go
   * object_sample/sample.go
   
-  
-## [1.0.13] - 2021-09-01
+ 
+## [1.0.14] - 2021-09-06
 
 ### 更新
 
