@@ -17,9 +17,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/awstesting/unit"
-	"github.com/aws/aws-sdk-go/internal/sdkio"
+	"github.com/ks3sdklib/aws-sdk-go/internal/sdkio"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/internal/s3testing"
+	"github.com/ks3sdklib/aws-sdk-go/service/s3/internal/s3testing"
 )
 
 const respBody = `<?xml version="1.0" encoding="UTF-8"?>
