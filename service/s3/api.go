@@ -152,10 +152,18 @@ func (c *S3) CreateBucketRequest(input *CreateBucketInput) (req *aws.Request, ou
 	defer oprw.Unlock()
 
 	if opCreateBucket == nil {
-		opCreateBucket = &aws.Operation{
-			Name:       "CreateBucket",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}",
+		if input.ProjectId == nil{
+			opCreateBucket = &aws.Operation{
+				Name:       "CreateBucket",
+				HTTPMethod: "PUT",
+				HTTPPath:   "/{Bucket}",
+			}
+		}else {
+			opCreateBucket = &aws.Operation{
+				Name:       "CreateBucket",
+				HTTPMethod: "PUT",
+				HTTPPath:   "/{Bucket}?projectId="+*input.ProjectId,
+			}
 		}
 	}
 
