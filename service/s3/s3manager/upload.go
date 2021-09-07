@@ -178,6 +178,8 @@ type UploadInput struct {
 
 	// The readable body payload to send to S3.
 	Body io.Reader
+
+	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
 }
 
 // UploadOutput represents a response from the Upload() call.
