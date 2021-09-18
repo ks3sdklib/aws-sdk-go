@@ -570,9 +570,12 @@ func (c *S3) DeleteObjectsRequest(input *DeleteObjectsInput) (req *aws.Request, 
 func (c *S3) DeleteObjects(input *DeleteObjectsInput) *DeleteObjectsOutput {
 	var errors []*Error
 	var okList []*DeletedObject
+	if input == nil {
+		input = &DeleteObjectsInput{}
+	}
 	for _, t := range input.Delete.Objects {
 		_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-		if *input.isReTurnResults {
+		if input.IsReTurnResults  == aws.Boolean(false) {
 			if err != nil {
 				aerr, _ := err.(awserr.Error)
 				errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
@@ -598,6 +601,9 @@ func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsO
 		Deleted: okList,
 		Errors:  errors,
 	}
+	if input == nil {
+		input = &DeleteBucketPrefixInput{}
+	}
 	for {
 		resp, err := c.ListObjects(&ListObjectsInput{
 			Bucket:  input.Bucket,
@@ -608,7 +614,7 @@ func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsO
 		if err == nil {
 			for _, t := range resp.Contents {
 				_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-				if *input.isReTurnResults {
+				if input.IsReTurnResults  == aws.Boolean(false){
 					if err != nil {
 						aerr, _ := err.(awserr.Error)
 						errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
@@ -3100,9 +3106,9 @@ type DeleteObjectInput struct {
 }
 
 type DeleteBucketPrefixInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-	Prefix *string `type:"string"`
-	isReTurnResults  *bool `type:"boolean"`
+	Bucket          *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+	Prefix          *string `type:"string"  required:"true"`
+	IsReTurnResults *bool   `type:"boolean" required:"true"`
 }
 
 type metadataDeleteObjectInput struct {
@@ -3134,7 +3140,7 @@ type DeleteObjectsInput struct {
 
 	Delete *Delete `locationName:"Delete" type:"structure" required:"true"`
 
-	isReTurnResults  *bool `type:"boolean"`
+	IsReTurnResults  *bool `type:"boolean"  required:"true"`
 
 	// The concatenation of the authentication device's serial number, a space,
 	// and the value that is displayed on your authentication device.
