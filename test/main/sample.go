@@ -73,7 +73,7 @@ func main() {
 var (
 	uploadkey  = "src.zipold"
 	uploadID   = "cc0e00789d724b5d81dca5f40a1a1dd2"
-	uploadpath = "C:\\Users\\yangzhen1\\Desktop\\es10000Console_old\\src.zipold"
+	uploadpath = "C:\\Users\\test\\Desktop\\es10000Console_old\\src.zipold"
 	etag       = "504eb4064ceaf14ea157aff50cfb3c15"
 )
 
@@ -82,7 +82,7 @@ func multipartUploadAllTagging(svc *s3.S3) {
 	var bucket = "cqc-test-b"                                                      //欲上传的桶的名字
 	var name = "test012506.zip"                                                    //上传的对象的新的名字
 	var container = int64(4096 * 4096)                                             //每次上传的块的大小
-	var filepath = "C:\\Users\\yangzhen1\\Desktop\\es10000Console_old\\src.zipold" //本地需要上传的文件
+	var filepath = "C:\\Users\\test\\Desktop\\es10000Console_old\\src.zipold" //本地需要上传的文件
 
 	var uploadID = ""
 	var etags = []string{}  //每次上传块返回的etag
@@ -163,7 +163,7 @@ func multipartUploadAllTagging(svc *s3.S3) {
 func multipartUploadAll(svc *s3.S3) {
 
 	var container = int64(4096 * 4096)                                             //每次上传的块的大小
-	var filepath = "C:\\Users\\yangzhen1\\Desktop\\es10000Console_old\\src.zipold" //本地需要上传的文件
+	var filepath = "C:\\Users\\test\\Desktop\\es10000Console_old\\src.zipold" //本地需要上传的文件
 
 	var uploadID = ""
 	var etags = []string{}  //每次上传块返回的etag
