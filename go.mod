@@ -1,6 +1,6 @@
 module github.com/ks3sdklib/aws-sdk-go
 
-go 1.4
+go 1.16
 
 require (
 	github.com/KscSDK/ksc-sdk-go v0.1.42
