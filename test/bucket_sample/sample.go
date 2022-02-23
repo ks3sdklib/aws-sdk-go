@@ -2,8 +2,8 @@ package bucket_sample
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
-	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/aws/credentials"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 )

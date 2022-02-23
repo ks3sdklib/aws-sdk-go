@@ -48,7 +48,7 @@ func New(config *aws.Config) *S3 {
 // custom request initialization.
 func (c *S3) newRequest(op *aws.Operation, params, data interface{}) *aws.Request {
 	req := aws.NewRequest(c.Service, op, params, data)
-
+	updateHostWithBucket(req)
 	// Run custom request initialization if present
 	if initRequest != nil {
 		initRequest(req)

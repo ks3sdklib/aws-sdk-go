@@ -1,7 +1,6 @@
 package main
 
 import (
-	"aws-sdk-go/service/s3/s3manager"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -14,7 +13,8 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/aws/credentials"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
-	ks3 "github.com/ks3sdklib/aws-sdk-go/service/utils"
+	ks3 "github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
+	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -37,19 +37,6 @@ var (
 	objname    = "file1.mp4"
 )
 
-//处理错误
-func printError(err error){
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
-			if reqErr, ok := err.(awserr.RequestFailure); ok {
-				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
-			}
-		} else {
-			fmt.Println(err.Error())
-		}
-	}
-}
 
 func assumeRoleRequest(ak string, sk string, region string) []byte { //调用ksc-go-sdk的sts服务
 	svc := sts.SdkNew(ksc.NewClient(ak, sk /*,true*/), &ksc.Config{Region: &region}, &kscUtils.UrlInfo{ //debug模式的话,打开true开关
