@@ -2757,6 +2757,8 @@ type CreateBucketInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	BucketType *string `location:"header" locationName:"x-amz-bucket-type" type:"string"`
+
 	MetadataCreateBucketInput `json:"-" xml:"-"`
 }
 
