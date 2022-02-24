@@ -15,7 +15,7 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/jsonrpc"
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/xml/xmlutil"
 	"github.com/ks3sdklib/aws-sdk-go/internal/signer/v4"
-	"github.com/ks3sdklib/aws-sdk-go/internal/util"
+	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +26,7 @@ var _ time.Time
 var _ xmlutil.XMLNode
 var _ xml.Attr
 var _ = ioutil.Discard
-var _ = util.Trim("")
+var _ = awsutil.Trim("")
 var _ = url.Values{}
 var _ = io.EOF
 

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/ks3sdklib/aws-sdk-go/internal/util"
+	"github.com/ks3sdklib/aws-sdk-go/awsutil/util"
 )
 
 // An API defines a service API's definition. and logic to serialize the definition.

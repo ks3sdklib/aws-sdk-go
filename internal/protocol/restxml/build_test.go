@@ -15,7 +15,7 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/restxml"
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/xml/xmlutil"
 	"github.com/ks3sdklib/aws-sdk-go/internal/signer/v4"
-	"github.com/ks3sdklib/aws-sdk-go/internal/util"
+	"github.com/ks3sdklib/aws-sdk-go/awsutil/util"
 	"github.com/stretchr/testify/assert"
 )
 

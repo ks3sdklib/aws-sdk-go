@@ -2,10 +2,9 @@ package s3testing
 
 import (
 	"fmt"
+	"github.com/ks3sdklib/aws-sdk-go/internal/sdkio"
+	"github.com/ks3sdklib/aws-sdk-go/internal/sdkrand"
 	"math/rand"
-
-	"github.com/aws/aws-sdk-go/internal/sdkio"
-	"github.com/aws/aws-sdk-go/internal/sdkrand"
 )
 
 var randBytes = func() []byte {

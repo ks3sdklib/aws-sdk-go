@@ -3,12 +3,12 @@ package helpers
 
 import (
 	"fmt"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util/utilsort"
 	"reflect"
 	"strings"
 
 	"github.com/ks3sdklib/aws-sdk-go/internal/model/api"
-	"github.com/ks3sdklib/aws-sdk-go/internal/util"
-	"github.com/ks3sdklib/aws-sdk-go/internal/util/utilsort"
+	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 )
 
 // A paramFiller provides string formatting for a shape and its types.
@@ -27,7 +27,7 @@ func (f paramFiller) typeName(shape *api.Shape) string {
 // ParamsStructFromJSON returns a JSON string representation of a structure.
 func ParamsStructFromJSON(value interface{}, shape *api.Shape, prefixPackageName bool) string {
 	f := paramFiller{prefixPackageName: prefixPackageName}
-	return util.GoFmt(f.paramsStructAny(value, shape))
+	return awsutil.GoFmt(f.paramsStructAny(value, shape))
 }
 
 // paramsStructAny returns the string representation of any value.

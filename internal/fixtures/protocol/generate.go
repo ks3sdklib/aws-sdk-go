@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util/utilassert"
 	"net/url"
 	"os"
 	"os/exec"
@@ -13,10 +14,9 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/internal/fixtures/helpers"
 	"github.com/ks3sdklib/aws-sdk-go/internal/model/api"
-	"github.com/ks3sdklib/aws-sdk-go/internal/util"
-	"github.com/ks3sdklib/aws-sdk-go/internal/util/utilassert"
 )
 
 type testSuite struct {
@@ -75,7 +75,7 @@ var extraImports = []string{
 	"net/url",
 	"",
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/xml/xmlutil",
-	"github.com/ks3sdklib/aws-sdk-go/internal/util",
+	"github.com/ks3sdklib/aws-sdk-go/awsutil/util",
 	"github.com/stretchr/testify/assert",
 }
 
@@ -103,7 +103,7 @@ func (t *testSuite) TestSuite() string {
 		c.TestSuite = t
 		buf.WriteString(c.TestCase(idx) + "\n")
 	}
-	return util.GoFmt(buf.String())
+	return awsutil.GoFmt(buf.String())
 }
 
 var tplInputTestCase = template.Must(template.New("inputcase").Parse(`
@@ -190,7 +190,7 @@ func (i *testCase) TestCase(idx int) string {
 			m, _ := url.ParseQuery(i.InputTest.Body)
 			i.InputTest.Body = m.Encode()
 		case "rest-xml":
-			i.InputTest.Body = util.SortXML(bytes.NewReader([]byte(i.InputTest.Body)))
+			i.InputTest.Body = awsutil.SortXML(bytes.NewReader([]byte(i.InputTest.Body)))
 		case "json", "rest-json":
 			i.InputTest.Body = strings.Replace(i.InputTest.Body, " ", "", -1)
 		}
@@ -217,7 +217,7 @@ func (i *testCase) TestCase(idx int) string {
 		}
 	}
 
-	return util.GoFmt(buf.String())
+	return awsutil.GoFmt(buf.String())
 }
 
 // generateTestSuite generates a protocol test suite for a given configuration
@@ -289,7 +289,7 @@ func generateTestSuite(filename string) string {
 		innerBuf.WriteString(suite.TestSuite() + "\n")
 	}
 
-	return util.GoFmt(buf.String() + innerBuf.String())
+	return awsutil.GoFmt(buf.String() + innerBuf.String())
 }
 
 func main() {
@@ -300,7 +300,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		f.WriteString(util.GoFmt(out))
+		f.WriteString(awsutil.GoFmt(out))
 		f.Close()
 
 		c := exec.Command("gofmt", "-s", "-w", os.Args[2])

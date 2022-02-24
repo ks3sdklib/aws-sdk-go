@@ -16,7 +16,7 @@ import (
 	"sync"
 
 	"github.com/ks3sdklib/aws-sdk-go/internal/model/api"
-	"github.com/ks3sdklib/aws-sdk-go/internal/util"
+	"github.com/ks3sdklib/aws-sdk-go/awsutil/util"
 )
 
 type generateInfo struct {
