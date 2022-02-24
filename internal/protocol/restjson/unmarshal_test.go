@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"github.com/aws/aws-sdk-go/private/util"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,7 +16,6 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/restjson"
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/xml/xmlutil"
 	"github.com/ks3sdklib/aws-sdk-go/internal/signer/v4"
-	"github.com/ks3sdklib/aws-sdk-go/awsutil/util"
 	"github.com/stretchr/testify/assert"
 )
 
