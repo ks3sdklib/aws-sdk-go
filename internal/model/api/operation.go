@@ -3,12 +3,11 @@ package api
 import (
 	"bytes"
 	"fmt"
+	"github.com/aws/aws-sdk-go/private/util"
 	"regexp"
 	"sort"
 	"strings"
 	"text/template"
-
-	"github.com/ks3sdklib/aws-sdk-go/awsutil/util"
 )
 
 // An Operation defines a specific API Operation.

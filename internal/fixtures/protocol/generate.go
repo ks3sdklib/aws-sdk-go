@@ -75,7 +75,6 @@ var extraImports = []string{
 	"net/url",
 	"",
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/xml/xmlutil",
-	"github.com/ks3sdklib/aws-sdk-go/awsutil/util",
 	"github.com/stretchr/testify/assert",
 }
 

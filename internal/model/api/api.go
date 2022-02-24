@@ -8,8 +8,7 @@ import (
 	"sort"
 	"strings"
 	"text/template"
-
-	"github.com/ks3sdklib/aws-sdk-go/awsutil/util"
+	"github.com/aws/aws-sdk-go/private/util"
 )
 
 // An API defines a service API's definition. and logic to serialize the definition.

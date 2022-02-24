@@ -2,10 +2,9 @@ package api
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/private/util"
 	"sort"
 	"strings"
-
-	"github.com/ks3sdklib/aws-sdk-go/awsutil/util"
 )
 
 // A ShapeRef defines the usage of a shape within the API.

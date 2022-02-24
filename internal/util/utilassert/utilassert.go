@@ -3,13 +3,13 @@ package utilassert
 
 import (
 	"fmt"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util/utilsort"
 	"regexp"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/ks3sdklib/aws-sdk-go/internal/model/api"
-	"github.com/ks3sdklib/aws-sdk-go/awsutil/util/utilsort"
 )
 
 // findMember searches the shape for the member with the matching key name.
