@@ -2333,6 +2333,9 @@ type Bucket struct {
 
 	Region *string `type:"string"`
 
+	// The storage type of the bucket.
+	Type *string `type:"string"`
+
 	metadataBucket `json:"-" xml:"-"`
 }
 
