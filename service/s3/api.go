@@ -152,17 +152,17 @@ func (c *S3) CreateBucketRequest(input *CreateBucketInput) (req *aws.Request, ou
 	defer oprw.Unlock()
 
 	if opCreateBucket == nil {
-		if input.ProjectId == nil{
+		if input.ProjectId == nil {
 			opCreateBucket = &aws.Operation{
 				Name:       "CreateBucket",
 				HTTPMethod: "PUT",
 				HTTPPath:   "/{Bucket}",
 			}
-		}else {
+		} else {
 			opCreateBucket = &aws.Operation{
 				Name:       "CreateBucket",
 				HTTPMethod: "PUT",
-				HTTPPath:   "/{Bucket}?projectId="+*input.ProjectId,
+				HTTPPath:   "/{Bucket}?projectId=" + *input.ProjectId,
 			}
 		}
 	}
@@ -575,7 +575,7 @@ func (c *S3) DeleteObjects(input *DeleteObjectsInput) *DeleteObjectsOutput {
 	}
 	for _, t := range input.Delete.Objects {
 		_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-		if input.IsReTurnResults  == aws.Boolean(false) {
+		if input.IsReTurnResults == aws.Boolean(false) {
 			if err != nil {
 				aerr, _ := err.(awserr.Error)
 				errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
@@ -614,7 +614,7 @@ func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsO
 		if err == nil {
 			for _, t := range resp.Contents {
 				_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-				if input.IsReTurnResults  == aws.Boolean(false){
+				if input.IsReTurnResults == aws.Boolean(false) {
 					if err != nil {
 						aerr, _ := err.(awserr.Error)
 						errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
@@ -2114,12 +2114,17 @@ func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
 	return out, err
 }
 
-
 func (c *S3) PutObjectPresignedUrl(input *PutObjectInput, expires time.Duration) (*url.URL, error) {
 	req, _ := c.PutObjectRequest(input)
 	req.ExpireTime = expires
 	err := req.Sign()
 	return req.HTTPRequest.URL, err
+}
+
+func (c *S3) PutObjectPreassignedInput(input *PutObjectInput) (*http.Request, error) {
+	req, _ := c.PutObjectRequest(input)
+	err := req.Sign()
+	return req.HTTPRequest, err
 }
 
 var opPutObject *aws.Operation
@@ -3142,7 +3147,7 @@ type DeleteObjectsInput struct {
 
 	Delete *Delete `locationName:"Delete" type:"structure" required:"true"`
 
-	IsReTurnResults  *bool `type:"boolean"  required:"true"`
+	IsReTurnResults *bool `type:"boolean"  required:"true"`
 
 	// The concatenation of the authentication device's serial number, a space,
 	// and the value that is displayed on your authentication device.
@@ -3164,12 +3169,11 @@ type metadataDeleteObjectsInput struct {
 }
 
 type DeleteObjectsOutput struct {
-
 	Deleted []*DeletedObject `type:"list" flattened:"true"`
 
 	Errors []*Error `locationName:"Error" type:"list" flattened:"true"`
 
-	ErrorsCount  *int64 `locationName:"ErrorsCount" type:"integer"`
+	ErrorsCount *int64 `locationName:"ErrorsCount" type:"integer"`
 
 	// If present, indicates that the requester was successfully charged for the
 	// request.
@@ -3633,6 +3637,8 @@ type GetObjectInput struct {
 	VersionID *string `location:"querystring" locationName:"versionId" type:"string"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"string"`
 
 	metadataGetObjectInput `json:"-" xml:"-"`
 }
@@ -5089,6 +5095,8 @@ type PutObjectInput struct {
 
 	CallbackUrl  *string `location:"header" locationName:"x-kss-callbackurl" type:"string"`
 	CallbackBody *string `location:"header" locationName:"x-kss-callbackbody" type:"string"`
+
+	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"string"`
 
 	metadataPutObjectInput `json:"-" xml:"-"`
 }
