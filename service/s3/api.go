@@ -2338,6 +2338,8 @@ type Bucket struct {
 
 	Region *string `type:"string"`
 
+	Type *string `type:"string"`
+
 	metadataBucket `json:"-" xml:"-"`
 }
 
