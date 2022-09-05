@@ -57,6 +57,7 @@ type Config struct {
 	DisableParamValidation  bool
 	DisableComputeChecksums bool
 	S3ForcePathStyle        bool
+	DomainMode              bool
 }
 
 // Copy will return a shallow copy of the Config object.
@@ -75,7 +76,7 @@ func (c Config) Copy() Config {
 	dst.DisableParamValidation = c.DisableParamValidation
 	dst.DisableComputeChecksums = c.DisableComputeChecksums
 	dst.S3ForcePathStyle = c.S3ForcePathStyle
-
+	dst.DomainMode = c.DomainMode
 	return dst
 }
 
@@ -169,5 +170,10 @@ func (c Config) Merge(newcfg *Config) *Config {
 		cfg.S3ForcePathStyle = c.S3ForcePathStyle
 	}
 
+	if newcfg.DomainMode {
+		cfg.DomainMode = newcfg.DomainMode
+	} else {
+		cfg.DomainMode = c.DomainMode
+	}
 	return &cfg
 }
