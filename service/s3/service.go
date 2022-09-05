@@ -6,6 +6,7 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/restxml"
 	"github.com/ks3sdklib/aws-sdk-go/internal/signer/v2"
+	"strings"
 )
 
 // S3 is a client for Amazon S3.
@@ -47,11 +48,19 @@ func New(config *aws.Config) *S3 {
 // newRequest creates a new request for a S3 operation and runs any
 // custom request initialization.
 func (c *S3) newRequest(op *aws.Operation, params, data interface{}) *aws.Request {
-	req := aws.NewRequest(c.Service, op, params, data)
-	updateHostWithBucket(req)
+	r := aws.NewRequest(c.Service, op, params, data)
+	if r.Config.DomainMode {
+		r.HTTPRequest.URL.Host = r.HTTPRequest.URL.Host
+		r.HTTPRequest.URL.Path = strings.Replace(r.HTTPRequest.URL.Path, "/{Bucket}", "", -1)
+		if r.HTTPRequest.URL.Path == "" {
+			r.HTTPRequest.URL.Path = "/"
+		}
+	} else {
+		updateHostWithBucket(r)
+	}
 	// Run custom request initialization if present
 	if initRequest != nil {
-		initRequest(req)
+		initRequest(r)
 	}
-	return req
+	return r
 }
