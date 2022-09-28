@@ -1,10 +1,11 @@
 package v2
 
-import(
+import (
 	"crypto/hmac"
 	"crypto/sha1"
-	"encoding/base64" 
+	"encoding/base64"
 	"fmt"
+	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"io"
 	"net/http"
 	"net/url"
@@ -23,37 +24,38 @@ const (
 	authHeaderPrefix = "AWS"
 	timeFormat       = "Mon, 02 Jan 2006 15:04:05 GMT"
 )
-var signQuerys = map[string]bool {
-	"acl":true, 
-	"lifecycle":true,
-	"location":true, 
-	"logging":true, 
-	"notification":true, 
-	"policy":true, 
-	"requestPayment":true, 
-	"torrent":true, 
-	"uploadId":true, 
-	"uploads":true, 
-	"versionId":true,
-	"versioning":true, 
-	"versions":true, 
-	"website":true, 
-	"delete":true, 
-	"thumbnail":true,
-	"cors":true,
-	"pfop":true,
-	"querypfop":true,
-	"partNumber":true,
-	"response-content-type":true,
-	"response-content-language":true,
-	"response-expires":true, 
-	"response-cache-control":true,
-	"response-content-disposition":true, 
-	"response-content-encoding":true,
-	"tagging":true,
-	"fetch":true,
-	"copy":true,
-	"mirror":true,
+
+var signQuerys = map[string]bool{
+	"acl":                          true,
+	"lifecycle":                    true,
+	"location":                     true,
+	"logging":                      true,
+	"notification":                 true,
+	"policy":                       true,
+	"requestPayment":               true,
+	"torrent":                      true,
+	"uploadId":                     true,
+	"uploads":                      true,
+	"versionId":                    true,
+	"versioning":                   true,
+	"versions":                     true,
+	"website":                      true,
+	"delete":                       true,
+	"thumbnail":                    true,
+	"cors":                         true,
+	"pfop":                         true,
+	"querypfop":                    true,
+	"partNumber":                   true,
+	"response-content-type":        true,
+	"response-content-language":    true,
+	"response-expires":             true,
+	"response-cache-control":       true,
+	"response-content-disposition": true,
+	"response-content-encoding":    true,
+	"tagging":                      true,
+	"fetch":                        true,
+	"copy":                         true,
+	"mirror":                       true,
 }
 
 type signer struct {
@@ -70,14 +72,15 @@ type signer struct {
 	Debug       uint
 	Logger      io.Writer
 
-	isPresign          bool
-	formattedTime      string
+	isPresign     bool
+	formattedTime string
 
-	canonicalHeaders string
-	canonicalResource  string
-	stringToSign     string
-	signature        string
-	authorization    string
+	canonicalHeaders  string
+	canonicalResource string
+	stringToSign      string
+	signature         string
+	authorization     string
+	awsRequest        *aws.Request
 }
 
 func Sign(req *aws.Request) {
@@ -96,7 +99,7 @@ func Sign(req *aws.Request) {
 	}
 
 	s := signer{
-		Service: req.Service,
+		Service:     req.Service,
 		Request:     req.HTTPRequest,
 		Time:        req.Time,
 		ExpireTime:  req.ExpireTime,
@@ -107,6 +110,7 @@ func Sign(req *aws.Request) {
 		Credentials: req.Service.Config.Credentials,
 		Debug:       req.Service.Config.LogLevel,
 		Logger:      req.Service.Config.Logger,
+		awsRequest:  req,
 	}
 
 	req.Error = s.sign()
@@ -140,7 +144,6 @@ func (v2 *signer) sign() error {
 		return err
 	}
 
-
 	v2.build()
 
 	if v2.Debug > 0 {
@@ -163,20 +166,20 @@ func (v2 *signer) logSigningInfo() {
 
 func (v2 *signer) build() {
 
-	v2.buildTime()             // no depends
-	v2.buildCanonicalHeaders() // depends on cred string
-	v2.buildCanonicalResource()  // depends on canon headers / signed headers
-	v2.buildStringToSign()     // depends on canon string
-	v2.buildSignature()        // depends on string to sign
+	v2.buildTime()              // no depends
+	v2.buildCanonicalHeaders()  // depends on cred string
+	v2.buildCanonicalResource() // depends on canon headers / signed headers
+	v2.buildStringToSign()      // depends on canon string
+	v2.buildSignature()         // depends on string to sign
 
 	if v2.isPresign {
-		var querys url.Values 
+		var querys url.Values
 		querys = make(map[string][]string)
-		querys.Add("Signature",v2.signature)
-		querys.Add("AWSAccessKeyId",v2.CredValues.AccessKeyID)
-		v2.Request.URL.RawQuery+= "&"+querys.Encode()
+		querys.Add("Signature", v2.signature)
+		querys.Add("AWSAccessKeyId", v2.CredValues.AccessKeyID)
+		v2.Request.URL.RawQuery += "&" + querys.Encode()
 	} else {
-		v2.Request.Header.Set("Authorization","AWS "+v2.CredValues.AccessKeyID+":"+v2.signature)
+		v2.Request.Header.Set("Authorization", "AWS "+v2.CredValues.AccessKeyID+":"+v2.signature)
 	}
 }
 
@@ -193,10 +196,10 @@ func (v2 *signer) buildTime() {
 
 func (v2 *signer) buildCanonicalHeaders() {
 	var headers []string
-	for k ,v := range v2.Request.Header {
-		if strings.HasPrefix(k, "X-Amz-"){
-			key:= strings.ToLower(http.CanonicalHeaderKey(k));
-			v2.Request.Header[key] = v;
+	for k, v := range v2.Request.Header {
+		if strings.HasPrefix(k, "X-Amz-") {
+			key := strings.ToLower(http.CanonicalHeaderKey(k))
+			v2.Request.Header[key] = v
 			v2.Request.Header.Del(http.CanonicalHeaderKey(k))
 			headers = append(headers, key)
 		}
@@ -205,47 +208,52 @@ func (v2 *signer) buildCanonicalHeaders() {
 
 	headerValues := make([]string, len(headers))
 	for i, k := range headers {
-		key:= strings.ToLower(http.CanonicalHeaderKey(k));
-		headerValues[i] = key + ":" +strings.Join(v2.Request.Header[key], ",")
+		key := strings.ToLower(http.CanonicalHeaderKey(k))
+		headerValues[i] = key + ":" + strings.Join(v2.Request.Header[key], ",")
 	}
 
 	v2.canonicalHeaders = strings.Join(headerValues, "\n")
 }
 
-func (v2 *signer) buildCanonicalResource(){
+func (v2 *signer) buildCanonicalResource() {
 	endpoint := v2.Service.Endpoint
-	
+
 	v2.Request.URL.RawQuery = strings.Replace(v2.Query.Encode(), "+", "%20", -1)
 	url := v2.Request.URL.String()
 	//在aws.service.go,buildEndpoint会把sheme也加上
-	pathStyle := strings.HasPrefix(url,endpoint)
+	pathStyle := strings.HasPrefix(url, endpoint)
 	uri := v2.Request.URL.Opaque
-
-	bucketInHost:=""
-	if !pathStyle{
-		if strings.HasPrefix(url,"http://") {
+	b := awsutil.ValuesAtPath(v2.awsRequest.Params, "Bucket")
+	bucket := b[0].(string)
+	bucketInHost := ""
+	if !pathStyle {
+		if strings.HasPrefix(url, "http://") {
 			url = url[7:]
 			endpoint = endpoint[7:]
-		}else if strings.HasPrefix(url,"https://")	{
+		} else if strings.HasPrefix(url, "https://") {
 			url = url[8:]
 			endpoint = endpoint[8:]
 		}
-		bucketInHost = url[0:strings.Index(url,endpoint)-1]
+		bucketInHost = url[0 : strings.Index(url, endpoint)-1]
 	}
 	if uri != "" {
 		uris := strings.Split(uri, "/")[3:]
 		append := false
-		if len(uris) == 1 && uris[0]!=""&&bucketInHost == ""{
+		if len(uris) == 1 && uris[0] != "" && bucketInHost == "" {
 			//只有bucket
 			append = true
-		}else if len(uris) == 0 && bucketInHost != ""{
+		} else if len(uris) == 0 && bucketInHost != "" {
 			append = true
 		}
-		uri = "/" + strings.Join(strings.Split(uri, "/")[3:],"/")
-		if bucketInHost != ""{
-			uri = "/"+bucketInHost +uri
+		uri = "/" + strings.Join(strings.Split(uri, "/")[3:], "/")
+		if bucketInHost != "" {
+			uri = "/" + bucketInHost + uri
 		}
-		if append{
+		if v2.awsRequest.Config.DomainMode {
+			uri = "/" + bucket + uri
+			append = false
+		}
+		if append {
 			uri += "/"
 		}
 	} else {
@@ -262,7 +270,7 @@ func (v2 *signer) buildCanonicalResource(){
 	var querys []string
 	for k := range v2.Query {
 		if _, ok := signQuerys[k]; ok {
-			querys = append(querys,k)
+			querys = append(querys, k)
 		}
 	}
 	sort.Strings(querys)
@@ -270,17 +278,17 @@ func (v2 *signer) buildCanonicalResource(){
 	queryValues := make([]string, len(querys))
 	for i, k := range querys {
 		v := v2.Query[k]
-		vString := strings.Join(v,",")
-		if vString != ""{
-			queryValues[i] = k + "=" + vString;
-		}else{
+		vString := strings.Join(v, ",")
+		if vString != "" {
+			queryValues[i] = k + "=" + vString
+		} else {
 			queryValues[i] = k
 		}
 	}
 	queryString := strings.Join(queryValues, "&")
-	if queryString == ""{
+	if queryString == "" {
 		v2.canonicalResource = uri
-	}else{
+	} else {
 		v2.canonicalResource = uri + "?" + queryString
 	}
 }
@@ -288,26 +296,26 @@ func (v2 *signer) buildCanonicalResource(){
 func (v2 *signer) buildStringToSign() {
 	md5list := v2.Request.Header["Content-Md5"]
 	md5 := ""
-	if len(md5list)>0{
-		md5 =  v2.Request.Header["Content-Md5"][0]
+	if len(md5list) > 0 {
+		md5 = v2.Request.Header["Content-Md5"][0]
 	}
 
 	typelist := v2.Request.Header["Content-Type"]
 	contenttype := ""
-	if len(typelist)>0{
-		contenttype =  v2.Request.Header["Content-Type"][0]
+	if len(typelist) > 0 {
+		contenttype = v2.Request.Header["Content-Type"][0]
 	}
 
-	signItems := [] string{v2.Request.Method,md5,contenttype}
+	signItems := []string{v2.Request.Method, md5, contenttype}
 	if v2.isPresign {
-		signItems = append(signItems,v2.Query["Expires"][0])
-	}else{
-		signItems = append(signItems,v2.formattedTime)
+		signItems = append(signItems, v2.Query["Expires"][0])
+	} else {
+		signItems = append(signItems, v2.formattedTime)
 	}
-	if v2.canonicalHeaders != ""{
-		signItems = append(signItems,v2.canonicalHeaders)
+	if v2.canonicalHeaders != "" {
+		signItems = append(signItems, v2.canonicalHeaders)
 	}
-	signItems = append(signItems,v2.canonicalResource)
+	signItems = append(signItems, v2.canonicalResource)
 
 	v2.stringToSign = strings.Join(signItems, "\n")
 
@@ -318,6 +326,7 @@ func (v2 *signer) buildSignature() {
 	signature := string(base64Encode(makeHmac([]byte(secret), []byte(v2.stringToSign))))
 	v2.signature = signature
 }
+
 // isRequestSigned returns if the request is currently signed or presigned
 func (v2 *signer) isRequestSigned() bool {
 	if v2.isPresign && v2.Query.Get("Signature") != "" {
@@ -343,6 +352,6 @@ func makeHmac(key []byte, data []byte) []byte {
 	hash.Write(data)
 	return hash.Sum(nil)
 }
-func base64Encode(src []byte) []byte {  
-    return []byte(base64.StdEncoding.EncodeToString(src))  
-}  
+func base64Encode(src []byte) []byte {
+	return []byte(base64.StdEncoding.EncodeToString(src))
+}
