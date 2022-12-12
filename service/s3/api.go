@@ -12,7 +12,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	mapset "github.com/deckarep/golang-set"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"hash"
@@ -20,6 +19,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -27,6 +27,7 @@ import (
 )
 
 var oprw sync.Mutex
+var TempFileSuffix = ".temp" // Temp file suffix
 
 // AbortMultipartUploadRequest generates a request for the AbortMultipartUpload operation.
 func (c *S3) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) (req *aws.Request, output *AbortMultipartUploadOutput) {
@@ -1189,6 +1190,34 @@ func (c *S3) GetObject(input *GetObjectInput) (*GetObjectOutput, error) {
 	err := req.Send()
 	return out, err
 }
+func (c *S3) GetObjectToFile(bucket, objectKey, filePath, Range string) error {
+	tempFilePath := filePath + TempFileSuffix
+
+	getInput := &GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(objectKey),
+		Range:  aws.String(Range),
+	}
+	// Calls the API to actually download the object. Returns the result instance.
+	req, err := c.GetObject(getInput)
+	if err != nil {
+		return err
+	}
+	// If the local file does not exist, create a new one. If it exists, overwrite it.
+	fd, err := os.OpenFile(tempFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(0664))
+	if err != nil {
+		return err
+	}
+
+	// Copy the data to the local file path.
+	_, err = io.Copy(fd, req.Body)
+	fd.Close()
+	if err != nil {
+		return err
+	}
+
+	return os.Rename(tempFilePath, filePath)
+}
 func (c *S3) GetObjectPresignedUrl(input *GetObjectInput, expires time.Duration) (*url.URL, error) {
 	req, _ := c.GetObjectRequest(input)
 	req.ExpireTime = expires
@@ -2114,6 +2143,13 @@ func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
 	return out, err
 }
 
+//func (c *S3) PutObjectMD5Check(input *PutObjectInput) (*PutObjectOutput, error) {
+//	req, out := c.PutObjectRequest(input)
+//	req.Handlers.Build.PushBack(contentMD5)
+//	err := req.Send()
+//	return out, err
+//}
+
 func (c *S3) PutObjectPresignedUrl(input *PutObjectInput, expires time.Duration) (*url.URL, error) {
 	req, _ := c.PutObjectRequest(input)
 	req.ExpireTime = expires
@@ -2310,6 +2346,8 @@ type AbortMultipartUploadOutput struct {
 	RequestCharged *string `location:"header" locationName:"x-amz-request-charged" type:"string"`
 
 	metadataAbortMultipartUploadOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataAbortMultipartUploadOutput struct {
@@ -2479,6 +2517,8 @@ type CompleteMultipartUploadOutput struct {
 	VersionID *string `location:"header" locationName:"x-amz-version-id" type:"string"`
 
 	metadataCompleteMultipartUploadOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataCompleteMultipartUploadOutput struct {
@@ -2692,6 +2732,8 @@ type CopyObjectOutput struct {
 	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
 
 	metadataCopyObjectOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataCopyObjectOutput struct {
@@ -2777,6 +2819,8 @@ type CreateBucketOutput struct {
 	Location *string `location:"header" locationName:"Location" type:"string"`
 
 	metadataCreateBucketOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataCreateBucketOutput struct {
@@ -2942,6 +2986,8 @@ type metadataDeleteBucketCORSInput struct {
 
 type DeleteBucketCORSOutput struct {
 	metadataDeleteBucketCORSOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataDeleteBucketCORSOutput struct {
@@ -2974,6 +3020,8 @@ type metadataDeleteBucketLifecycleInput struct {
 
 type DeleteBucketLifecycleOutput struct {
 	metadataDeleteBucketLifecycleOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataDeleteBucketLifecycleOutput struct {
@@ -2982,6 +3030,8 @@ type metadataDeleteBucketLifecycleOutput struct {
 
 type DeleteBucketOutput struct {
 	metadataDeleteBucketOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataDeleteBucketOutput struct {
@@ -3002,6 +3052,8 @@ type metadataDeleteBucketPolicyInput struct {
 
 type DeleteBucketPolicyOutput struct {
 	metadataDeleteBucketPolicyOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataDeleteBucketPolicyOutput struct {
@@ -3022,6 +3074,8 @@ type metadataDeleteBucketReplicationInput struct {
 
 type DeleteBucketReplicationOutput struct {
 	metadataDeleteBucketReplicationOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataDeleteBucketReplicationOutput struct {
@@ -3042,6 +3096,8 @@ type metadataDeleteBucketTaggingInput struct {
 
 type DeleteBucketTaggingOutput struct {
 	metadataDeleteBucketTaggingOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataDeleteBucketTaggingOutput struct {
@@ -3062,6 +3118,8 @@ type metadataDeleteBucketWebsiteInput struct {
 
 type DeleteBucketWebsiteOutput struct {
 	metadataDeleteBucketWebsiteOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataDeleteBucketWebsiteOutput struct {
@@ -3138,6 +3196,8 @@ type DeleteObjectOutput struct {
 	VersionID *string `location:"header" locationName:"x-amz-version-id" type:"string"`
 
 	metadataDeleteObjectOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataDeleteObjectOutput struct {
@@ -3182,6 +3242,8 @@ type DeleteObjectsOutput struct {
 	RequestCharged *string `location:"header" locationName:"x-amz-request-charged" type:"string"`
 
 	metadataDeleteObjectsOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataDeleteObjectsOutput struct {
@@ -3262,6 +3324,8 @@ type GetBucketACLOutput struct {
 	Owner *Owner `type:"structure"`
 
 	metadataGetBucketACLOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetBucketACLOutput struct {
@@ -3284,6 +3348,8 @@ type GetBucketCORSOutput struct {
 	CORSRules []*CORSRule `locationName:"CORSRule" type:"list" flattened:"true"`
 
 	metadataGetBucketCORSOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetBucketCORSOutput struct {
@@ -3321,6 +3387,8 @@ type GetBucketLifecycleOutput struct {
 	Rules []*LifecycleRule `locationName:"Rule" type:"list" flattened:"true"`
 
 	metadataGetBucketLifecycleOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetBucketLifecycleOutput struct {
@@ -3343,6 +3411,8 @@ type GetBucketLocationOutput struct {
 	LocationConstraint *string `type:"string"`
 
 	metadataGetBucketLocationOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetBucketLocationOutput struct {
@@ -3365,6 +3435,8 @@ type GetBucketLoggingOutput struct {
 	LoggingEnabled *LoggingEnabled `type:"structure"`
 
 	metadataGetBucketLoggingOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetBucketLoggingOutput struct {
@@ -3399,6 +3471,8 @@ type GetBucketPolicyOutput struct {
 	Policy *string `type:"string"`
 
 	metadataGetBucketPolicyOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetBucketPolicyOutput struct {
@@ -3423,6 +3497,8 @@ type GetBucketReplicationOutput struct {
 	ReplicationConfiguration *ReplicationConfiguration `type:"structure"`
 
 	metadataGetBucketReplicationOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetBucketReplicationOutput struct {
@@ -3446,6 +3522,8 @@ type GetBucketRequestPaymentOutput struct {
 	Payer *string `type:"string"`
 
 	metadataGetBucketRequestPaymentOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetBucketRequestPaymentOutput struct {
@@ -3468,6 +3546,8 @@ type GetBucketTaggingOutput struct {
 	TagSet []*Tag `locationNameList:"Tag" type:"list" required:"true"`
 
 	metadataGetBucketTaggingOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetBucketTaggingOutput struct {
@@ -3496,6 +3576,8 @@ type GetBucketVersioningOutput struct {
 	Status *string `type:"string"`
 
 	metadataGetBucketVersioningOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetBucketVersioningOutput struct {
@@ -3524,6 +3606,8 @@ type GetBucketWebsiteOutput struct {
 	RoutingRules []*RoutingRule `locationNameList:"RoutingRule" type:"list"`
 
 	metadataGetBucketWebsiteOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetBucketWebsiteOutput struct {
@@ -3564,6 +3648,8 @@ type GetObjectACLOutput struct {
 	RequestCharged *string `location:"header" locationName:"x-amz-request-charged" type:"string"`
 
 	metadataGetObjectACLOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetObjectACLOutput struct {
@@ -3698,9 +3784,6 @@ type GetObjectOutput struct {
 	// Last modified date of the object
 	LastModified *time.Time `location:"header" locationName:"Last-Modified" type:"timestamp" timestampFormat:"rfc822"`
 
-	// A map of metadata to store with the object in S3.
-	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
-
 	// This is set to the number of metadata entries not returned in x-amz-meta
 	// headers. This can happen if you create metadata using an API like SOAP that
 	// supports more flexible metadata than the REST API. For example, using SOAP,
@@ -3744,6 +3827,8 @@ type GetObjectOutput struct {
 	WebsiteRedirectLocation *string `location:"header" locationName:"x-amz-website-redirect-location" type:"string"`
 
 	metadataGetObjectOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetObjectOutput struct {
@@ -3778,6 +3863,8 @@ type GetObjectTorrentOutput struct {
 	RequestCharged *string `location:"header" locationName:"x-amz-request-charged" type:"string"`
 
 	metadataGetObjectTorrentOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetObjectTorrentOutput struct {
@@ -3834,6 +3921,8 @@ type metadataHeadBucketInput struct {
 
 type HeadBucketOutput struct {
 	metadataHeadBucketOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataHeadBucketOutput struct {
@@ -3942,9 +4031,6 @@ type HeadObjectOutput struct {
 	// Last modified date of the object
 	LastModified *time.Time `location:"header" locationName:"Last-Modified" type:"timestamp" timestampFormat:"rfc822"`
 
-	// A map of metadata to store with the object in S3.
-	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
-
 	// This is set to the number of metadata entries not returned in x-amz-meta
 	// headers. This can happen if you create metadata using an API like SOAP that
 	// supports more flexible metadata than the REST API. For example, using SOAP,
@@ -3988,6 +4074,8 @@ type HeadObjectOutput struct {
 	WebsiteRedirectLocation *string `location:"header" locationName:"x-amz-website-redirect-location" type:"string"`
 
 	metadataHeadObjectOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataHeadObjectOutput struct {
@@ -4119,6 +4207,8 @@ type ListBucketsOutput struct {
 	Owner *Owner `type:"structure"`
 
 	metadataListBucketsOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataListBucketsOutput struct {
@@ -4208,6 +4298,8 @@ type ListMultipartUploadsOutput struct {
 	Uploads []*MultipartUpload `locationName:"Upload" type:"list" flattened:"true"`
 
 	metadataListMultipartUploadsOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataListMultipartUploadsOutput struct {
@@ -4287,6 +4379,8 @@ type ListObjectVersionsOutput struct {
 	Versions []*ObjectVersion `locationName:"Version" type:"list" flattened:"true"`
 
 	metadataListObjectVersionsOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataListObjectVersionsOutput struct {
@@ -4358,6 +4452,8 @@ type ListObjectsOutput struct {
 	Prefix *string `type:"string"`
 
 	metadataListObjectsOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataListObjectsOutput struct {
@@ -4433,6 +4529,8 @@ type ListPartsOutput struct {
 	UploadID *string `locationName:"UploadId" type:"string"`
 
 	metadataListPartsOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataListPartsOutput struct {
@@ -4692,6 +4790,8 @@ type metadataPutBucketACLInput struct {
 
 type PutBucketACLOutput struct {
 	metadataPutBucketACLOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutBucketACLOutput struct {
@@ -4714,6 +4814,8 @@ type metadataPutBucketCORSInput struct {
 
 type PutBucketCORSOutput struct {
 	metadataPutBucketCORSOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutBucketCORSOutput struct {
@@ -4736,6 +4838,8 @@ type metadataPutBucketLifecycleInput struct {
 
 type PutBucketLifecycleOutput struct {
 	metadataPutBucketLifecycleOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutBucketLifecycleOutput struct {
@@ -4758,6 +4862,8 @@ type metadataPutBucketLoggingInput struct {
 
 type PutBucketLoggingOutput struct {
 	metadataPutBucketLoggingOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutBucketLoggingOutput struct {
@@ -4782,6 +4888,8 @@ type metadataPutBucketNotificationConfigurationInput struct {
 
 type PutBucketNotificationConfigurationOutput struct {
 	metadataPutBucketNotificationConfigurationOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutBucketNotificationConfigurationOutput struct {
@@ -4804,6 +4912,8 @@ type metadataPutBucketNotificationInput struct {
 
 type PutBucketNotificationOutput struct {
 	metadataPutBucketNotificationOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutBucketNotificationOutput struct {
@@ -4827,6 +4937,8 @@ type metadataPutBucketPolicyInput struct {
 
 type PutBucketPolicyOutput struct {
 	metadataPutBucketPolicyOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutBucketPolicyOutput struct {
@@ -4851,6 +4963,8 @@ type metadataPutBucketReplicationInput struct {
 
 type PutBucketReplicationOutput struct {
 	metadataPutBucketReplicationOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutBucketReplicationOutput struct {
@@ -4895,6 +5009,8 @@ type metadataPutBucketTaggingInput struct {
 
 type PutBucketTaggingOutput struct {
 	metadataPutBucketTaggingOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutBucketTaggingOutput struct {
@@ -4921,6 +5037,8 @@ type metadataPutBucketVersioningInput struct {
 
 type PutBucketVersioningOutput struct {
 	metadataPutBucketVersioningOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutBucketVersioningOutput struct {
@@ -4943,6 +5061,8 @@ type metadataPutBucketWebsiteInput struct {
 
 type PutBucketWebsiteOutput struct {
 	metadataPutBucketWebsiteOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutBucketWebsiteOutput struct {
@@ -4996,6 +5116,8 @@ type PutObjectACLOutput struct {
 	RequestCharged *string `location:"header" locationName:"x-amz-request-charged" type:"string"`
 
 	metadataPutObjectACLOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutObjectACLOutput struct {
@@ -5240,6 +5362,8 @@ type PutObjectOutput struct {
 	NewFileName *string `location:"header" locationName:"newfilename" type:"string"`
 
 	metadataPutObjectOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutObjectOutput struct {
@@ -5408,10 +5532,8 @@ type metadataRestoreObjectInput struct {
 
 type RestoreObjectOutput struct {
 	Ks3WebServiceResponse
-}
 
-type metadataRestoreObjectOutput struct {
-	SDKShapeTraits bool `type:"structure"`
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type RestoreRequest struct {
@@ -5651,6 +5773,8 @@ type UploadPartCopyOutput struct {
 	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
 
 	metadataUploadPartCopyOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataUploadPartCopyOutput struct {
@@ -5733,6 +5857,8 @@ type UploadPartOutput struct {
 	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
 
 	metadataUploadPartOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataUploadPartOutput struct {
@@ -5871,14 +5997,14 @@ const (
 
 func GetAcl(resp GetObjectACLOutput) CannedAccessControlType {
 
-	allUsersPermissions := mapset.NewSet()
+	allUsersPermissions := map[string]*string{}
 	for _, value := range resp.Grants {
 		if value.Grantee.URI != nil && *value.Grantee.URI == AllUsersUri {
-			allUsersPermissions.Add(value.Permission)
+			allUsersPermissions[*value.Permission] = value.Permission
 		}
 	}
-	read := allUsersPermissions.Contains("READ")
-	write := allUsersPermissions.Contains("WRITE")
+	_, read := allUsersPermissions["READ"]
+	_, write := allUsersPermissions["WRITE"]
 	if read && write {
 		return PublicReadWrite
 	} else if read {
@@ -5980,6 +6106,8 @@ type metadataDeleteObjectTaggingInput struct {
 
 type DeleteObjectTaggingOutput struct {
 	metadataDeleteObjectTaggingOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataDeleteObjectTaggingOutput struct {
@@ -6042,6 +6170,8 @@ type GetObjectTaggingOutput struct {
 	Tagging *Tagging `locationName:"Tagging" type:"structure"`
 
 	metadataGetObjectTaggingOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataGetObjectTaggingOutput struct {
@@ -6103,6 +6233,8 @@ type metadataPutObjectTaggingInput struct {
 
 type PutObjectTaggingOutput struct {
 	metadataPutObjectTaggingOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type metadataPutObjectTaggingOutput struct {
@@ -6347,7 +6479,7 @@ func (c *S3) PutBucketMirror(input *PutBucketMirrorInput) (*PutBucketMirrorOutpu
 	url := c.Endpoint + resource
 	data, err := json.Marshal(input.BucketMirror)
 	if err != nil {
-		panic(errors.New("解析失败：" + string(data)))
+		return nil, errors.New("error：" + string(data))
 	}
 	request, _ := http.NewRequest("PUT", url, bytes.NewReader(data))
 	request.Header.Set(HTTPHeaderContentType, "application/json")
@@ -6387,6 +6519,8 @@ type PutBucketMirrorInput struct {
 
 type PutBucketMirrorOutput struct {
 	Ks3WebServiceResponse `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 type GetBucketMirrorInput struct {
@@ -6396,6 +6530,8 @@ type GetBucketMirrorInput struct {
 type GetBucketMirrorOutput struct {
 	Ks3WebServiceResponse `json:"-" xml:"-"`
 	BucketMirror          *BucketMirror `locationName:"Mirror" type:"structure"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 func (c *S3) GetBucketMirror(input *GetBucketMirrorInput) (*GetBucketMirrorOutput, error) {
@@ -6446,6 +6582,8 @@ type DeleteBucketMirrorInput struct {
 }
 type DeleteBucketMirrorOutput struct {
 	Ks3WebServiceResponse `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 }
 
 func (c *S3) DeleteBucketMirror(input *DeleteBucketMirrorInput) (*DeleteBucketMirrorOutput, error) {
