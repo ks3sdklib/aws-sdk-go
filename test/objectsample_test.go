@@ -24,16 +24,15 @@ var (
 //列表bucket下对象
 func (s *Ks3utilCommandSuite) TestListObjects(c *C) {
 
-	objects1, _ := client.ListObjects(&s3.ListObjectsInput{
+	resp, _ := client.ListObjects(&s3.ListObjectsInput{
 		Bucket:    aws.String(bucket),
 		Delimiter: aws.String("/"),       //分隔符，用于对一组参数进行分割的字符
-		MaxKeys:   aws.Long(int64(1000)), //设置响应体中返回的最大记录数（最后实际返回可能小于该值）。默认为1000。如果你想要的结果在1000条以后，你可以设定 marker 的值来调整起始位置。
-		Prefix:    aws.String(""),        //限定响应结果列表使用的前缀，正如你在电脑中使用的文件夹一样。
-		Marker:    aws.String(""),        //指定列举指定空间中对象的起始位置。KS3按照字母排序方式返回结果，将从给定的 marker 开始返回列表。
+		MaxKeys:   aws.Long(int64(1000)), //设置响应体中返回的最大记录数（最后实际返回可能小于该值）。默认为1000。如果你想要的result在1000条以后，你可以设定 marker 的值来调整起始位置。
+		Prefix:    aws.String(""),        //限定响应result列表使用的前缀，正如你在电脑中使用的文件夹一样。
+		Marker:    aws.String(""),        //指定列举指定空间中对象的起始位置。KS3按照字母排序方式返回result，将从给定的 marker 开始返回列表。
 	})
 	//获取对象列表
-	objectList := objects1.Contents
-	fmt.Println(objectList)
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 /**
@@ -59,7 +58,7 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 		XAmzTagging: aws.String(XAmzTagging),
 	}
 	resp, _ := client.PutObject(&input)
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 	os.Remove(object)
 }
 
@@ -76,7 +75,7 @@ func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
 		Body:   fd,
 	}
 	resp, _ := client.PutObject(&input)
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 
 	//下载
 	getInput := s3.GetObjectInput{
@@ -84,7 +83,7 @@ func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
 		Key:    aws.String(key),
 	}
 	DownloadResp, _ := client.GetObject(&getInput)
-	fmt.Println("结果：\n", awsutil.StringValue(DownloadResp))
+	fmt.Println("result：\n", awsutil.StringValue(DownloadResp))
 
 }
 
@@ -95,7 +94,7 @@ func (s *Ks3utilCommandSuite) TestDelObject(c *C) {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //生成下载地址
@@ -105,7 +104,7 @@ func (s *Ks3utilCommandSuite) TestGetObjectPresignedUrl(c *C) {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	}, time.Second*time.Duration(time.Now().Add(time.Second*600).Unix())) //在当前时间多久后到期
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //获取对象Acl
@@ -115,18 +114,18 @@ func (s *Ks3utilCommandSuite) TestGetObjectAcl(c *C) {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
-	foundFull := false
-	foundRead := false
-	for i := 0; i < len(resp.Grants); i++ {
-		grant := resp.Grants[i]
-		if *grant.Permission == "FULL_CONTROL" {
-			foundFull = true
-		} else if *grant.Permission == "READ" {
-			foundRead = true
-		}
-	}
-	fmt.Println(foundFull, foundRead)
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	//foundFull := false
+	//foundRead := false
+	//for i := 0; i < len(resp.Grants); i++ {
+	//	grant := resp.Grants[i]
+	//	if *grant.Permission == "FULL_CONTROL" {
+	//		foundFull = true
+	//	} else if *grant.Permission == "READ" {
+	//		foundRead = true
+	//	}
+	//}
+	//
+	fmt.Println("result：\n", s3.GetAcl(*resp))
 
 }
 
@@ -138,7 +137,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectAcl(c *C) {
 		Key:    aws.String(key),
 		ACL:    aws.String("private"),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 
 }
 
@@ -165,7 +164,7 @@ func (s *Ks3utilCommandSuite) TestCopyObject(c *C) {
 		XAmzTagging:          aws.String(XAmzTagging),
 		XAmzTaggingDirective: aws.String("REPLACE"),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //抓取第三方URL上传到KS3
@@ -188,7 +187,7 @@ func (s *Ks3utilCommandSuite) TestFetchObj(c *C) {
 		ACL:         aws.String("public-read"), //对象acl
 	}
 	resp, _ := client.FetchObject(&input)
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //修改元数据信息
@@ -212,7 +211,7 @@ func (s *Ks3utilCommandSuite) TestModifyObjectMeta(c *C) {
 		MetadataDirective: aws.String("REPLACE"),
 		Metadata:          metadata,
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //分块上传
@@ -274,7 +273,7 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 			partsNum = append(partsNum, i)
 			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
 			i++
-			fmt.Println("结果：\n", awsutil.StringValue(resp))
+			fmt.Println("result：\n", awsutil.StringValue(resp))
 		}
 	}
 
@@ -291,7 +290,7 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 			Parts: compParts,
 		},
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(compRet))
+	fmt.Println("result：\n", awsutil.StringValue(compRet))
 
 }
 
@@ -306,7 +305,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithSSEC(c *C) {
 		SSECustomerAlgorithm: aws.String("AES256"), //加密类型
 		SSECustomerKey:       aws.String("12345678901234567890123456789012"),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //生成上传外链
@@ -319,7 +318,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectPresignedUrl(c *C) {
 		ContentMaxLength: aws.Long(20),                          //设置允许的最大长度，对应的header：x-amz-content-maxlength
 	}
 	resp, _ := client.PutObjectPresignedUrl(params, 1444370289000000000) //第二个参数为外链过期时间，第二个参数为time.Duration类型
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 
 	//简单上传示例
 	date := time.Now().UTC().Format(http.TimeFormat)
@@ -330,7 +329,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectPresignedUrl(c *C) {
 	httpReq.Header.Add("Content-Type", "application/ocet-stream")
 	httpReq.Header["Date"] = []string{date}
 	upLoadResp, _ := http.DefaultClient.Do(httpReq)
-	fmt.Println("结果：\n", awsutil.StringValue(upLoadResp))
+	fmt.Println("result：\n", awsutil.StringValue(upLoadResp))
 }
 
 //判断文件是否存在
@@ -438,7 +437,7 @@ func (s *Ks3utilCommandSuite) DelTag(c *C) {
 		}
 	}
 
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //getObjectTagging
@@ -460,7 +459,7 @@ func (s *Ks3utilCommandSuite) GetTag(c *C) {
 			fmt.Println(err.Error())
 		}
 	}
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //设置对象Tag
@@ -483,5 +482,5 @@ func (s *Ks3utilCommandSuite) PutTag(c *C) {
 		Tagging: &objTagging,
 	}
 	resp, _ := client.PutObjectTagging(params)
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
