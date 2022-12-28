@@ -5,7 +5,8 @@ package s3
 import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/restxml"
-	"github.com/ks3sdklib/aws-sdk-go/internal/signer/v2"
+	v2 "github.com/ks3sdklib/aws-sdk-go/internal/signer/v2"
+	v4 "github.com/ks3sdklib/aws-sdk-go/internal/signer/v4"
 	"strings"
 )
 
@@ -30,7 +31,14 @@ func New(config *aws.Config) *S3 {
 	service.Initialize()
 
 	// Handlers
-	service.Handlers.Sign.PushBack(v2.Sign)
+	if config.SignerVersion == "V4" {
+		service.Handlers.Sign.PushBack(v4.Sign)
+	} else if config.SignerVersion == "V4_UNSIGNED_PAYLOAD_SIGNER" {
+		service.Handlers.Sign.PushBack(v4.Sign)
+	} else {
+		service.Handlers.Sign.PushBack(v2.Sign)
+	}
+
 	service.Handlers.Build.PushBack(restxml.Build)
 	//service.Handlers.Build.PushBack(aws.ContentTypeHandler)
 	service.Handlers.Unmarshal.PushBack(restxml.Unmarshal)

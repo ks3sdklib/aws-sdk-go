@@ -54,13 +54,15 @@ func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 		Region:      region,
 		Credentials: cre,
 		//Endpoint 可参考 https://docs.ksyun.com/documents/6761
-		Endpoint:         bucketEndpoint,
+		Endpoint:         endpoint,
 		DisableSSL:       true, //是否禁用https
 		LogLevel:         1,    //是否开启日志,0为关闭日志，1为开启日志
 		LogHTTPBody:      true, //是否把HTTP请求body打入日志
-		S3ForcePathStyle: true,
-		Logger:           nil,  //打日志的位置
-		DomainMode:       true, //是否开启自定义bucket绑定域名，当开启时 S3ForcePathStyle 参数不生效。
+		S3ForcePathStyle: false,
+		Logger:           nil,   //打日志的位置
+		DomainMode:       false, //是否开启自定义bucket绑定域名，当开启时 S3ForcePathStyle 参数不生效。
+		//可选值有 ： V2 OR V4 OR V4_UNSIGNED_PAYLOAD_SIGNER
+		SignerVersion: "V2",
 	})
 
 	//创建测试文件
@@ -77,7 +79,7 @@ func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 }
 
 func (s *Ks3utilCommandSuite) SetUpBucketEnv(c *C) {
-
+	os.Remove(key)
 }
 
 // Run before each test or benchmark starts running
