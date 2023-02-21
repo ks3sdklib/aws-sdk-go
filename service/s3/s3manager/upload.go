@@ -3,15 +3,20 @@ package s3manager
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"sort"
-	"sync"
-	"time"
-
+	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
-	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
+	"github.com/panjf2000/ants/v2"
+	"go.uber.org/atomic"
+	"io"
+	"log"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
+	"time"
 )
 
 // The maximum allowed number of parts in a multi-part upload on Amazon S3.
@@ -26,33 +31,18 @@ var DefaultUploadPartSize = MinUploadPartSize
 // The default number of goroutines to spin up when using Upload().
 var DefaultUploadConcurrency = 5
 
+var Prefix = ""
+var RootDir = ""
+
 // The default set of options used when opts is nil in Upload().
 var DefaultUploadOptions = &UploadOptions{
 	PartSize:          DefaultUploadPartSize,
-	Concurrency:       DefaultUploadConcurrency,
+	Parallel:          DefaultUploadConcurrency,
+	Jobs:              3,
 	LeavePartsOnError: false,
 	S3:                nil,
 }
 
-// A MultiUploadFailure wraps a failed S3 multipart upload. An error returned
-// will satisfy this interface when a multi part upload failed to upload all
-// chucks to S3. In the case of a failure the UploadID is needed to operate on
-// the chunks, if any, which were uploaded.
-//
-// Example:
-//
-//     u := s3manager.NewUploader(opts)
-//     output, err := u.upload(input)
-//     if err != nil {
-//         if multierr, ok := err.(MultiUploadFailure); ok {
-//             // Process error and its associated uploadID
-//             fmt.Println("Error:", multierr.Code(), multierr.Message(), multierr.UploadID())
-//         } else {
-//             // Process error generically
-//             fmt.Println("Error:", err.Error())
-//         }
-//     }
-//
 type MultiUploadFailure interface {
 	awserr.Error
 
@@ -60,13 +50,17 @@ type MultiUploadFailure interface {
 	UploadID() string
 }
 
+// So that the Error interface type can be included as an anonymous field
+// in the multiUploadError struct and not conflict with the error.Error() method.
+type awsError awserr.Error
+
 // A multiUploadError wraps the upload ID of a failed s3 multipart upload.
 // Composed of BaseError for code, message, and original error
 //
 // Should be used for an error that occurred failing a S3 multipart upload,
 // and a upload ID is available. If an uploadID is not available a more relevant
 type multiUploadError struct {
-	*apierr.BaseError
+	awsError
 
 	// ID for multipart upload which failed.
 	uploadID string
@@ -77,18 +71,19 @@ type multiUploadError struct {
 // See apierr.BaseError ErrorWithExtra for output format
 //
 // Satisfies the error interface.
-func (m *multiUploadError) Error() string {
-	return m.ErrorWithExtra(fmt.Sprintf("upload id: %s", m.uploadID))
+func (m multiUploadError) Error() string {
+	extra := fmt.Sprintf("upload id: %s", m.uploadID)
+	return awserr.SprintError(m.Code(), m.Message(), extra, m.OrigErr())
 }
 
 // String returns the string representation of the error.
 // Alias for Error to satisfy the stringer interface.
-func (m *multiUploadError) String() string {
+func (m multiUploadError) String() string {
 	return m.Error()
 }
 
 // UploadID returns the id of the S3 upload which failed.
-func (m *multiUploadError) UploadID() string {
+func (m multiUploadError) UploadID() string {
 	return m.uploadID
 }
 
@@ -96,6 +91,8 @@ func (m *multiUploadError) UploadID() string {
 type UploadInput struct {
 	// The canned ACL to apply to the object.
 	ACL *string `location:"header" locationName:"x-amz-acl" type:"string"`
+
+	Size int64
 
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -178,8 +175,6 @@ type UploadInput struct {
 
 	// The readable body payload to send to S3.
 	Body io.Reader
-
-	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
 }
 
 // UploadOutput represents a response from the Upload() call.
@@ -190,19 +185,21 @@ type UploadOutput struct {
 	// The ID for a multipart upload to S3. In the case of an error the error
 	// can be cast to the MultiUploadFailure interface to extract the upload ID.
 	UploadID string
+
+	ETag string
 }
 
 // UploadOptions keeps tracks of extra options to pass to an Upload() call.
 type UploadOptions struct {
 	// The buffer size (in bytes) to use when buffering data into chunks and
-	// sending them as parts to S3. The minimum allowed part size is 5MB, and
+	// sending them as parts to KS3. The minimum allowed part size is 5MB, and
 	// if this value is set to zero, the DefaultPartSize value will be used.
 	PartSize int64
 
-	// The number of goroutines to spin up in parallel when sending parts.
-	// If this is set to zero, the DefaultConcurrency value will be used.
-	Concurrency int
-
+	//Number of concurrent tasks for internal operation of a single file
+	Parallel int
+	//Number of concurrent tasks in multi-file operation
+	Jobs int
 	// Setting this value to true will cause the SDK to avoid calling
 	// AbortMultipartUpload on a failure, leaving all successfully uploaded
 	// parts on S3 for manual recovery.
@@ -211,6 +208,10 @@ type UploadOptions struct {
 	// space usage on S3 and will add additional costs if not cleaned up.
 	LeavePartsOnError bool
 
+	//Set whether to upload hidden files
+	UploadHidden bool
+	//Set whether to upload existing files
+	SkipAlreadyFile bool
 	// The client to use when uploading to S3. Leave this as nil to use the
 	// default S3 client.
 	S3 *s3.S3
@@ -258,9 +259,8 @@ type uploader struct {
 func (u *uploader) upload() (*UploadOutput, error) {
 	u.init()
 
-	if u.opts.PartSize < MinUploadPartSize {
-		msg := fmt.Sprintf("part size must be at least %d bytes", MinUploadPartSize)
-		return nil, apierr.New("ConfigError", msg, nil)
+	if u.in.Size <= MinUploadPartSize {
+		u.opts.PartSize = u.in.Size
 	}
 
 	// Do one read to determine if we have more than one part
@@ -268,7 +268,7 @@ func (u *uploader) upload() (*UploadOutput, error) {
 	if err == io.EOF || err == io.ErrUnexpectedEOF { // single part
 		return u.singlePart(buf)
 	} else if err != nil {
-		return nil, apierr.New("ReadRequestBody", "read upload data failed", err)
+		return nil, awserr.New("ReadRequestBody", "read upload data failed", err)
 	}
 
 	mu := multiuploader{uploader: u}
@@ -280,8 +280,8 @@ func (u *uploader) init() {
 	if u.opts.S3 == nil {
 		u.opts.S3 = s3.New(nil)
 	}
-	if u.opts.Concurrency == 0 {
-		u.opts.Concurrency = DefaultUploadConcurrency
+	if u.opts.Parallel == 0 {
+		u.opts.Parallel = DefaultUploadConcurrency
 	}
 	if u.opts.PartSize == 0 {
 		u.opts.PartSize = DefaultUploadPartSize
@@ -404,8 +404,8 @@ func (u *multiuploader) upload(firstBuf io.ReadSeeker) (*UploadOutput, error) {
 	u.uploadID = *resp.UploadID
 
 	// Create the workers
-	ch := make(chan chunk, u.opts.Concurrency)
-	for i := 0; i < u.opts.Concurrency; i++ {
+	ch := make(chan chunk, u.opts.Parallel)
+	for i := 0; i < u.opts.Parallel; i++ {
 		u.wg.Add(1)
 		go u.readChunk(ch)
 	}
@@ -420,7 +420,7 @@ func (u *multiuploader) upload(firstBuf io.ReadSeeker) (*UploadOutput, error) {
 		if num > int64(MaxUploadParts) {
 			msg := fmt.Sprintf("exceeded total allowed parts (%d). "+
 				"Adjust PartSize to fit in this limit", MaxUploadParts)
-			u.seterr(apierr.New("TotalPartsExceeded", msg, nil))
+			u.seterr(awserr.New("TotalPartsExceeded", msg, nil))
 			break
 		}
 
@@ -434,7 +434,10 @@ func (u *multiuploader) upload(firstBuf io.ReadSeeker) (*UploadOutput, error) {
 		ch <- chunk{buf: buf, num: num}
 
 		if err != nil && err != io.ErrUnexpectedEOF {
-			u.seterr(apierr.New("ReadRequestBody", "read multipart upload data failed", err))
+			u.seterr(awserr.New(
+				"ReadRequestBody",
+				"read multipart upload data failed",
+				err))
 			break
 		}
 	}
@@ -445,16 +448,12 @@ func (u *multiuploader) upload(firstBuf io.ReadSeeker) (*UploadOutput, error) {
 	complete := u.complete()
 
 	if err := u.geterr(); err != nil {
-		var berr *apierr.BaseError
-		switch t := err.(type) {
-		case *apierr.BaseError:
-			berr = t
-		default:
-			berr = apierr.New("MultipartUpload", "upload multipart failed", err)
-		}
 		return nil, &multiUploadError{
-			BaseError: berr,
-			uploadID:  u.uploadID,
+			awsError: awserr.New(
+				"MultipartUpload",
+				"upload multipart failed",
+				err),
+			uploadID: u.uploadID,
 		}
 	}
 	return &UploadOutput{
@@ -558,4 +557,93 @@ func (u *multiuploader) complete() *s3.CompleteMultipartUploadOutput {
 	}
 
 	return resp
+}
+
+func (uploader *Uploader) UploadDir(rootDir string, bucket, prefix string) error {
+
+	if strings.HasSuffix(prefix, "/") {
+		Prefix = prefix
+	} else {
+		if len(prefix) > 0 {
+			Prefix = prefix + "/"
+		}
+	}
+	if strings.HasSuffix(rootDir, "/") {
+		RootDir = rootDir
+	} else {
+		if len(rootDir) > 0 {
+			RootDir = rootDir + "/"
+		}
+	}
+
+	chFiles := make(chan fileInfoType, s3.ChannelBuf)
+	p, _ := ants.NewPool(uploader.opts.Jobs)
+	var consumerWgc sync.WaitGroup
+	completed := atomic.NewInt64(0)
+	stop := false
+	defer p.Release()
+	filepath.Walk(rootDir, func(path string, file os.FileInfo, _ error) (err error) {
+		if !file.IsDir() {
+			if !awsutil.IsHidden(path) || uploader.opts.UploadHidden {
+				chFiles <- fileInfoType{
+					filePath:  path,
+					name:      file.Name(),
+					bucket:    bucket,
+					size:      file.Size(),
+					dir:       RootDir,
+					objectKey: makeObjectName(path),
+				}
+			}
+		}
+		return
+	})
+	chFiles <- fileInfoType{}
+	defer close(chFiles)
+	for !stop {
+		select {
+		case file := <-chFiles:
+			if len(file.name) == 0 {
+				stop = true
+				fmt.Println(fmt.Sprintf("upload finish completeNum:%v", completed.Load()))
+				break
+			}
+			consumerWgc.Add(1)
+			p.Submit(func() {
+				uploader.uploadFile(file, func(success bool) {
+					consumerWgc.Done()
+					completed.Inc()
+					if success {
+						fmt.Println(fmt.Sprintf("%s successfully uploaded ", file.objectKey))
+					}
+				})
+			})
+		default:
+			//	fmt.Print("over")
+		}
+	}
+	consumerWgc.Wait()
+	return nil
+}
+
+func (uploader *Uploader) uploadFile(fileIfo fileInfoType, call func(success bool)) {
+
+	file, err := os.Open(fileIfo.filePath)
+	if err != nil {
+		log.Print(err)
+	}
+	defer file.Close()
+	_, err = uploader.Upload(&UploadInput{
+		Body:   file,
+		Bucket: aws.String(fileIfo.bucket),
+		Key:    aws.String(fileIfo.objectKey),
+		Size:   fileIfo.size,
+	})
+	call(err == nil)
+
+}
+func makeObjectName(filePath string) string {
+
+	resDir := strings.Replace(filePath, RootDir, "", 1)
+	objectName := Prefix + resDir
+	return objectName
 }

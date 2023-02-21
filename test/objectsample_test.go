@@ -7,6 +7,7 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
+	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3manager"
 	. "gopkg.in/check.v1"
 	"net/http"
 	"net/url"
@@ -170,24 +171,37 @@ func (s *Ks3utilCommandSuite) TestCopyObject(c *C) {
 //抓取第三方URL上传到KS3
 func (s *Ks3utilCommandSuite) TestFetchObj(c *C) {
 
-	//指定目标Object对象标签，可同时设置多个标签，如：TagA=A&TagB=B。
-	//说明 Key和Value需要先进行URL编码，如果某项没有“=”，则看作Value为空字符串。详情请见对象标签（https://docs.ksyun.com/documents/39576）。
-	v := url.Values{}
-	v.Add("schoole", "bbvvvvvv")
-	v.Add("class", "123123123123")
-	XAmzTagging := v.Encode()
+	for {
 
-	//源站url
-	sourceUrl := "https://img0.pconline.com.cn/pconline/1111/04/2483449_20061139501.jpg"
-	input := s3.FetchObjectInput{
-		Bucket:      aws.String(bucket),
-		Key:         aws.String("dst/testa"),
-		SourceUrl:   aws.String(sourceUrl),
-		XAmzTagging: aws.String(XAmzTagging),   //对象tag
-		ACL:         aws.String("public-read"), //对象acl
+		//源站url
+		sourceUrl := "https://aaaab.ks3-cn-beijing.ksyuncs.com/57phjpj0j9"
+		input := s3.FetchObjectInput{
+			Bucket:      aws.String(bucket),
+			Key:         aws.String("dst/testa"),
+			SourceUrl:   aws.String(sourceUrl),
+			ACL:         aws.String("public-read"), //对象acl
+			CallbackUrl: aws.String("https://live-console.staging.qinghedaxue.com/2"),
+		}
+		resp, _ := client.FetchObject(&input)
+		fmt.Println("result：\n", awsutil.StringValue(resp))
+		time.Sleep(2 * time.Second)
 	}
-	resp, _ := client.FetchObject(&input)
-	fmt.Println("result：\n", awsutil.StringValue(resp))
+
+	//for {
+	//
+	//	//源站url
+	//	sourceUrl := "https://aaaab.ks3-cn-beijing.ksyuncs.com/57phjpj0j9"
+	//	input := s3.FetchObjectInput{
+	//		Bucket:      aws.String(bucket),
+	//		Key:         aws.String("dst/testa"),
+	//		SourceUrl:   aws.String(sourceUrl),
+	//		ACL:         aws.String("public-read"), //对象acl
+	//		CallbackUrl: aws.String("http://www.cqc.cool:8080/"),
+	//	}
+	//	resp, _ := client.FetchObject(&input)
+	//	fmt.Println("result：\n", awsutil.StringValue(resp))
+	//	time.Sleep(2 * time.Second)
+	//}
 }
 
 //修改元数据信息
@@ -467,10 +481,10 @@ func (s *Ks3utilCommandSuite) PutTag(c *C) {
 
 	//指定目标Object对象标签
 	objTagging := s3.Tagging{
-		TagSet: []*s3.Tag{&s3.Tag{
+		TagSet: []*s3.Tag{{
 			Key:   aws.String("name"),
 			Value: aws.String("yz"),
-		}, &s3.Tag{
+		}, {
 			Key:   aws.String("sex"),
 			Value: aws.String("female"),
 		},
@@ -483,4 +497,26 @@ func (s *Ks3utilCommandSuite) PutTag(c *C) {
 	}
 	resp, _ := client.PutObjectTagging(params)
 	fmt.Println("result：\n", awsutil.StringValue(resp))
+}
+
+//上传文件夹
+func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
+
+	dir := "/Users/cqc/Desktop/sns"
+	uploader := s3manager.NewUploader(&s3manager.UploadOptions{
+		//分块大小 5MB
+		PartSize: 0,
+		//单文件内部操作的并发任务数
+		Parallel: 2,
+		//多文件操作时的并发任务数
+		Jobs:            2,
+		S3:              client,
+		UploadHidden:    false,
+		SkipAlreadyFile: true,
+	})
+	//dir 要上传的目录
+	//bucket 上传的目标桶
+	//prefix 桶下的路径
+	uploader.UploadDir(dir, bucket, "sns/")
+
 }

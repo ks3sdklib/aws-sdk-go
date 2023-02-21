@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil"
+	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/xml/xmlutil"
 	"go/format"
 	"io"
 	"os"
@@ -130,4 +130,11 @@ func WalkDir(dirPth, suffix string) (files []string, err error) {
 		return nil
 	})
 	return files, err
+}
+func IsHidden(path string) bool {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return fileInfo.Name()[0] == '.'
 }
