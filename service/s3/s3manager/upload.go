@@ -632,6 +632,16 @@ func (uploader *Uploader) uploadFile(fileIfo fileInfoType, call func(success boo
 		log.Print(err)
 	}
 	defer file.Close()
+	if uploader.opts.SkipAlreadyFile {
+		resp, err := uploader.opts.S3.HeadObject(&s3.HeadObjectInput{
+			Bucket: aws.String(fileIfo.bucket),
+			Key:    aws.String(fileIfo.objectKey),
+		})
+		if err == nil && len(*resp.ETag) > 0 {
+			call(true)
+			return
+		}
+	}
 	_, err = uploader.Upload(&UploadInput{
 		Body:   file,
 		Bucket: aws.String(fileIfo.bucket),

@@ -511,7 +511,7 @@ func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
 		//多文件操作时的并发任务数
 		Jobs:            2,
 		S3:              client,
-		UploadHidden:    false,
+		UploadHidden:    true,
 		SkipAlreadyFile: true,
 	})
 	//dir 要上传的目录
