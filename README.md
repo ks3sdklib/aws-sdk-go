@@ -122,7 +122,6 @@ go get github.com/ks3sdklib/aws-sdk-go
 ### 4.1 创建 bucket
 
 ```go
-func CreateBucket(svc *s3.S3) {
 	resp, err := svc.CreateBucket(&s3.CreateBucketInput{
 		ACL:    aws.String("public-read"),//权限
 		Bucket: aws.String("bucket"),
@@ -139,16 +138,13 @@ func CreateBucket(svc *s3.S3) {
 		}
 	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
-}
 ```
 
 
 ### 4.2 设置镜像回源规则
 
 ```go
-func PutBucketMirrorRules() {
-
-	params := &s3.PutBucketMirrorInput{
+	  params := &s3.PutBucketMirrorInput{
 		Bucket: aws.String(BucketName), // 桶名，必填字段
 		BucketMirror: &s3.BucketMirror{
 			Version:          aws.String("V3"),//回源规则版本
@@ -227,19 +223,13 @@ func PutBucketMirrorRules() {
 	var bodyStr = string(resp.Body[:])
 	fmt.Println("resp.Body is:", bodyStr)
 
-}	
-
-
 ```
 
 ### 4.3 获取镜像回源规则
 
-```
-	//获取镜像回源规则
-func GetBucketMirrorRules() {
-
-	params := &s3.GetBucketMirrorInput{
-		Bucket: aws.String(BucketName),
+```go
+ 	params := &s3.GetBucketMirrorInput{
+	  	Bucket: aws.String(BucketName),
 	}
 	resp, _ := client.GetBucketMirror(params)
 	fmt.Println("resp.code is:", resp.HttpCode)
@@ -248,18 +238,12 @@ func GetBucketMirrorRules() {
 	var bodyStr = string(resp.Body[:])
 	fmt.Println("resp.Body is:", bodyStr)
 
-}	
-
-
 ```
 
 ### 4.4 删除镜像回源规则
 
 ```go
-	//删除镜像回源规则
-    func DeleteBucketMirrorRules() {
-
-	params := &s3.DeleteBucketMirrorInput{
+  params := &s3.DeleteBucketMirrorInput{
 		Bucket: aws.String(BucketName),
 	}
 	resp, _ := client.DeleteBucketMirror(params)
@@ -268,9 +252,6 @@ func GetBucketMirrorRules() {
 	// Pretty-print the response data.
 	var bodyStr = string(resp.Body[:])
 	fmt.Println("resp.Body is:", bodyStr)
-
-}	
-
 ```
 
 
@@ -279,7 +260,6 @@ func GetBucketMirrorRules() {
 
 ### 5.1  获取元数据
 ```go
-func headObj(svc *s3.S3) {
 input := s3.HeadObjectInput{
 	Bucket: aws.String(bucketname),
 	Key:    aws.String(key),
@@ -298,19 +278,11 @@ if err != nil {
 }
 fmt.Println("结果：\n", awsutil.StringValue(resp))
 ```
-}
 
-
-
-
-### 5.2 上传文件
+### 5.2 上传本地文件
 
 ```go
-func putFile(filename string) {
-
-	if len(filename) == 0 {
-		filename = "/Users/user/Downloads/aaa.docx"
-	}
+	filename = "/Users/user/Downloads/aaa.docx"
 	file, err := ioutil.ReadFile(filename)
 	if err != nil {
 		fmt.Println("Failed to open file", err)
@@ -332,10 +304,6 @@ func putFile(filename string) {
 		panic(err)
 	}
 	fmt.Println(resp)
-	//获取新的文件名
-	fmt.Println(*resp)
-}
-
 ```
 
 ### 5.3 下载文件
@@ -346,11 +314,9 @@ func putFile(filename string) {
 	    Key: aws.String("ObjectKey"), // object key
  }
  resp, err := client.GetObject(params)
-
  if err != nil{
      panic(err)
  }
-
  //读取返回结果中body的前20个字节
  b := make([]byte, 20)
  n, err := resp.Body.Read(b)
@@ -419,7 +385,6 @@ func putFile(filename string) {
 
 ```go
  params := &s3.PutObjectACLInput{
-
      Bucket: aws.String(bucket), // bucket名称
      Key: aws.String(key), // object key
      ACL: aws.String("private"),//设置ACL
@@ -449,142 +414,117 @@ func putFile(filename string) {
 ### 5.7 修改元数据
 
 ```go
-func TestModifyObjectMeta(t *testing.T) {
-    key_modify_meta := string("yourkey")
+  key_modify_meta := string("yourkey")
+  metadata := make(map[string]*string)
+  metadata["yourmetakey1"] = aws.String("yourmetavalue1")
+  metadata["yourmetakey2"] = aws.String("yourmetavalue2")
 
-    metadata := make(map[string]*string)
-    metadata["yourmetakey1"] = aws.String("yourmetavalue1")
-    metadata["yourmetakey2"] = aws.String("yourmetavalue2")
-
-    _,err := svc.CopyObject(&s3.CopyObjectInput{
-      Bucket:aws.String(bucket),
-      Key:aws.String(key_modify_meta),
-      CopySource:aws.String("/" + bucket+"/" + key_modify_meta),
-      MetadataDirective:aws.String("REPLACE"),
-      Metadata:metadata,
-    })
-    assert.NoError(t,err)
-    assert.True(t,objectExists(bucket,key))
-}
+  _,err := svc.CopyObject(&s3.CopyObjectInput{
+    Bucket:aws.String(bucket),
+    Key:aws.String(key_modify_meta),
+    CopySource:aws.String("/" + bucket+"/" + key_modify_meta),
+    MetadataDirective:aws.String("REPLACE"),
+    Metadata:metadata,
+  })
+  assert.NoError(t,err)
+  assert.True(t,objectExists(bucket,key))
 ```
 
 ### 5.8 批量删除对象
 
 ```go
-	func DeleteObjects() {
-
-      params := &s3.DeleteObjectsInput{
-        Bucket: aws.String(""), // 桶名称
-        Delete: &s3.Delete{     // Delete Required
-          Objects: []*s3.ObjectIdentifier{
-            {
-              Key:       aws.String("1"), // 目标对象1的key
-            },
-            {
-              Key:       aws.String("2"), // 目标对象2的key
-            },
-            // More values...
-          },
+ params := &s3.DeleteObjectsInput{
+    Bucket: aws.String(""), // 桶名称
+    Delete: &s3.Delete{     // Delete Required
+      Objects: []*s3.ObjectIdentifier{
+        {
+          Key:       aws.String("1"), // 目标对象1的key
         },
-      }
-      resp := svc.DeleteObjects(params)    //执行并返回响应结果
-      fmt.Println("error keys:",resp.Errors)
-      fmt.Println("deleted keys:",resp.Deleted)
+        {
+          Key:       aws.String("2"), // 目标对象2的key
+        },
+        // More values...
+      },
+    },
 }
+resp := svc.DeleteObjects(params)    //执行并返回响应结果
+fmt.Println("error keys:",resp.Errors)
+fmt.Println("deleted keys:",resp.Deleted)
 ```
 
 ### 5.9 目录删除
 
 ```go
-	func DeleteBucketPrefix(prefix string) {
-
-      params := &s3.DeleteBucketPrefixInput{
-        Bucket: aws.String(""),  //桶名称
-        Prefix: aws.String(prefix),    //前缀（目录）名称
-      }
-      resp, _ := svc.DeleteBucketPrefix(params)    //执行并接受响应结果
-      fmt.Println("error keys:",resp.Errors)
-      fmt.Println("deleted keys:",resp.Deleted)
- }
-
+  params := &s3.DeleteBucketPrefixInput{
+      Bucket: aws.String(""),  //桶名称
+      Prefix: aws.String(prefix),    //前缀（目录）名称
+    }
+  resp, _ := svc.DeleteBucketPrefix(params)    //执行并接受响应结果
+  fmt.Println("error keys:",resp.Errors)
+  fmt.Println("deleted keys:",resp.Deleted)
 ```
 
 ### 5.10 列举文件
 
 ```go
-	/**
-	列举文件
-	*/
-	func ListObjects() {
-
-		resp, err := client.ListObjects(&s3.ListObjectsInput{
-			Bucket: aws.String(BucketName),
-			Prefix: aws.String("onlineTask/"), //文件前缀
-			//	Marker:  aws.String("Marker"), //从按个key开始获取
-			MaxKeys: aws.Long(1000), //最大数量
-		})
-		if err != nil {
-			fmt.Println(resp)
-		}
-		fmt.Println(len(resp.Contents))
-	}
-		
+resp, err := client.ListObjects(&s3.ListObjectsInput{
+  Bucket: aws.String(BucketName),
+  Prefix: aws.String("onlineTask/"), //文件前缀
+  //	Marker:  aws.String("Marker"), //从按个key开始获取
+  MaxKeys: aws.Long(1000), //最大数量
+})
+if err != nil {
+  fmt.Println(resp)
+}
+fmt.Println(len(resp.Contents))
 ```
 
 
 ### 5.11 抓取远程数据到KS3
 
 ```go
- func  FetchObcjet() {
-    	sourceUrl := "https://img0.pconline.com.cn/pconline/1111/04/2483449_20061139501.jpg"
-    	input := s3.FetchObjectInput{
-    		Bucket:      aws.String(bucketname),
-    		Key:         aws.String("dst/testa"),
-    		SourceUrl:   aws.String(sourceUrl),
-    		ACL:         aws.String("public-read"),
-    	}
-    	resp, err := svc.FetchObject(&input)
-    	if err != nil {
-    		if awsErr, ok := err.(awserr.Error); ok {
-    			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
-    			if reqErr, ok := err.(awserr.RequestFailure); ok {
-    				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
-    			}
-    		} else {
-    			fmt.Println(err.Error())
-    		}
-    	}
-    	fmt.Println("结果：\n", awsutil.StringValue(resp))
-    }   
-}	
-
+   sourceUrl := "https://img0.pconline.com.cn/pconline/1111/04/2483449_20061139501.jpg"
+  input := s3.FetchObjectInput{
+    Bucket:      aws.String(bucketname),
+    Key:         aws.String("dst/testa"),
+    SourceUrl:   aws.String(sourceUrl),
+    ACL:         aws.String("public-read"),
+  }
+  resp, err := svc.FetchObject(&input)
+  if err != nil {
+    if awsErr, ok := err.(awserr.Error); ok {
+      fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+      if reqErr, ok := err.(awserr.RequestFailure); ok {
+        fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+      }
+    } else {
+      fmt.Println(err.Error())
+    }
+  }
+ fmt.Println("结果：\n", awsutil.StringValue(resp))
 ```
 
 ### 5.12  复制对象
 
 ```go
- func  CopyObject() {
- 
-        	input := s3.CopyObjectInput{
-        		Bucket:               aws.String(bucketname),
-        		Key:                  aws.String(key),
-        		CopySource:           aws.String("/cqc-test-b/yztestfile1"),
-        	}
-        	resp, err := svc.CopyObject(&input)
-        	if err != nil {
-        		if awsErr, ok := err.(awserr.Error); ok {
-        			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
-        			if reqErr, ok := err.(awserr.RequestFailure); ok {
-        				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
-        			}
-        		} else {
-        			fmt.Println(err.Error())
-        		}
-        	}
-        
-        	fmt.Println("结果：\n", awsutil.StringValue(resp))
-    } 
+  input := s3.CopyObjectInput{
+    Bucket:               aws.String(bucketname),
+    Key:                  aws.String(key),
+    CopySource:           aws.String("/cqc-test-b/yztestfile1"),
+  }
+  resp, err := svc.CopyObject(&input)
+  if err != nil {
+    if awsErr, ok := err.(awserr.Error); ok {
+      fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+      if reqErr, ok := err.(awserr.RequestFailure); ok {
+        fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+      }
+    } else {
+      fmt.Println(err.Error())
+    }
+  }
 
+ fmt.Println("结果：\n", awsutil.StringValue(resp))
 ```
 
 ###   [5.13 对象标签](###5.13) 
@@ -592,9 +532,7 @@ func TestModifyObjectMeta(t *testing.T) {
 ### 5.13.1 设置对象标签
 
 ```go
-func PutObjectTag() {
-
-	tagkey := "name"
+  tagkey := "name"
 	tagval := "yz"
 	tagkey2 := "sex"
 	tagval2 := "female"
@@ -610,7 +548,7 @@ func PutObjectTag() {
 	}
 
 	params := &s3.PutObjectTaggingInput{
-		Bucket:  aws.String(bucketname), // Required
+		Bucket:  aws.String(bucketname),
 		Key:     aws.String(key),
 		Tagging: &objTagging,
 	}
@@ -626,20 +564,12 @@ func PutObjectTag() {
 			fmt.Println(err.Error())
 		}
 	}
-
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
-}
-		
 ```
 
 ### 5.18.2 获取对象标签
 
 ```go
-	/**
-	获取对象标签
-	*/
-	func GetObjectTag(svc *s3.S3) {
-
 	params := &s3.GetObjectTaggingInput{
 		Bucket: aws.String(bucketname), // Required
 		Key:    aws.String(key),
@@ -656,17 +586,13 @@ func PutObjectTag() {
 			fmt.Println(err.Error())
 		}
 	}
-
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
-}
 ```
 
 ### 5.18.3 删除对象标签
 
 ```go
-	func DeleteObjectTag() {
-
-	params := &s3.DeleteObjectTaggingInput{
+ params := &s3.DeleteObjectTaggingInput{
 		Bucket: aws.String(bucketname), // Required
 		Key:    aws.String(key),
 	}
@@ -684,8 +610,6 @@ func PutObjectTag() {
 	}
 
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
-}
-		
 ```
 *   [6、分块相关](#6)
 
