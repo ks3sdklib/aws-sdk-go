@@ -223,8 +223,6 @@ func (v2 *signer) buildCanonicalResource() {
 	//在aws.service.go,buildEndpoint会把sheme也加上
 	pathStyle := strings.HasPrefix(url, endpoint)
 	uri := v2.Request.URL.Opaque
-	b := awsutil.ValuesAtPath(v2.awsRequest.Params, "Bucket")
-	bucket := b[0].(string)
 	bucketInHost := ""
 	if !pathStyle {
 		if strings.HasPrefix(url, "http://") {
@@ -250,6 +248,8 @@ func (v2 *signer) buildCanonicalResource() {
 			uri = "/" + bucketInHost + uri
 		}
 		if v2.awsRequest.Config.DomainMode {
+			b := awsutil.ValuesAtPath(v2.awsRequest.Params, "Bucket")
+			bucket := b[0].(string)
 			uri = "/" + bucket + uri
 			append = false
 		}

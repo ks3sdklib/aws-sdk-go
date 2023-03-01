@@ -47,6 +47,7 @@ type signer struct {
 	Logger      io.Writer
 
 	isPresign          bool
+	isSignBody         bool
 	formattedTime      string
 	formattedShortTime string
 
@@ -93,7 +94,11 @@ func Sign(req *aws.Request) {
 		Debug:       req.Service.Config.LogLevel,
 		Logger:      req.Service.Config.Logger,
 	}
-
+	if req.Service.Config.SignerVersion == "V4_UNSIGNED_PAYLOAD_SIGNER" {
+		s.isSignBody = false
+	} else {
+		s.isSignBody = true
+	}
 	req.Error = s.sign()
 }
 
@@ -305,10 +310,16 @@ func (v4 *signer) bodyDigest() string {
 	if hash == "" {
 		if v4.isPresign && v4.ServiceName == "s3" {
 			hash = "UNSIGNED-PAYLOAD"
-		} else if v4.Body == nil {
-			hash = hex.EncodeToString(makeSha256([]byte{}))
 		} else {
-			hash = hex.EncodeToString(makeSha256Reader(v4.Body))
+			if v4.isSignBody {
+				if v4.Body == nil {
+					hash = hex.EncodeToString(makeSha256([]byte{}))
+				} else {
+					hash = hex.EncodeToString(makeSha256Reader(v4.Body))
+				}
+			} else {
+				hash = "UNSIGNED-PAYLOAD"
+			}
 		}
 		v4.Request.Header.Add("X-Amz-Content-Sha256", hash)
 	}

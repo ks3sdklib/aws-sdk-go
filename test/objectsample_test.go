@@ -7,12 +7,11 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
+	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3manager"
 	. "gopkg.in/check.v1"
-	"net/http"
 	"net/url"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -24,16 +23,15 @@ var (
 //列表bucket下对象
 func (s *Ks3utilCommandSuite) TestListObjects(c *C) {
 
-	objects1, _ := client.ListObjects(&s3.ListObjectsInput{
+	resp, _ := client.ListObjects(&s3.ListObjectsInput{
 		Bucket:    aws.String(bucket),
 		Delimiter: aws.String("/"),       //分隔符，用于对一组参数进行分割的字符
-		MaxKeys:   aws.Long(int64(1000)), //设置响应体中返回的最大记录数（最后实际返回可能小于该值）。默认为1000。如果你想要的结果在1000条以后，你可以设定 marker 的值来调整起始位置。
-		Prefix:    aws.String(""),        //限定响应结果列表使用的前缀，正如你在电脑中使用的文件夹一样。
-		Marker:    aws.String(""),        //指定列举指定空间中对象的起始位置。KS3按照字母排序方式返回结果，将从给定的 marker 开始返回列表。
+		MaxKeys:   aws.Long(int64(1000)), //设置响应体中返回的最大记录数（最后实际返回可能小于该值）。默认为1000。如果你想要的result在1000条以后，你可以设定 marker 的值来调整起始位置。
+		Prefix:    aws.String("temp/"),   //限定响应result列表使用的前缀，正如你在电脑中使用的文件夹一样。
+		Marker:    aws.String(""),        //指定列举指定空间中对象的起始位置。KS3按照字母排序方式返回result，将从给定的 marker 开始返回列表。
 	})
 	//获取对象列表
-	objectList := objects1.Contents
-	fmt.Println(objectList)
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 /**
@@ -53,13 +51,13 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 	fd, _ := os.Open(content)
 	input := s3.PutObjectInput{
 		Bucket:      aws.String(bucket),
-		Key:         aws.String(object),
+		Key:         aws.String("/data/ss/hls_vod/data/sdtv2019/jimo/�k�%2/1677600325430_71915152/1677600326671-10000.ts"),
 		ACL:         aws.String("public-read"),
 		Body:        fd,
 		XAmzTagging: aws.String(XAmzTagging),
 	}
 	resp, _ := client.PutObject(&input)
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 	os.Remove(object)
 }
 
@@ -76,7 +74,7 @@ func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
 		Body:   fd,
 	}
 	resp, _ := client.PutObject(&input)
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 
 	//下载
 	getInput := s3.GetObjectInput{
@@ -84,7 +82,7 @@ func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
 		Key:    aws.String(key),
 	}
 	DownloadResp, _ := client.GetObject(&getInput)
-	fmt.Println("结果：\n", awsutil.StringValue(DownloadResp))
+	fmt.Println("result：\n", awsutil.StringValue(DownloadResp))
 
 }
 
@@ -95,7 +93,7 @@ func (s *Ks3utilCommandSuite) TestDelObject(c *C) {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //生成下载地址
@@ -103,9 +101,9 @@ func (s *Ks3utilCommandSuite) TestGetObjectPresignedUrl(c *C) {
 
 	resp, _ := client.GetObjectPresignedUrl(&s3.GetObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+		Key:    aws.String("temp//t"),
 	}, time.Second*time.Duration(time.Now().Add(time.Second*600).Unix())) //在当前时间多久后到期
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //获取对象Acl
@@ -115,18 +113,18 @@ func (s *Ks3utilCommandSuite) TestGetObjectAcl(c *C) {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
-	foundFull := false
-	foundRead := false
-	for i := 0; i < len(resp.Grants); i++ {
-		grant := resp.Grants[i]
-		if *grant.Permission == "FULL_CONTROL" {
-			foundFull = true
-		} else if *grant.Permission == "READ" {
-			foundRead = true
-		}
-	}
-	fmt.Println(foundFull, foundRead)
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	//foundFull := false
+	//foundRead := false
+	//for i := 0; i < len(resp.Grants); i++ {
+	//	grant := resp.Grants[i]
+	//	if *grant.Permission == "FULL_CONTROL" {
+	//		foundFull = true
+	//	} else if *grant.Permission == "READ" {
+	//		foundRead = true
+	//	}
+	//}
+	//
+	fmt.Println("result：\n", s3.GetAcl(*resp))
 
 }
 
@@ -138,7 +136,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectAcl(c *C) {
 		Key:    aws.String(key),
 		ACL:    aws.String("private"),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 
 }
 
@@ -165,30 +163,43 @@ func (s *Ks3utilCommandSuite) TestCopyObject(c *C) {
 		XAmzTagging:          aws.String(XAmzTagging),
 		XAmzTaggingDirective: aws.String("REPLACE"),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //抓取第三方URL上传到KS3
 func (s *Ks3utilCommandSuite) TestFetchObj(c *C) {
 
-	//指定目标Object对象标签，可同时设置多个标签，如：TagA=A&TagB=B。
-	//说明 Key和Value需要先进行URL编码，如果某项没有“=”，则看作Value为空字符串。详情请见对象标签（https://docs.ksyun.com/documents/39576）。
-	v := url.Values{}
-	v.Add("schoole", "bbvvvvvv")
-	v.Add("class", "123123123123")
-	XAmzTagging := v.Encode()
+	for {
 
-	//源站url
-	sourceUrl := "https://img0.pconline.com.cn/pconline/1111/04/2483449_20061139501.jpg"
-	input := s3.FetchObjectInput{
-		Bucket:      aws.String(bucket),
-		Key:         aws.String("dst/testa"),
-		SourceUrl:   aws.String(sourceUrl),
-		XAmzTagging: aws.String(XAmzTagging),   //对象tag
-		ACL:         aws.String("public-read"), //对象acl
+		//源站url
+		sourceUrl := "https://aaaab.ks3-cn-beijing.ksyuncs.com/57phjpj0j9"
+		input := s3.FetchObjectInput{
+			Bucket:      aws.String(bucket),
+			Key:         aws.String("dst/testa"),
+			SourceUrl:   aws.String(sourceUrl),
+			ACL:         aws.String("public-read"), //对象acl
+			CallbackUrl: aws.String("https://live-console.staging.qinghedaxue.com/2"),
+		}
+		resp, _ := client.FetchObject(&input)
+		fmt.Println("result：\n", awsutil.StringValue(resp))
+		time.Sleep(2 * time.Second)
 	}
-	resp, _ := client.FetchObject(&input)
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+
+	//for {
+	//
+	//	//源站url
+	//	sourceUrl := "https://aaaab.ks3-cn-beijing.ksyuncs.com/57phjpj0j9"
+	//	input := s3.FetchObjectInput{
+	//		Bucket:      aws.String(bucket),
+	//		Key:         aws.String("dst/testa"),
+	//		SourceUrl:   aws.String(sourceUrl),
+	//		ACL:         aws.String("public-read"), //对象acl
+	//		CallbackUrl: aws.String("http://www.cqc.cool:8080/"),
+	//	}
+	//	resp, _ := client.FetchObject(&input)
+	//	fmt.Println("result：\n", awsutil.StringValue(resp))
+	//	time.Sleep(2 * time.Second)
+	//}
 }
 
 //修改元数据信息
@@ -212,7 +223,7 @@ func (s *Ks3utilCommandSuite) TestModifyObjectMeta(c *C) {
 		MetadataDirective: aws.String("REPLACE"),
 		Metadata:          metadata,
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //分块上传
@@ -274,7 +285,7 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 			partsNum = append(partsNum, i)
 			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
 			i++
-			fmt.Println("结果：\n", awsutil.StringValue(resp))
+			fmt.Println("result：\n", awsutil.StringValue(resp))
 		}
 	}
 
@@ -291,7 +302,7 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 			Parts: compParts,
 		},
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(compRet))
+	fmt.Println("result：\n", awsutil.StringValue(compRet))
 
 }
 
@@ -306,31 +317,31 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithSSEC(c *C) {
 		SSECustomerAlgorithm: aws.String("AES256"), //加密类型
 		SSECustomerKey:       aws.String("12345678901234567890123456789012"),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //生成上传外链
 func (s *Ks3utilCommandSuite) TestPutObjectPresignedUrl(c *C) {
 	params := &s3.PutObjectInput{
-		Bucket:           aws.String(bucket),                    // bucket名称
-		Key:              aws.String(key),                       // object key
-		ACL:              aws.String("public-read"),             //设置ACL
-		ContentType:      aws.String("application/ocet-stream"), //设置文件的content-type
-		ContentMaxLength: aws.Long(20),                          //设置允许的最大长度，对应的header：x-amz-content-maxlength
+		Bucket: aws.String(bucket),               // bucket名称
+		Key:    aws.String("temp/ fix (4).toml"), // object key
+		//ACL:              aws.String("public-read"),             //设置ACL
+		//ContentType:      aws.String("application/ocet-stream"), //设置文件的content-type
+		//ContentMaxLength: aws.Long(20), //设置允许的最大长度，对应的header：x-amz-content-maxlength
 	}
-	resp, _ := client.PutObjectPresignedUrl(params, 1444370289000000000) //第二个参数为外链过期时间，第二个参数为time.Duration类型
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	resp, _ := client.PutObjectPresignedUrl(params, 1677144675000000000) //第二个参数为外链过期时间，第二个参数为time.Duration类型
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 
-	//简单上传示例
-	date := time.Now().UTC().Format(http.TimeFormat)
-	httpReq, _ := http.NewRequest("PUT", "", strings.NewReader("123"))
-	httpReq.URL = resp
-	httpReq.Header["x-amz-acl"] = []string{"public-read"}
-	httpReq.Header["x-amz-content-maxlength"] = []string{"20"}
-	httpReq.Header.Add("Content-Type", "application/ocet-stream")
-	httpReq.Header["Date"] = []string{date}
-	upLoadResp, _ := http.DefaultClient.Do(httpReq)
-	fmt.Println("结果：\n", awsutil.StringValue(upLoadResp))
+	////简单上传示例
+	//date := time.Now().UTC().Format(http.TimeFormat)
+	//httpReq, _ := http.NewRequest("PUT", "", strings.NewReader("123"))
+	//httpReq.URL = resp
+	//httpReq.Header["x-amz-acl"] = []string{"public-read"}
+	//httpReq.Header["x-amz-content-maxlength"] = []string{"20"}
+	//httpReq.Header.Add("Content-Type", "application/ocet-stream")
+	//httpReq.Header["Date"] = []string{date}
+	//upLoadResp, _ := http.DefaultClient.Do(httpReq)
+	//fmt.Println("result：\n", awsutil.StringValue(upLoadResp))
 }
 
 //判断文件是否存在
@@ -438,7 +449,7 @@ func (s *Ks3utilCommandSuite) DelTag(c *C) {
 		}
 	}
 
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //getObjectTagging
@@ -460,7 +471,7 @@ func (s *Ks3utilCommandSuite) GetTag(c *C) {
 			fmt.Println(err.Error())
 		}
 	}
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //设置对象Tag
@@ -468,10 +479,10 @@ func (s *Ks3utilCommandSuite) PutTag(c *C) {
 
 	//指定目标Object对象标签
 	objTagging := s3.Tagging{
-		TagSet: []*s3.Tag{&s3.Tag{
+		TagSet: []*s3.Tag{{
 			Key:   aws.String("name"),
 			Value: aws.String("yz"),
-		}, &s3.Tag{
+		}, {
 			Key:   aws.String("sex"),
 			Value: aws.String("female"),
 		},
@@ -483,5 +494,27 @@ func (s *Ks3utilCommandSuite) PutTag(c *C) {
 		Tagging: &objTagging,
 	}
 	resp, _ := client.PutObjectTagging(params)
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("result：\n", awsutil.StringValue(resp))
+}
+
+//上传文件夹
+func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
+
+	dir := "/Users/cqc/data/未命名文件夹"
+	uploader := s3manager.NewUploader(&s3manager.UploadOptions{
+		//分块大小 5MB
+		PartSize: 0,
+		//单文件内部操作的并发任务数
+		Parallel: 2,
+		//多文件操作时的并发任务数
+		Jobs:            10,
+		S3:              client,
+		UploadHidden:    true,
+		SkipAlreadyFile: true,
+	})
+	//dir 要上传的目录
+	//bucket 上传的目标桶
+	//prefix 桶下的路径
+	uploader.UploadDir(dir, bucket, "sns/")
+
 }

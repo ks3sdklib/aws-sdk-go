@@ -44,7 +44,7 @@ func (s *Ks3utilCommandSuite) TestListBuckets(c *C) {
 	buckets := resp.Buckets
 	for i := 0; i < len(buckets); i++ {
 		fmt.Println(*buckets[i].Name)
-		fmt.Println(*buckets[i].Region)
+		//		fmt.Println(*buckets[i].Region)
 	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
@@ -165,5 +165,14 @@ func (s *Ks3utilCommandSuite) DeleteBucketMirrorRules(c *C) {
 		Bucket: aws.String(bucket),
 	}
 	resp, _ := client.DeleteBucketMirror(params)
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
+}
+
+//创建bucket 策略
+func (s *Ks3utilCommandSuite) TestCreateBucketPolicy(c *C) {
+	resp, _ := client.PutBucketPolicy(&s3.PutBucketPolicyInput{
+		Bucket: aws.String(bucket),
+		Policy: aws.String("{\"Statement\":[{\"Resource\":[\"krn:ksc:ks3:::aaaab/中文22prefix\"],\"Action\":[\"ks3:AbortMultipartUpload\",\"ks3:DeleteObject\"],\"Principal\":{\"KSC\":[\"*\"]},\"Effect\":\"Allow\"}]}"), //项目ID
+	})
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }

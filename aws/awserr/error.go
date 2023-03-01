@@ -86,3 +86,20 @@ type RequestFailure interface {
 	// to a connection error.
 	RequestID() string
 }
+
+// New returns an Error object described by the code, message, and origErr.
+//
+// If origErr satisfies the Error interface it will not be wrapped within a new
+// Error object and will instead be returned.
+func New(code, message string, origErr error) Error {
+	if e, ok := origErr.(Error); ok && e != nil {
+		return e
+	}
+	return newBaseError(code, message, origErr)
+}
+
+// NewRequestFailure returns a new request error wrapper for the given Error
+// provided.
+func NewRequestFailure(err Error, statusCode int, reqID string) RequestFailure {
+	return newRequestError(err, statusCode, reqID)
+}
