@@ -564,7 +564,6 @@ func (uploader *Uploader) UploadDir(rootDir string, bucket, prefix string) error
 	if !strings.HasSuffix(rootDir, "/") && len(rootDir) > 0 {
 		rootDir = rootDir + "/"
 	}
-
 	chFiles := make(chan fileInfoType, s3.ChannelBuf)
 	p, _ := ants.NewPool(uploader.opts.Jobs)
 	var consumerWgc sync.WaitGroup
