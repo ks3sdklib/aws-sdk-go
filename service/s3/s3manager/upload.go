@@ -31,9 +31,6 @@ var DefaultUploadPartSize = MinUploadPartSize
 // The default number of goroutines to spin up when using Upload().
 var DefaultUploadConcurrency = 5
 
-var Prefix = ""
-var RootDir = ""
-
 // The default set of options used when opts is nil in Upload().
 var DefaultUploadOptions = &UploadOptions{
 	PartSize:          DefaultUploadPartSize,
@@ -561,21 +558,6 @@ func (u *multiuploader) complete() *s3.CompleteMultipartUploadOutput {
 
 func (uploader *Uploader) UploadDir(rootDir string, bucket, prefix string) error {
 
-	if strings.HasSuffix(prefix, "/") {
-		Prefix = prefix
-	} else {
-		if len(prefix) > 0 {
-			Prefix = prefix + "/"
-		}
-	}
-	if strings.HasSuffix(rootDir, "/") {
-		RootDir = rootDir
-	} else {
-		if len(rootDir) > 0 {
-			RootDir = rootDir + "/"
-		}
-	}
-
 	chFiles := make(chan fileInfoType, s3.ChannelBuf)
 	p, _ := ants.NewPool(uploader.opts.Jobs)
 	var consumerWgc sync.WaitGroup
@@ -590,8 +572,8 @@ func (uploader *Uploader) UploadDir(rootDir string, bucket, prefix string) error
 					name:      file.Name(),
 					bucket:    bucket,
 					size:      file.Size(),
-					dir:       RootDir,
-					objectKey: makeObjectName(path),
+					dir:       rootDir,
+					objectKey: makeObjectName(rootDir, prefix, path),
 				}
 			}
 		}
@@ -651,7 +633,7 @@ func (uploader *Uploader) uploadFile(fileIfo fileInfoType, call func(success boo
 	call(err == nil)
 
 }
-func makeObjectName(filePath string) string {
+func makeObjectName(RootDir, Prefix, filePath string) string {
 
 	resDir := strings.Replace(filePath, RootDir, "", 1)
 	objectName := Prefix + resDir
