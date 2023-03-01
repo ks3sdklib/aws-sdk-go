@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/user"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -559,17 +560,21 @@ func (uploader *Uploader) UploadDir(rootDir string, bucket, prefix string) error
 	if !strings.HasSuffix(prefix, "/") && len(prefix) > 0 {
 		prefix = prefix + "/"
 	}
-	if !strings.HasSuffix(rootDir, "/") && len(rootDir) > 0 {
-		rootDir = rootDir + "/"
+	rootDir, err := uploader.toAbs(rootDir)
+	if err != nil {
+		return err
 	}
+
 	chFiles := make(chan fileInfoType)
 	var consumerWgc sync.WaitGroup
+	var fileCounter FileCounter
 	for i := 0; i < uploader.opts.Jobs; i++ {
 		consumerWgc.Add(1)
 		go func() {
 			defer consumerWgc.Done()
 			for file := range chFiles {
-				uploader.upload(file, consumerWgc)
+				fileCounter.addTotalNum(1)
+				uploader.upload(file, &fileCounter)
 			}
 		}()
 	}
@@ -590,7 +595,29 @@ func (uploader *Uploader) UploadDir(rootDir string, bucket, prefix string) error
 	})
 	close(chFiles)
 	consumerWgc.Wait()
+	fmt.Printf("Done. Total num: %d, success num: %d, fail num: %d \n", fileCounter.TotalNum, fileCounter.SuccessNum, fileCounter.FailNum)
 	return nil
+}
+
+func (uploader *Uploader) toAbs(rootDir string) (string, error) {
+	if rootDir == "~" || strings.HasPrefix(rootDir, "~/") {
+		currentUser, err := user.Current()
+		if err != nil {
+			log.Fatalf(err.Error())
+			return rootDir, err
+		}
+
+		homeDir := currentUser.HomeDir
+		rootDir = strings.Replace(rootDir, "~", homeDir, 1)
+	}
+	rootDir, err := filepath.Abs(rootDir)
+	if err != nil {
+		return rootDir, err
+	}
+	if !strings.HasSuffix(rootDir, "/") && len(rootDir) > 0 {
+		rootDir = rootDir + "/"
+	}
+	return rootDir, nil
 }
 
 func (uploader *Uploader) uploadFile(fileIfo fileInfoType, call func(success bool)) {
@@ -625,12 +652,15 @@ func makeObjectName(RootDir, Prefix, filePath string) string {
 	objectName := Prefix + resDir
 	return objectName
 }
-func (uploader *Uploader) upload(file fileInfoType, consumerWgc sync.WaitGroup) {
+
+func (uploader *Uploader) upload(file fileInfoType, fileCounter *FileCounter) {
 	uploader.uploadFile(file, func(success bool) {
-		consumerWgc.Done()
-		//completed.Inc()
 		if success {
+			fileCounter.addSuccessNum(1)
 			fmt.Println(fmt.Sprintf("%s successfully uploaded ", file.objectKey))
+		} else {
+			fileCounter.addFailNum(1)
+			fmt.Println(fmt.Sprintf("%s upload failed", file.objectKey))
 		}
 	})
 }
