@@ -7,8 +7,6 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
-	"github.com/panjf2000/ants/v2"
-	"go.uber.org/atomic"
 	"io"
 	"log"
 	"os"
@@ -564,12 +562,17 @@ func (uploader *Uploader) UploadDir(rootDir string, bucket, prefix string) error
 	if !strings.HasSuffix(rootDir, "/") && len(rootDir) > 0 {
 		rootDir = rootDir + "/"
 	}
-	chFiles := make(chan fileInfoType, s3.ChannelBuf)
-	p, _ := ants.NewPool(uploader.opts.Jobs)
+	chFiles := make(chan fileInfoType)
 	var consumerWgc sync.WaitGroup
-	completed := atomic.NewInt64(0)
-	stop := false
-	defer p.Release()
+	for i := 0; i < uploader.opts.Jobs; i++ {
+		consumerWgc.Add(1)
+		go func() {
+			defer consumerWgc.Done()
+			for file := range chFiles {
+				uploader.upload(file, consumerWgc)
+			}
+		}()
+	}
 	filepath.Walk(rootDir, func(path string, file os.FileInfo, _ error) (err error) {
 		if !file.IsDir() {
 			if !awsutil.IsHidden(path) || uploader.opts.UploadHidden {
@@ -585,30 +588,7 @@ func (uploader *Uploader) UploadDir(rootDir string, bucket, prefix string) error
 		}
 		return
 	})
-	chFiles <- fileInfoType{}
-	defer close(chFiles)
-	for !stop {
-		select {
-		case file := <-chFiles:
-			if len(file.name) == 0 {
-				stop = true
-				fmt.Println(fmt.Sprintf("upload finish completeNum:%v", completed.Load()))
-				break
-			}
-			consumerWgc.Add(1)
-			p.Submit(func() {
-				uploader.uploadFile(file, func(success bool) {
-					consumerWgc.Done()
-					completed.Inc()
-					if success {
-						fmt.Println(fmt.Sprintf("%s successfully uploaded ", file.objectKey))
-					}
-				})
-			})
-		default:
-			//	fmt.Print("over")
-		}
-	}
+	close(chFiles)
 	consumerWgc.Wait()
 	return nil
 }
@@ -644,4 +624,13 @@ func makeObjectName(RootDir, Prefix, filePath string) string {
 	resDir := strings.Replace(filePath, RootDir, "", 1)
 	objectName := Prefix + resDir
 	return objectName
+}
+func (uploader *Uploader) upload(file fileInfoType, consumerWgc sync.WaitGroup) {
+	uploader.uploadFile(file, func(success bool) {
+		consumerWgc.Done()
+		//completed.Inc()
+		if success {
+			fmt.Println(fmt.Sprintf("%s successfully uploaded ", file.objectKey))
+		}
+	})
 }

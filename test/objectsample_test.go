@@ -9,11 +9,9 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3manager"
 	. "gopkg.in/check.v1"
-	"net/http"
 	"net/url"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -29,7 +27,7 @@ func (s *Ks3utilCommandSuite) TestListObjects(c *C) {
 		Bucket:    aws.String(bucket),
 		Delimiter: aws.String("/"),       //分隔符，用于对一组参数进行分割的字符
 		MaxKeys:   aws.Long(int64(1000)), //设置响应体中返回的最大记录数（最后实际返回可能小于该值）。默认为1000。如果你想要的result在1000条以后，你可以设定 marker 的值来调整起始位置。
-		Prefix:    aws.String(""),        //限定响应result列表使用的前缀，正如你在电脑中使用的文件夹一样。
+		Prefix:    aws.String("temp/"),   //限定响应result列表使用的前缀，正如你在电脑中使用的文件夹一样。
 		Marker:    aws.String(""),        //指定列举指定空间中对象的起始位置。KS3按照字母排序方式返回result，将从给定的 marker 开始返回列表。
 	})
 	//获取对象列表
@@ -53,7 +51,7 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 	fd, _ := os.Open(content)
 	input := s3.PutObjectInput{
 		Bucket:      aws.String(bucket),
-		Key:         aws.String(object),
+		Key:         aws.String("/data/ss/hls_vod/data/sdtv2019/jimo/�k�%2/1677600325430_71915152/1677600326671-10000.ts"),
 		ACL:         aws.String("public-read"),
 		Body:        fd,
 		XAmzTagging: aws.String(XAmzTagging),
@@ -103,7 +101,7 @@ func (s *Ks3utilCommandSuite) TestGetObjectPresignedUrl(c *C) {
 
 	resp, _ := client.GetObjectPresignedUrl(&s3.GetObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+		Key:    aws.String("temp//t"),
 	}, time.Second*time.Duration(time.Now().Add(time.Second*600).Unix())) //在当前时间多久后到期
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
@@ -325,25 +323,25 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithSSEC(c *C) {
 //生成上传外链
 func (s *Ks3utilCommandSuite) TestPutObjectPresignedUrl(c *C) {
 	params := &s3.PutObjectInput{
-		Bucket:           aws.String(bucket),                    // bucket名称
-		Key:              aws.String(key),                       // object key
-		ACL:              aws.String("public-read"),             //设置ACL
-		ContentType:      aws.String("application/ocet-stream"), //设置文件的content-type
-		ContentMaxLength: aws.Long(20),                          //设置允许的最大长度，对应的header：x-amz-content-maxlength
+		Bucket: aws.String(bucket),               // bucket名称
+		Key:    aws.String("temp/ fix (4).toml"), // object key
+		//ACL:              aws.String("public-read"),             //设置ACL
+		//ContentType:      aws.String("application/ocet-stream"), //设置文件的content-type
+		//ContentMaxLength: aws.Long(20), //设置允许的最大长度，对应的header：x-amz-content-maxlength
 	}
-	resp, _ := client.PutObjectPresignedUrl(params, 1444370289000000000) //第二个参数为外链过期时间，第二个参数为time.Duration类型
+	resp, _ := client.PutObjectPresignedUrl(params, 1677144675000000000) //第二个参数为外链过期时间，第二个参数为time.Duration类型
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 
-	//简单上传示例
-	date := time.Now().UTC().Format(http.TimeFormat)
-	httpReq, _ := http.NewRequest("PUT", "", strings.NewReader("123"))
-	httpReq.URL = resp
-	httpReq.Header["x-amz-acl"] = []string{"public-read"}
-	httpReq.Header["x-amz-content-maxlength"] = []string{"20"}
-	httpReq.Header.Add("Content-Type", "application/ocet-stream")
-	httpReq.Header["Date"] = []string{date}
-	upLoadResp, _ := http.DefaultClient.Do(httpReq)
-	fmt.Println("result：\n", awsutil.StringValue(upLoadResp))
+	////简单上传示例
+	//date := time.Now().UTC().Format(http.TimeFormat)
+	//httpReq, _ := http.NewRequest("PUT", "", strings.NewReader("123"))
+	//httpReq.URL = resp
+	//httpReq.Header["x-amz-acl"] = []string{"public-read"}
+	//httpReq.Header["x-amz-content-maxlength"] = []string{"20"}
+	//httpReq.Header.Add("Content-Type", "application/ocet-stream")
+	//httpReq.Header["Date"] = []string{date}
+	//upLoadResp, _ := http.DefaultClient.Do(httpReq)
+	//fmt.Println("result：\n", awsutil.StringValue(upLoadResp))
 }
 
 //判断文件是否存在
@@ -502,14 +500,14 @@ func (s *Ks3utilCommandSuite) PutTag(c *C) {
 //上传文件夹
 func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
 
-	dir := "/Users/cqc/Desktop/sns"
+	dir := "/Users/cqc/data/未命名文件夹"
 	uploader := s3manager.NewUploader(&s3manager.UploadOptions{
 		//分块大小 5MB
 		PartSize: 0,
 		//单文件内部操作的并发任务数
 		Parallel: 2,
 		//多文件操作时的并发任务数
-		Jobs:            2,
+		Jobs:            10,
 		S3:              client,
 		UploadHidden:    true,
 		SkipAlreadyFile: true,
