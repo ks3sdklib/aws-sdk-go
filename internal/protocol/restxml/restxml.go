@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
+	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/query"
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/rest"
@@ -27,6 +28,10 @@ func Build(r *aws.Request) {
 			return
 		}
 		r.SetBufferBody(buf.Bytes())
+		if rest.PayloadMd5(r.Params) {
+			//增加md5
+			r.HTTPRequest.Header.Set("Content-MD5", awsutil.EncodeAsString(awsutil.ComputeMD5Hash(buf.Bytes())))
+		}
 	}
 }
 

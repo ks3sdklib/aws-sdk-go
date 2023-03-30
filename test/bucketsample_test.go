@@ -37,6 +37,114 @@ func (s *Ks3utilCommandSuite) TestGetBucketAcl(c *C) {
 
 }
 
+//设置bucketlog
+func (s *Ks3utilCommandSuite) TestSetBucketLogStatus(c *C) {
+	resp, _ := client.PutBucketLogging(&s3.PutBucketLoggingInput{
+		Bucket: aws.String(bucket),
+		BucketLoggingStatus: &s3.BucketLoggingStatus{LoggingEnabled: &s3.LoggingEnabled{
+			TargetBucket: aws.String(bucket),
+			TargetPrefix: aws.String(bucket),
+		}},
+	})
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
+
+}
+
+//设置bucket life rules
+func (s *Ks3utilCommandSuite) TestSetBucketLiferules(c *C) {
+
+	// 配置生命周期规则
+	lifecycleConfiguration := &s3.LifecycleConfiguration{
+		Rules: []*s3.LifecycleRule{
+			{
+				ID:     aws.String("rule1"),
+				Status: aws.String("Enabled"),
+				Expiration: &s3.LifecycleExpiration{
+					Days: aws.Long(30),
+				},
+			},
+		},
+	}
+	resp, err := client.PutBucketLifecycle(&s3.PutBucketLifecycleInput{
+		Bucket:                 aws.String(bucket),
+		LifecycleConfiguration: lifecycleConfiguration,
+	})
+	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+
+}
+
+/*
+ //获取bucket life rules
+*/
+func (s *Ks3utilCommandSuite) TestGetBucketLifeRules(c *C) {
+	resp, err := client.GetBucketLifecycle(&s3.GetBucketLifecycleInput{
+		Bucket: aws.String(bucket),
+	})
+	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+}
+
+//设置bucket cors
+func (s *Ks3utilCommandSuite) TestSetBucketCors() {
+
+	// 配置CORS规则
+	corsConfiguration := &s3.CORSConfiguration{
+		Rules: []*s3.CORSRule{
+			{
+				AllowedHeader: []string{
+					"*",
+				},
+				AllowedMethod: []string{
+					"PUT",
+				},
+				AllowedOrigin: []string{
+					"*",
+				},
+				MaxAgeSeconds: 100,
+			},
+		},
+	}
+	// 设置桶的CORS配置
+	resp, err := client.PutBucketCORS(&s3.PutBucketCORSInput{
+		Bucket:            aws.String(bucket),
+		CORSConfiguration: corsConfiguration,
+	})
+	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+}
+
+//bucket cors
+func (s *Ks3utilCommandSuite) TestGetBucketCors(c *C) {
+	resp, err := client.GetBucketCORS(&s3.GetBucketCORSInput{
+		Bucket: aws.String(bucket),
+	})
+	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+}
+
+//设置bucket log
+func (s *Ks3utilCommandSuite) TestSetBucketLog(c *C) {
+
+	logStatus := &s3.BucketLoggingStatus{
+		LoggingEnabled: &s3.LoggingEnabled{
+			TargetBucket: aws.String(bucket),
+			TargetPrefix: aws.String(bucket),
+		},
+	}
+	resp, err := client.PutBucketLogging(&s3.PutBucketLoggingInput{
+		Bucket:              aws.String(bucket),
+		BucketLoggingStatus: logStatus,
+		ContentType:         aws.String("application/xml"),
+	})
+	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+}
+
+//获取bucket log
+func (s *Ks3utilCommandSuite) TestGetBucketLog(c *C) {
+
+	resp, err := client.GetBucketLifecycle(&s3.GetBucketLifecycleInput{
+		Bucket: aws.String(bucket),
+	})
+	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+}
+
 //遍历bucket
 func (s *Ks3utilCommandSuite) TestListBuckets(c *C) {
 	resp, _ := client.ListBuckets(nil)

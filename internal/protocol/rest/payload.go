@@ -1,6 +1,8 @@
 package rest
 
-import "reflect"
+import (
+	"reflect"
+)
 
 // PayloadMember returns the payload field member of i if there is one, or nil.
 func PayloadMember(i interface{}) interface{} {
@@ -42,4 +44,17 @@ func PayloadType(i interface{}) string {
 		}
 	}
 	return ""
+}
+
+// PayloadMd5 判断给定结构体 i 中是否有 AutoFillMD5 字段
+func PayloadMd5(i interface{}) (hasField bool) {
+	// 获取结构体指针的 Value
+	v := reflect.Indirect(reflect.ValueOf(i))
+	// 如果结构体不存在或为空，则直接返回 false
+	if !v.IsValid() {
+		return
+	}
+	// 判断是否存在 AutoFillMD5 字段
+	_, hasField = v.Type().FieldByName("AutoFillMD5")
+	return
 }
