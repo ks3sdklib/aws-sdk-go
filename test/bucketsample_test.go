@@ -83,6 +83,14 @@ func (s *Ks3utilCommandSuite) TestGetBucketLifeRules(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
 }
 
+/*
+ //删除bucket life rules
+*/
+func (s *Ks3utilCommandSuite) TestDeleteBucketLifeRules(c *C) {
+	resp, err := client.DeleteBucketLifecycle(&s3.DeleteBucketLifecycleInput{})
+	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+}
+
 //设置bucket cors
 func (s *Ks3utilCommandSuite) TestSetBucketCors() {
 
@@ -118,6 +126,12 @@ func (s *Ks3utilCommandSuite) TestGetBucketCors(c *C) {
 	})
 	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
 }
+func (s *Ks3utilCommandSuite) TestDeleteBucketCors(c *C) {
+	resp, err := client.DeleteBucketCORS(&s3.DeleteBucketCORSInput{
+		Bucket: aws.String(bucket),
+	})
+	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+}
 
 //设置bucket log
 func (s *Ks3utilCommandSuite) TestSetBucketLog(c *C) {
@@ -139,7 +153,7 @@ func (s *Ks3utilCommandSuite) TestSetBucketLog(c *C) {
 //获取bucket log
 func (s *Ks3utilCommandSuite) TestGetBucketLog(c *C) {
 
-	resp, err := client.GetBucketLifecycle(&s3.GetBucketLifecycleInput{
+	resp, err := client.GetBucketLogging(&s3.GetBucketLoggingInput{
 		Bucket: aws.String(bucket),
 	})
 	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
