@@ -2,6 +2,8 @@ package awsutil
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/base64"
 	"encoding/xml"
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/xml/xmlutil"
@@ -137,4 +139,13 @@ func IsHidden(path string) bool {
 		return false
 	}
 	return fileInfo.Name()[0] == '.'
+}
+func ComputeMD5Hash(input []byte) []byte {
+	h := md5.New()
+	h.Write(input)
+	return h.Sum(nil)
+}
+
+func EncodeAsString(bytes []byte) string {
+	return base64.StdEncoding.EncodeToString(bytes)
 }

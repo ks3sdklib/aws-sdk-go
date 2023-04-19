@@ -276,82 +276,6 @@ func (c *S3) DeleteBucketPresignedUrl(input *DeleteBucketInput, expires time.Dur
 
 var opDeleteBucket *aws.Operation
 
-// DeleteBucketCORSRequest generates a request for the DeleteBucketCORS operation.
-func (c *S3) DeleteBucketCORSRequest(input *DeleteBucketCORSInput) (req *aws.Request, output *DeleteBucketCORSOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteBucketCORS == nil {
-		opDeleteBucketCORS = &aws.Operation{
-			Name:       "DeleteBucketCors",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?cors",
-		}
-	}
-
-	if input == nil {
-		input = &DeleteBucketCORSInput{}
-	}
-
-	req = c.newRequest(opDeleteBucketCORS, input, output)
-	output = &DeleteBucketCORSOutput{}
-	req.Data = output
-	return
-}
-
-// Deletes the cors configuration information set for the bucket.
-func (c *S3) DeleteBucketCORS(input *DeleteBucketCORSInput) (*DeleteBucketCORSOutput, error) {
-	req, out := c.DeleteBucketCORSRequest(input)
-	err := req.Send()
-	return out, err
-}
-func (c *S3) DeleteBucketCORSPresignedUrl(input *DeleteBucketCORSInput, expires time.Duration) (*url.URL, error) {
-	req, _ := c.DeleteBucketCORSRequest(input)
-	req.ExpireTime = expires
-	err := req.Sign()
-	return req.HTTPRequest.URL, err
-}
-
-var opDeleteBucketCORS *aws.Operation
-
-// DeleteBucketLifecycleRequest generates a request for the DeleteBucketLifecycle operation.
-func (c *S3) DeleteBucketLifecycleRequest(input *DeleteBucketLifecycleInput) (req *aws.Request, output *DeleteBucketLifecycleOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteBucketLifecycle == nil {
-		opDeleteBucketLifecycle = &aws.Operation{
-			Name:       "DeleteBucketLifecycle",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?lifecycle",
-		}
-	}
-
-	if input == nil {
-		input = &DeleteBucketLifecycleInput{}
-	}
-
-	req = c.newRequest(opDeleteBucketLifecycle, input, output)
-	output = &DeleteBucketLifecycleOutput{}
-	req.Data = output
-	return
-}
-
-// Deletes the lifecycle configuration from the bucket.
-func (c *S3) DeleteBucketLifecycle(input *DeleteBucketLifecycleInput) (*DeleteBucketLifecycleOutput, error) {
-	req, out := c.DeleteBucketLifecycleRequest(input)
-	err := req.Send()
-	return out, err
-}
-func (c *S3) DeleteBucketLifecyclePresignedUrl(input *DeleteBucketLifecycleInput, expires time.Duration) (*url.URL, error) {
-	req, _ := c.DeleteBucketLifecycleRequest(input)
-	req.ExpireTime = expires
-	err := req.Sign()
-	return req.HTTPRequest.URL, err
-}
-
-var opDeleteBucketLifecycle *aws.Operation
-
 // DeleteBucketPolicyRequest generates a request for the DeleteBucketPolicy operation.
 func (c *S3) DeleteBucketPolicyRequest(input *DeleteBucketPolicyInput) (req *aws.Request, output *DeleteBucketPolicyOutput) {
 	oprw.Lock()
@@ -704,82 +628,6 @@ func (c *S3) GetBucketACLPresignedUrl(input *GetBucketACLInput, expires time.Dur
 }
 
 var opGetBucketACL *aws.Operation
-
-// GetBucketCORSRequest generates a request for the GetBucketCORS operation.
-func (c *S3) GetBucketCORSRequest(input *GetBucketCORSInput) (req *aws.Request, output *GetBucketCORSOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketCORS == nil {
-		opGetBucketCORS = &aws.Operation{
-			Name:       "GetBucketCors",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?cors",
-		}
-	}
-
-	if input == nil {
-		input = &GetBucketCORSInput{}
-	}
-
-	req = c.newRequest(opGetBucketCORS, input, output)
-	output = &GetBucketCORSOutput{}
-	req.Data = output
-	return
-}
-
-// Returns the cors configuration for the bucket.
-func (c *S3) GetBucketCORS(input *GetBucketCORSInput) (*GetBucketCORSOutput, error) {
-	req, out := c.GetBucketCORSRequest(input)
-	err := req.Send()
-	return out, err
-}
-func (c *S3) GetBucketCORSPresignedUrl(input *GetBucketCORSInput, expires time.Duration) (*url.URL, error) {
-	req, _ := c.GetBucketCORSRequest(input)
-	req.ExpireTime = expires
-	err := req.Sign()
-	return req.HTTPRequest.URL, err
-}
-
-var opGetBucketCORS *aws.Operation
-
-// GetBucketLifecycleRequest generates a request for the GetBucketLifecycle operation.
-func (c *S3) GetBucketLifecycleRequest(input *GetBucketLifecycleInput) (req *aws.Request, output *GetBucketLifecycleOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketLifecycle == nil {
-		opGetBucketLifecycle = &aws.Operation{
-			Name:       "GetBucketLifecycle",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?lifecycle",
-		}
-	}
-
-	if input == nil {
-		input = &GetBucketLifecycleInput{}
-	}
-
-	req = c.newRequest(opGetBucketLifecycle, input, output)
-	output = &GetBucketLifecycleOutput{}
-	req.Data = output
-	return
-}
-
-// Returns the lifecycle configuration information set on the bucket.
-func (c *S3) GetBucketLifecycle(input *GetBucketLifecycleInput) (*GetBucketLifecycleOutput, error) {
-	req, out := c.GetBucketLifecycleRequest(input)
-	err := req.Send()
-	return out, err
-}
-func (c *S3) GetBucketLifecyclePresignedUrl(input *GetBucketLifecycleInput, expires time.Duration) (*url.URL, error) {
-	req, _ := c.GetBucketLifecycleRequest(input)
-	req.ExpireTime = expires
-	err := req.Sign()
-	return req.HTTPRequest.URL, err
-}
-
-var opGetBucketLifecycle *aws.Operation
 
 // GetBucketLocationRequest generates a request for the GetBucketLocation operation.
 func (c *S3) GetBucketLocationRequest(input *GetBucketLocationInput) (req *aws.Request, output *GetBucketLocationOutput) {
@@ -1664,83 +1512,6 @@ func (c *S3) PutBucketACLPresignedUrl(input *PutBucketACLInput, expires time.Dur
 
 var opPutBucketACL *aws.Operation
 
-// PutBucketCORSRequest generates a request for the PutBucketCORS operation.
-func (c *S3) PutBucketCORSRequest(input *PutBucketCORSInput) (req *aws.Request, output *PutBucketCORSOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketCORS == nil {
-		opPutBucketCORS = &aws.Operation{
-			Name:       "PutBucketCors",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?cors",
-		}
-	}
-
-	if input == nil {
-		input = &PutBucketCORSInput{}
-	}
-
-	req = c.newRequest(opPutBucketCORS, input, output)
-	output = &PutBucketCORSOutput{}
-	req.Data = output
-	return
-}
-
-// Sets the cors configuration for a bucket.
-func (c *S3) PutBucketCORS(input *PutBucketCORSInput) (*PutBucketCORSOutput, error) {
-	req, out := c.PutBucketCORSRequest(input)
-	err := req.Send()
-	return out, err
-}
-func (c *S3) PutBucketCORSPresignedUrl(input *PutBucketCORSInput, expires time.Duration) (*url.URL, error) {
-	req, _ := c.PutBucketCORSRequest(input)
-	req.ExpireTime = expires
-	err := req.Sign()
-	return req.HTTPRequest.URL, err
-}
-
-var opPutBucketCORS *aws.Operation
-
-// PutBucketLifecycleRequest generates a request for the PutBucketLifecycle operation.
-func (c *S3) PutBucketLifecycleRequest(input *PutBucketLifecycleInput) (req *aws.Request, output *PutBucketLifecycleOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketLifecycle == nil {
-		opPutBucketLifecycle = &aws.Operation{
-			Name:       "PutBucketLifecycle",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?lifecycle",
-		}
-	}
-
-	if input == nil {
-		input = &PutBucketLifecycleInput{}
-	}
-
-	req = c.newRequest(opPutBucketLifecycle, input, output)
-	output = &PutBucketLifecycleOutput{}
-	req.Data = output
-	return
-}
-
-// Sets lifecycle configuration for your bucket. If a lifecycle configuration
-// exists, it replaces it.
-func (c *S3) PutBucketLifecycle(input *PutBucketLifecycleInput) (*PutBucketLifecycleOutput, error) {
-	req, out := c.PutBucketLifecycleRequest(input)
-	err := req.Send()
-	return out, err
-}
-func (c *S3) PutBucketLifecyclePresignedUrl(input *PutBucketLifecycleInput, expires time.Duration) (*url.URL, error) {
-	req, _ := c.PutBucketLifecycleRequest(input)
-	req.ExpireTime = expires
-	err := req.Sign()
-	return req.HTTPRequest.URL, err
-}
-
-var opPutBucketLifecycle *aws.Operation
-
 // PutBucketLoggingRequest generates a request for the PutBucketLogging operation.
 func (c *S3) PutBucketLoggingRequest(input *PutBucketLoggingInput) (req *aws.Request, output *PutBucketLoggingOutput) {
 	oprw.Lock()
@@ -2395,43 +2166,6 @@ type metadataBucketLoggingStatus struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-type CORSConfiguration struct {
-	CORSRules []*CORSRule `locationName:"CORSRule" type:"list" flattened:"true"`
-
-	metadataCORSConfiguration `json:"-" xml:"-"`
-}
-
-type metadataCORSConfiguration struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type CORSRule struct {
-	// Specifies which headers are allowed in a pre-flight OPTIONS request.
-	AllowedHeaders []*string `locationName:"AllowedHeader" type:"list" flattened:"true"`
-
-	// Identifies HTTP methods that the domain/origin specified in the rule is allowed
-	// to execute.
-	AllowedMethods []*string `locationName:"AllowedMethod" type:"list" flattened:"true"`
-
-	// One or more origins you want customers to be able to access the bucket from.
-	AllowedOrigins []*string `locationName:"AllowedOrigin" type:"list" flattened:"true"`
-
-	// One or more headers in the response that you want customers to be able to
-	// access from their applications (for example, from a JavaScript XMLHttpRequest
-	// object).
-	ExposeHeaders []*string `locationName:"ExposeHeader" type:"list" flattened:"true"`
-
-	// The time in seconds that your browser is to cache the preflight response
-	// for the specified resource.
-	MaxAgeSeconds *int64 `type:"integer"`
-
-	metadataCORSRule `json:"-" xml:"-"`
-}
-
-type metadataCORSRule struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type CloudFunctionConfiguration struct {
 	CloudFunction *string `type:"string"`
 
@@ -3006,28 +2740,6 @@ type metadataDeleteBucketInput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-type DeleteBucketLifecycleInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	metadataDeleteBucketLifecycleInput `json:"-" xml:"-"`
-}
-
-type metadataDeleteBucketLifecycleInput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type DeleteBucketLifecycleOutput struct {
-	metadataDeleteBucketLifecycleOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-type metadataDeleteBucketLifecycleOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type DeleteBucketOutput struct {
 	metadataDeleteBucketOutput `json:"-" xml:"-"`
 
@@ -3329,69 +3041,6 @@ type GetBucketACLOutput struct {
 }
 
 type metadataGetBucketACLOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type GetBucketCORSInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	metadataGetBucketCORSInput `json:"-" xml:"-"`
-}
-
-type metadataGetBucketCORSInput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type GetBucketCORSOutput struct {
-	CORSRules []*CORSRule `locationName:"CORSRule" type:"list" flattened:"true"`
-
-	metadataGetBucketCORSOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-type metadataGetBucketCORSOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type GetBucketLifecycleInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	metadataGetBucketLifecycleInput `json:"-" xml:"-"`
-}
-
-type metadataGetBucketLifecycleInput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-type LifecycleFilter struct {
-	And                     *And `locationName:"And" type :"structure"`
-	metadataLifecycleFilter `json:"-" xml:"-"`
-}
-type metadataLifecycleFilter struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-type And struct {
-	Prefix      *string `type:"string" required:"true"`
-	Tag         []*Tag  `locationNameList:"Tag" type:"list" flattened:"true"`
-	metadataAnd `json:"-" xml:"-"`
-}
-type metadataAnd struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type GetBucketLifecycleOutput struct {
-	Rules []*LifecycleRule `locationName:"Rule" type:"list" flattened:"true"`
-
-	metadataGetBucketLifecycleOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-type metadataGetBucketLifecycleOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
@@ -4130,68 +3779,6 @@ type metadataLambdaFunctionConfiguration struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-type LifecycleConfiguration struct {
-	Rules []*LifecycleRule `locationName:"Rule" type:"list" flattened:"true" required:"true"`
-
-	metadataLifecycleConfiguration `json:"-" xml:"-"`
-}
-
-type metadataLifecycleConfiguration struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type LifecycleExpiration struct {
-	// Indicates at what date the object is to be moved or deleted. Should be in
-	// GMT ISO 8601 Format.
-	Date *time.Time `type:"timestamp" timestampFormat:"iso8601"`
-
-	// Indicates the lifetime, in days, of the objects that are subject to the rule.
-	// The value must be a non-zero positive integer.
-	Days *int64 `type:"integer"`
-
-	metadataLifecycleExpiration `json:"-" xml:"-"`
-}
-
-type metadataLifecycleExpiration struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type LifecycleRule struct {
-	Expiration *LifecycleExpiration `type:"structure"`
-
-	// Unique identifier for the rule. The value cannot be longer than 255 characters.
-	ID *string `type:"string"`
-
-	// Specifies when noncurrent object versions expire. Upon expiration, Amazon
-	// S3 permanently deletes the noncurrent object versions. You set this lifecycle
-	// configuration action on a bucket that has versioning enabled (or suspended)
-	// to request that Amazon S3 delete noncurrent object versions at a specific
-	// period in the object's lifetime.
-	NoncurrentVersionExpiration *NoncurrentVersionExpiration `type:"structure"`
-
-	// Container for the transition rule that describes when noncurrent objects
-	// transition to the GLACIER storage class. If your bucket is versioning-enabled
-	// (or versioning is suspended), you can set this action to request that Amazon
-	// S3 transition noncurrent object versions to the GLACIER storage class at
-	// a specific period in the object's lifetime.
-	NoncurrentVersionTransition *NoncurrentVersionTransition `type:"structure"`
-
-	// Prefix identifying one or more objects to which the rule applies.
-	Filter *LifecycleFilter `type:"structure"`
-
-	// If 'Enabled', the rule is currently being applied. If 'Disabled', the rule
-	// is not currently being applied.
-	Status *string `type:"string" required:"true"`
-
-	Transitions []*Transition `locationName:"Transition" type:"list" flattened:"true"`
-
-	metadataLifecycleRule `json:"-" xml:"-"`
-}
-
-type metadataLifecycleRule struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type ListBucketsInput struct {
 	ContentType              *string `location:"header" locationName:"Content-Type" type:"string"`
 	metadataListBucketsInput `json:"-" xml:"-"`
@@ -4795,54 +4382,6 @@ type PutBucketACLOutput struct {
 }
 
 type metadataPutBucketACLOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type PutBucketCORSInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	CORSConfiguration *CORSConfiguration `locationName:"CORSConfiguration" type:"structure" xmlURI:"http://s3.amazonaws.com/doc/2006-03-01/"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	metadataPutBucketCORSInput `json:"-" xml:"-"`
-}
-
-type metadataPutBucketCORSInput struct {
-	SDKShapeTraits bool `type:"structure" payload:"CORSConfiguration"`
-}
-
-type PutBucketCORSOutput struct {
-	metadataPutBucketCORSOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-type metadataPutBucketCORSOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type PutBucketLifecycleInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	LifecycleConfiguration *LifecycleConfiguration `locationName:"LifecycleConfiguration" type:"structure"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	metadataPutBucketLifecycleInput `json:"-" xml:"-"`
-}
-
-type metadataPutBucketLifecycleInput struct {
-	SDKShapeTraits bool `type:"structure" payload:"LifecycleConfiguration"`
-}
-
-type PutBucketLifecycleOutput struct {
-	metadataPutBucketLifecycleOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-type metadataPutBucketLifecycleOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
