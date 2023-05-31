@@ -187,7 +187,7 @@ func (v2 *signer) buildTime() {
 	v2.formattedTime = v2.Time.UTC().Format(timeFormat)
 
 	if v2.isPresign {
-		duration := int64(v2.ExpireTime / time.Second)
+		duration := int64(v2.ExpireTime)
 		v2.Query.Set("Expires", strconv.FormatInt(duration, 10))
 	} else {
 		v2.Request.Header.Set("Date", v2.formattedTime)

@@ -11,9 +11,10 @@ import (
 //创建bucket并关联项目
 func (s *Ks3utilCommandSuite) TestCreateBucket(c *C) {
 	resp, _ := client.CreateBucket(&s3.CreateBucketInput{
-		ACL:       aws.String("public-read-"),
-		Bucket:    aws.String(bucket),
-		ProjectId: aws.String("1232"), //项目ID
+		ACL:    aws.String("public-read"),
+		Bucket: aws.String("vvvvv"),
+		//ProjectId:  aws.String("1232"), //项目ID
+		BucketType: aws.String("IA"),
 	})
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
@@ -189,7 +190,7 @@ func (s *Ks3utilCommandSuite) TestDeleteBucket(c *C) {
 
 //设置镜像回源规则
 //详情见API(https://docs.ksyun.com/documents/39134)
-func (s *Ks3utilCommandSuite) PutBucketMirrorRules(c *C) {
+func (s *Ks3utilCommandSuite) TestPutBucketMirrorRules(c *C) {
 
 	params := &s3.PutBucketMirrorInput{
 		Bucket: aws.String(bucket), // Required
