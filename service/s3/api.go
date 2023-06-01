@@ -4550,6 +4550,8 @@ type PutObjectInput struct {
 
 	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"integer"`
 
+	ContentMD5 *string `location:"header" locationName:"Content-MD5" type:"string"`
+
 	metadataPutObjectInput `json:"-" xml:"-"`
 }
 type PutReaderRequest struct {

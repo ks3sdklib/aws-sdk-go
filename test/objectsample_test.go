@@ -6,6 +6,7 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util/utilfile"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3manager"
 	. "gopkg.in/check.v1"
@@ -48,12 +49,14 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 	object := randLowStr(10)
 	s.createFile(object, content, c)
 	fd, _ := os.Open(content)
+	md5, _ := utilfile.GetFileMD5(content)
 	input := s3.PutObjectInput{
 		Bucket:      aws.String(bucket),
 		Key:         aws.String("/data/ss/hls_vod/data/sdtv2019/jimo/�k�%2/1677600325430_71915152/1677600326671-10000.ts"),
 		ACL:         aws.String("public-read"),
 		Body:        fd,
 		XAmzTagging: aws.String(XAmzTagging),
+		ContentMD5:  aws.String(md5),
 	}
 	resp, _ := client.PutObject(&input)
 	fmt.Println("result：\n", awsutil.StringValue(resp))
