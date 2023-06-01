@@ -5155,6 +5155,8 @@ type UploadPartInput struct {
 
 	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"string"`
 
+	ContentMD5 *string `location:"header" locationName:"Content-MD5" type:"string"`
+
 	metadataUploadPartInput `json:"-" xml:"-"`
 }
 
