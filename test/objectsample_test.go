@@ -11,7 +11,6 @@ import (
 	. "gopkg.in/check.v1"
 	"net/url"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -171,7 +170,6 @@ func (s *Ks3utilCommandSuite) TestGetObjectPresignedUrl(c *C) {
 		fmt.Println("Error:", err)
 		return
 	}
-
 	fmt.Println("Result:\n", awsutil.StringValue(resp.String()))
 }
 
@@ -441,21 +439,22 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithSSEC(c *C) {
 }
 
 //判断文件是否存在
-func objectExists(bucket, key string) bool {
-	_, err := client.HeadObject(
-		&s3.HeadObjectInput{
-			Bucket: &bucket,
-			Key:    &key,
-		},
-	)
-	if err != nil {
-		aerr, ok := err.(awserr.Error)
-		if ok && (aerr.Code() == strconv.Itoa(403) || aerr.Code() == strconv.Itoa(404)) {
-			// Specific error code handling
-			return false
+func (s *Ks3utilCommandSuite) TestHeaObject(c *C) {
+
+	etag := s.uploadTmpFile(c)
+	params := &s3.HeadObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		IfNoneMatch: aws.String(etag),
+	}
+	resp, err := client.HeadObject(params)
+	//判断err的状态码是否为304
+	if awsErr, ok := err.(awserr.RequestFailure); ok {
+		if awsErr.StatusCode() == 304 {
+			fmt.Println("文件未修改")
 		}
 	}
-	return true
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 /**
@@ -615,6 +614,27 @@ func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
 
 }
 
+func (s *Ks3utilCommandSuite) uploadTmpFile(c *C) (etag string) {
+	v := url.Values{}
+	v.Add("name", "yz")
+	v.Add("age", "11")
+	XAmzTagging := v.Encode()
+
+	object := randLowStr(10)
+	s.createFile(object, content, c)
+	fd, _ := os.Open(content)
+	input := s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		ACL:         aws.String("public-read"),
+		Body:        fd,
+		XAmzTagging: aws.String(XAmzTagging),
+	}
+	resp, _ := client.PutObject(&input)
+	fmt.Println("result：\n", awsutil.StringValue(resp))
+	os.Remove(object)
+	return *resp.ETag
+}
 func createFile(filePath string, size int64) error {
 	file, err := os.Create(filePath)
 	if err != nil {
