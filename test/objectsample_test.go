@@ -452,6 +452,8 @@ func (s *Ks3utilCommandSuite) TestHeaObject(c *C) {
 	if awsErr, ok := err.(awserr.RequestFailure); ok {
 		if awsErr.StatusCode() == 304 {
 			fmt.Println("文件未修改")
+		} else if awsErr.StatusCode() == 404 {
+			fmt.Println("文件不存在")
 		}
 	}
 	fmt.Println("result：\n", awsutil.StringValue(resp))
