@@ -2,6 +2,7 @@ package aws
 
 import (
 	"bytes"
+	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -9,7 +10,6 @@ import (
 	"reflect"
 	"strings"
 	"time"
-	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 )
 
 // A Request is the service request to be made.
@@ -65,7 +65,7 @@ func NewRequest(service *Service, operation *Operation, params interface{}, data
 	if p == "" {
 		p = "/"
 	}
-	
+
 	httpReq, _ := http.NewRequest(method, "", nil)
 	httpReq.URL, _ = url.Parse(service.Endpoint + p)
 
@@ -82,6 +82,20 @@ func NewRequest(service *Service, operation *Operation, params interface{}, data
 		Data:        data,
 	}
 	r.SetBufferBody([]byte{})
+	return r
+}
+
+func NewRequestV2(service *Service, method string, params interface{}) *Request {
+
+	httpReq, _ := http.NewRequest(method, "", nil)
+	httpReq.URL, _ = url.Parse(service.Endpoint)
+	r := &Request{
+		Service:     service,
+		ExpireTime:  0,
+		HTTPRequest: httpReq,
+		Params:      params,
+		Error:       nil,
+	}
 	return r
 }
 
@@ -177,7 +191,7 @@ func (r *Request) Sign() error {
 func (r *Request) Send() error {
 	for {
 		r.Sign()
-		
+
 		if r.Error != nil {
 			return r.Error
 		}

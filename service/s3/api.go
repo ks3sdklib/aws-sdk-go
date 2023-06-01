@@ -1605,6 +1605,47 @@ func (c *S3) PutBucketWebsiteRequest(input *PutBucketWebsiteInput) (req *aws.Req
 	return
 }
 
+type GeneratePresignedUrlInput struct {
+	HTTPMethod string
+	// The canned ACL to apply to the object.
+	ACL *string `location:"header" locationName:"x-amz-acl" type:"string"`
+
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Specifies what content encodings have been applied to the object and thus
+	// what decoding mechanisms must be applied to obtain the media-type referenced
+	// by the Content-Type header field.
+	ContentEncoding *string `location:"header" locationName:"Content-Encoding" type:"string"`
+
+	// The language the content is in.
+	ContentLanguage *string `location:"header" locationName:"Content-Language" type:"string"`
+
+	// Size of the body in bytes. This parameter is useful when the size of the
+	// body cannot be determined automatically.
+	ContentLength *int64 `location:"header" locationName:"Content-Length" type:"integer"`
+
+	// A standard MIME type describing the format of the object data.
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// The date and time at which the object is no longer cacheable.
+	Expires time.Duration
+
+	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+
+	// A map of metadata to store with the object in S3.
+	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
+
+	CallbackUrl  *string `location:"header" locationName:"x-kss-callbackurl" type:"string"`
+	CallbackBody *string `location:"header" locationName:"x-kss-callbackbody" type:"string"`
+
+	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"integer"`
+
+	metadataPutObjectInput `json:"-" xml:"-"`
+}
+type GeneratePresignedUrlOutput struct {
+	url *string
+}
+
 // Set the website configuration for a bucket.
 func (c *S3) PutBucketWebsite(input *PutBucketWebsiteInput) (*PutBucketWebsiteOutput, error) {
 	req, out := c.PutBucketWebsiteRequest(input)
@@ -1671,6 +1712,25 @@ func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
 //	err := req.Send()
 //	return out, err
 //}
+
+//生成链接
+func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url string) {
+
+	opPutObject = &aws.Operation{
+		Name:       "PutObject",
+		HTTPMethod: input.HTTPMethod,
+		HTTPPath:   "/{Bucket}/{Key+}",
+	}
+
+	output := &GeneratePresignedUrlOutput{}
+	req := c.newRequest(opPutObject, input, output)
+	req.ExpireTime = input.Expires
+	req.Sign()
+	if *input.TrafficLimit > 0 {
+		req.HTTPRequest.URL.RawQuery += "&x-kss-traffic-limit=" + strconv.FormatInt(*input.TrafficLimit, 10)
+	}
+	return req.HTTPRequest.URL.String()
+}
 
 func (c *S3) PutObjectPresignedUrl(input *PutObjectInput, expires time.Duration) (*url.URL, error) {
 	req, _ := c.PutObjectRequest(input)

@@ -196,6 +196,26 @@ func (s *Ks3utilCommandSuite) TestPutObjectPresignedUrl(c *C) {
 	fmt.Println("Result:\n", awsutil.StringValue(resp.String()))
 }
 
+//根据方法生成外链
+func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
+
+	//注意：v4签名情况下 这个时间多少秒后过期
+	expirationTime := time.Now().Add(time.Hour) // 设置外链过期时间为当前时间加上一小时
+	urlExpiration := expirationTime.Unix()      // 将过期时间转换为 Unix 时间戳
+
+	params := &s3.GeneratePresignedUrlInput{
+		Bucket:       aws.String(bucket),  // 设置 bucket 名称
+		Key:          aws.String("a.txt"), // 设置 object key
+		TrafficLimit: aws.Long(1000),      // 设置速度限制
+		//ContentType:  aws.String("image/jpeg"), // 设置 content-type
+		Expires: time.Duration(urlExpiration),
+		//可选值有 PUT, GET, DELETE, HEAD
+		HTTPMethod: "GET",
+	}
+	url := client.GeneratePresignedUrlInput(params)
+	fmt.Println("Result:\n", url)
+}
+
 //获取对象Acl
 func (s *Ks3utilCommandSuite) TestGetObjectAcl(c *C) {
 
