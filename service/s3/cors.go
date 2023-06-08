@@ -2,8 +2,6 @@ package s3
 
 import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
-	"net/url"
-	"time"
 )
 
 // GetBucketCORSRequest generates a request for the GetBucketCORS operation.
@@ -34,12 +32,6 @@ func (c *S3) GetBucketCORS(input *GetBucketCORSInput) (*GetBucketCORSOutput, err
 	req, out := c.GetBucketCORSRequest(input)
 	err := req.Send()
 	return out, err
-}
-func (c *S3) GetBucketCORSPresignedUrl(input *GetBucketCORSInput, expires time.Duration) (*url.URL, error) {
-	req, _ := c.GetBucketCORSRequest(input)
-	req.ExpireTime = expires
-	err := req.Sign()
-	return req.HTTPRequest.URL, err
 }
 
 var opGetBucketCORS *aws.Operation
@@ -73,12 +65,6 @@ func (c *S3) DeleteBucketCORS(input *DeleteBucketCORSInput) (*DeleteBucketCORSOu
 	err := req.Send()
 	return out, err
 }
-func (c *S3) DeleteBucketCORSPresignedUrl(input *DeleteBucketCORSInput, expires time.Duration) (*url.URL, error) {
-	req, _ := c.DeleteBucketCORSRequest(input)
-	req.ExpireTime = expires
-	err := req.Sign()
-	return req.HTTPRequest.URL, err
-}
 
 var opDeleteBucketCORS *aws.Operation
 
@@ -109,12 +95,6 @@ func (c *S3) PutBucketCORS(input *PutBucketCORSInput) (*PutBucketCORSOutput, err
 	req, out := c.PutBucketCORSRequest(input)
 	err := req.Send()
 	return out, err
-}
-func (c *S3) PutBucketCORSPresignedUrl(input *PutBucketCORSInput, expires time.Duration) (*url.URL, error) {
-	req, _ := c.PutBucketCORSRequest(input)
-	req.ExpireTime = expires
-	err := req.Sign()
-	return req.HTTPRequest.URL, err
 }
 
 var opPutBucketCORS *aws.Operation

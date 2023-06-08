@@ -2,7 +2,6 @@ package s3
 
 import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
-	"net/url"
 	"time"
 )
 
@@ -181,12 +180,6 @@ func (c *S3) DeleteBucketLifecycle(input *DeleteBucketLifecycleInput) (*DeleteBu
 	err := req.Send()
 	return out, err
 }
-func (c *S3) DeleteBucketLifecyclePresignedUrl(input *DeleteBucketLifecycleInput, expires time.Duration) (*url.URL, error) {
-	req, _ := c.DeleteBucketLifecycleRequest(input)
-	req.ExpireTime = expires
-	err := req.Sign()
-	return req.HTTPRequest.URL, err
-}
 
 var opDeleteBucketLifecycle *aws.Operation
 
@@ -218,12 +211,6 @@ func (c *S3) GetBucketLifecycle(input *GetBucketLifecycleInput) (*GetBucketLifec
 	req, out := c.GetBucketLifecycleRequest(input)
 	err := req.Send()
 	return out, err
-}
-func (c *S3) GetBucketLifecyclePresignedUrl(input *GetBucketLifecycleInput, expires time.Duration) (*url.URL, error) {
-	req, _ := c.GetBucketLifecycleRequest(input)
-	req.ExpireTime = expires
-	err := req.Sign()
-	return req.HTTPRequest.URL, err
 }
 
 var opGetBucketLifecycle *aws.Operation

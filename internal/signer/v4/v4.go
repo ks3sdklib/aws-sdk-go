@@ -36,7 +36,7 @@ var ignoredHeaders = map[string]bool{
 type signer struct {
 	Request     *http.Request
 	Time        time.Time
-	ExpireTime  time.Duration
+	ExpireTime  int64
 	ServiceName string
 	Region      string
 	CredValues  credentials.Value

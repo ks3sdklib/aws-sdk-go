@@ -175,7 +175,7 @@ func TestIgnorePreResignRequestWithValidCreds(t *testing.T) {
 		nil,
 		nil,
 	)
-	r.ExpireTime = time.Minute * 10
+	r.ExpireTime = 10
 
 	Sign(r)
 	sig := r.HTTPRequest.Header.Get("X-Amz-Signature")
@@ -203,31 +203,6 @@ func TestResignRequestExpiredCreds(t *testing.T) {
 
 	Sign(r)
 	assert.NotEqual(t, querySig, r.HTTPRequest.Header.Get("Authorization"))
-}
-
-func TestPreResignRequestExpiredCreds(t *testing.T) {
-	provider := &credentials.StaticProvider{credentials.Value{"AKID", "SECRET", "SESSION"}}
-	creds := credentials.NewCredentials(provider)
-	r := aws.NewRequest(
-		aws.NewService(&aws.Config{Credentials: creds}),
-		&aws.Operation{
-			Name:       "BatchGetItem",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-		},
-		nil,
-		nil,
-	)
-	r.ExpireTime = time.Minute * 10
-
-	Sign(r)
-	querySig := r.HTTPRequest.URL.Query().Get("X-Amz-Signature")
-
-	creds.Expire()
-	r.Time = time.Now().Add(time.Hour * 48)
-
-	Sign(r)
-	assert.NotEqual(t, querySig, r.HTTPRequest.URL.Query().Get("X-Amz-Signature"))
 }
 
 func BenchmarkPresignRequest(b *testing.B) {

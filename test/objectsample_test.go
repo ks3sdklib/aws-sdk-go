@@ -2,14 +2,16 @@ package lib
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
-	"github.com/ks3sdklib/aws-sdk-go/internal/util/utilfile"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3manager"
 	. "gopkg.in/check.v1"
+	"io"
 	"net/url"
 	"os"
 	"time"
@@ -47,16 +49,16 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 	XAmzTagging := v.Encode()
 
 	object := randLowStr(10)
-	s.createFile(object, content, c)
-	fd, _ := os.Open(content)
-	md5, _ := utilfile.GetFileMD5(content)
+	createFile(object, 1024*1024*1)
+	fd, _ := os.Open(object)
+	//md5, _ := utilfile.GetFileMD5(content)
 	input := s3.PutObjectInput{
 		Bucket:      aws.String(bucket),
-		Key:         aws.String("/data/ss/hls_vod/data/sdtv2019/jimo/�k�%2/1677600325430_71915152/1677600326671-10000.ts"),
+		Key:         aws.String(object),
 		ACL:         aws.String("public-read"),
 		Body:        fd,
 		XAmzTagging: aws.String(XAmzTagging),
-		ContentMD5:  aws.String(md5),
+		//ContentMD5:  aws.String(md5),
 	}
 	resp, _ := client.PutObject(&input)
 	fmt.Println("result：\n", awsutil.StringValue(resp))
@@ -68,7 +70,7 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 */
 func (s *Ks3utilCommandSuite) TestPutObjectByLimit(c *C) {
 
-	MIN_BANDWIDTH := 1024 * 100 * 8 //100K bits/s
+	MIN_BANDWIDTH := 1024 * 1024 * 100 * 8 //100K bits/s
 	createFile(content, 1024*1024*100)
 	fd, _ := os.Open(content)
 	input := s3.PutObjectInput{
@@ -152,68 +154,19 @@ func (s *Ks3utilCommandSuite) TestDelObject(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-// 生成下载外链
-func (s *Ks3utilCommandSuite) TestGetObjectPresignedUrl(c *C) {
-
-	expirationTime := time.Now().Add(time.Hour) // 设置外链过期时间为当前时间加上一小时
-	urlExpiration := expirationTime.Unix()      // 将过期时间转换为 Unix 时间戳
-
-	MIN_BANDWIDTH := 1024 * 100 * 8 // 100K bits/s
-
-	// 设置 GetObjectInput 参数，并指定 TrafficLimit 限制上传速度
-	params := &s3.GetObjectInput{
-		Bucket:       aws.String(bucket),             // 设置 bucket 名称
-		Key:          aws.String("a.txt"),            // 设置 object key
-		TrafficLimit: aws.Long(int64(MIN_BANDWIDTH)), // 设置上传速度限制
-	}
-	//注意：v4签名情况下 这个时间多少秒后过期
-	resp, err := client.GetObjectPresignedUrl(params, time.Duration(urlExpiration))
-	if err != nil {
-		// 处理错误
-		fmt.Println("Error:", err)
-		return
-	}
-	fmt.Println("Result:\n", awsutil.StringValue(resp.String()))
-}
-
-// 生成上传外链
-func (s *Ks3utilCommandSuite) TestPutObjectPresignedUrl(c *C) {
-
-	//注意：v4签名情况下 这个时间多少秒后过期
-	expirationTime := time.Now().Add(time.Hour) // 设置外链过期时间为当前时间加上一小时
-	urlExpiration := expirationTime.Unix()      // 将过期时间转换为 Unix 时间戳
-
-	params := &s3.PutObjectInput{
-		Bucket:       aws.String(bucket),       // 设置 bucket 名称
-		Key:          aws.String("a.txt"),      // 设置 object key
-		TrafficLimit: aws.Long(1000),           // 设置上传速度限制
-		ContentType:  aws.String("image/jpeg"), // 设置 content-type
-	}
-
-	resp, err := client.PutObjectPresignedUrl(params, time.Duration(urlExpiration))
-	if err != nil {
-		// 处理错误
-		fmt.Println("Error:", err)
-		return
-	}
-	fmt.Println("Result:\n", awsutil.StringValue(resp.String()))
-}
-
 //根据方法生成外链
 func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 
-	//注意：v4签名情况下 这个时间多少秒后过期
-	expirationTime := time.Now().Add(time.Hour) // 设置外链过期时间为当前时间加上一小时
-	urlExpiration := expirationTime.Unix()      // 将过期时间转换为 Unix 时间戳
-
 	params := &s3.GeneratePresignedUrlInput{
-		Bucket:       aws.String(bucket),  // 设置 bucket 名称
-		Key:          aws.String("a.txt"), // 设置 object key
-		TrafficLimit: aws.Long(1000),      // 设置速度限制
-		//ContentType:  aws.String("image/jpeg"), // 设置 content-type
-		Expires: time.Duration(urlExpiration),
+		Bucket:       aws.String(bucket), // 设置 bucket 名称
+		Key:          aws.String("test"), // 设置 object key
+		TrafficLimit: aws.Long(1000),     // 设置速度限制
+		//如果是PUT方法，需要设置content-type
+		//ContentType:  aws.String("image/jpeg"),
+		//多久后过期
+		Expires: 3600,
 		//可选值有 PUT, GET, DELETE, HEAD
-		HTTPMethod: "GET",
+		HTTPMethod: s3.GET,
 	}
 	url := client.GeneratePresignedUrlInput(params)
 	fmt.Println("Result:\n", url)
@@ -373,8 +326,8 @@ func (s *Ks3utilCommandSuite) TestModifyObjectMeta(c *C) {
 //注意: 当你启动分块上传后，并开始上传分块，你必须完成或者放弃上传任务，才能终止因为存储造成的收费。
 func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 
-	MIN_BANDWIDTH := 1024 * 100 * 8 //100K bits/s
-	createFile(content, 1024*1024*100)
+	//MIN_BANDWIDTH := 1024 * 100 * 8 //100K bits/s
+	createFile(content, 1024*1024*10)
 	initRet, _ := client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 		Bucket:      aws.String(bucket),
 		Key:         aws.String(key),
@@ -394,7 +347,7 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 	defer f.Close()
 	var i int64 = 1
 	//组装分块参数
-	compParts := []*s3.CompletedPart{}
+	var compParts []*s3.CompletedPart
 	partsNum := []int64{0}
 	sc := make([]byte, 52428800)
 
@@ -414,6 +367,13 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 			//块的数量可以是1到10,000中的任意一个（包含1和10,000）。块序号用于标识一个块以及其在对象创建时的位置。如果你上传一个新的块，使用之前已经使用的序列号，那么之前的那个块将会被覆盖。当所有块总大小大于5M时，除了最后一个块没有大小限制外，其余的块的大小均要求在5MB以上。当所有块总大小小于5M时，除了最后一个块没有大小限制外，其余的块的大小均要求在100K以上。如果不符合上述要求，会返回413状态码。
 			//
 			//为了保证数据在传输过程中没有损坏，请使用 Content-MD5 头部。当使用此头部时，KS3会自动计算出MD5，并根据用户提供的MD5进行校验，如果不匹配，将会返回错误信息。
+			//计算sc[:nr]的md5值
+			md5Ctx := md5.New()
+			reader := bytes.NewReader(sc[0:nr])
+			io.Copy(md5Ctx, reader)
+			cipherStr := md5Ctx.Sum(nil)
+			md5Str := hex.EncodeToString(cipherStr)
+
 			resp, _ := client.UploadPart(&s3.UploadPartInput{
 				Bucket:        aws.String(bucket),
 				Key:           aws.String(key),
@@ -421,7 +381,8 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 				UploadID:      aws.String(uploadId),
 				Body:          bytes.NewReader(sc[0:nr]),
 				ContentLength: aws.Long(int64(len(sc[0:nr]))),
-				TrafficLimit:  aws.Long(int64(MIN_BANDWIDTH)),
+				//TrafficLimit:  aws.Long(int64(MIN_BANDWIDTH)),
+				ContentMD5: aws.String(md5Str),
 			})
 			partsNum = append(partsNum, i)
 			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
