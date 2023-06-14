@@ -62,7 +62,7 @@ type signer struct {
 	Service     *aws.Service
 	Request     *http.Request
 	Time        time.Time
-	ExpireTime  time.Duration
+	ExpireTime  int64
 	ServiceName string
 	Region      string
 	CredValues  credentials.Value
@@ -187,7 +187,7 @@ func (v2 *signer) buildTime() {
 	v2.formattedTime = v2.Time.UTC().Format(timeFormat)
 
 	if v2.isPresign {
-		duration := int64(v2.ExpireTime / time.Second)
+		duration := int64(v2.ExpireTime)
 		v2.Query.Set("Expires", strconv.FormatInt(duration, 10))
 	} else {
 		v2.Request.Header.Set("Date", v2.formattedTime)
@@ -305,7 +305,6 @@ func (v2 *signer) buildStringToSign() {
 	if len(typelist) > 0 {
 		contenttype = v2.Request.Header["Content-Type"][0]
 	}
-
 	signItems := []string{v2.Request.Method, md5, contenttype}
 	if v2.isPresign {
 		signItems = append(signItems, v2.Query["Expires"][0])

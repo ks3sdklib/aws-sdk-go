@@ -36,7 +36,7 @@ var ignoredHeaders = map[string]bool{
 type signer struct {
 	Request     *http.Request
 	Time        time.Time
-	ExpireTime  time.Duration
+	ExpireTime  int64
 	ServiceName string
 	Region      string
 	CredValues  credentials.Value
@@ -192,7 +192,7 @@ func (v4 *signer) buildTime() {
 	v4.formattedShortTime = v4.Time.UTC().Format(shortTimeFormat)
 
 	if v4.isPresign {
-		duration := int64(v4.ExpireTime / time.Second)
+		duration := int64(v4.ExpireTime)
 		v4.Query.Set("X-Amz-Date", v4.formattedTime)
 		v4.Query.Set("X-Amz-Expires", strconv.FormatInt(duration, 10))
 	} else {

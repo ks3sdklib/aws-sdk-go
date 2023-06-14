@@ -2,6 +2,8 @@ package lib
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
@@ -9,9 +11,9 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3manager"
 	. "gopkg.in/check.v1"
+	"io"
 	"net/url"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -24,11 +26,11 @@ var (
 func (s *Ks3utilCommandSuite) TestListObjects(c *C) {
 
 	resp, _ := client.ListObjects(&s3.ListObjectsInput{
-		Bucket:    aws.String(bucket),
-		Delimiter: aws.String("/"),       //分隔符，用于对一组参数进行分割的字符
-		MaxKeys:   aws.Long(int64(1000)), //设置响应体中返回的最大记录数（最后实际返回可能小于该值）。默认为1000。如果你想要的result在1000条以后，你可以设定 marker 的值来调整起始位置。
-		Prefix:    aws.String("temp/"),   //限定响应result列表使用的前缀，正如你在电脑中使用的文件夹一样。
-		Marker:    aws.String(""),        //指定列举指定空间中对象的起始位置。KS3按照字母排序方式返回result，将从给定的 marker 开始返回列表。
+		Bucket: aws.String(bucket),
+		//Delimiter: aws.String("/"),       //分隔符，用于对一组参数进行分割的字符
+		MaxKeys: aws.Long(int64(1000)), //设置响应体中返回的最大记录数（最后实际返回可能小于该值）。默认为1000。如果你想要的result在1000条以后，你可以设定 marker 的值来调整起始位置。
+		Prefix:  aws.String("temp/"),   //限定响应result列表使用的前缀，正如你在电脑中使用的文件夹一样。
+		Marker:  aws.String(""),        //指定列举指定空间中对象的起始位置。KS3按照字母排序方式返回result，将从给定的 marker 开始返回列表。
 	})
 	//获取对象列表
 	fmt.Println("result：\n", awsutil.StringValue(resp))
@@ -47,18 +49,74 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 	XAmzTagging := v.Encode()
 
 	object := randLowStr(10)
-	s.createFile(object, content, c)
-	fd, _ := os.Open(content)
+	createFile(object, 1024*1024*1)
+	fd, _ := os.Open(object)
+	//md5, _ := utilfile.GetFileMD5(content)
 	input := s3.PutObjectInput{
 		Bucket:      aws.String(bucket),
-		Key:         aws.String("/data/ss/hls_vod/data/sdtv2019/jimo/�k�%2/1677600325430_71915152/1677600326671-10000.ts"),
+		Key:         aws.String(object),
 		ACL:         aws.String("public-read"),
 		Body:        fd,
 		XAmzTagging: aws.String(XAmzTagging),
+		//ContentMD5:  aws.String(md5),
 	}
 	resp, _ := client.PutObject(&input)
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 	os.Remove(object)
+}
+
+/**
+  上传示例 -限速
+*/
+func (s *Ks3utilCommandSuite) TestPutObjectByLimit(c *C) {
+
+	MIN_BANDWIDTH := 1024 * 1024 * 100 * 8 //100K bits/s
+	createFile(content, 1024*1024*100)
+	fd, _ := os.Open(content)
+	input := s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   fd,
+		//设置上传速度
+		TrafficLimit: aws.Long(int64(MIN_BANDWIDTH)),
+	}
+	// 记录开始时间
+	startTime := time.Now()
+	resp, _ := client.PutObject(&input)
+	// 计算上传耗时
+	elapsed := time.Since(startTime)
+
+	fmt.Println("Upload completed successfully.")
+	fmt.Println("Elapsed time:", elapsed)
+	fmt.Println("result：\n", awsutil.StringValue(resp))
+
+}
+
+/**
+  下载限速示例
+*/
+func (s *Ks3utilCommandSuite) TestGetObjectByLimit(c *C) {
+
+	MIN_BANDWIDTH := 1024 * 100 * 8 //100K bits/s
+	fd, _ := os.Open(content)
+	input := s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		ACL:    aws.String("public-read"),
+		Body:   fd,
+	}
+	resp, _ := client.PutObject(&input)
+	fmt.Println("result：\n", awsutil.StringValue(resp))
+
+	//下载
+	getInput := s3.GetObjectInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(key),
+		TrafficLimit: aws.Long(int64(MIN_BANDWIDTH)),
+	}
+	DownloadResp, _ := client.GetObject(&getInput)
+	fmt.Println("result：\n", awsutil.StringValue(DownloadResp))
+
 }
 
 /**
@@ -96,14 +154,22 @@ func (s *Ks3utilCommandSuite) TestDelObject(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-//生成下载地址
-func (s *Ks3utilCommandSuite) TestGetObjectPresignedUrl(c *C) {
+//根据方法生成外链
+func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 
-	resp, _ := client.GetObjectPresignedUrl(&s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String("temp//t"),
-	}, time.Second*time.Duration(time.Now().Add(time.Second*600).Unix())) //在当前时间多久后到期
-	fmt.Println("result：\n", awsutil.StringValue(resp))
+	params := &s3.GeneratePresignedUrlInput{
+		Bucket:       aws.String(bucket), // 设置 bucket 名称
+		Key:          aws.String("test"), // 设置 object key
+		TrafficLimit: aws.Long(1000),     // 设置速度限制
+		//如果是PUT方法，需要设置content-type
+		//ContentType:  aws.String("image/jpeg"),
+		//多久后过期
+		Expires: 3600,
+		//可选值有 PUT, GET, DELETE, HEAD
+		HTTPMethod: s3.GET,
+	}
+	url := client.GeneratePresignedUrlInput(params)
+	fmt.Println("Result:\n", url)
 }
 
 //获取对象Acl
@@ -113,17 +179,6 @@ func (s *Ks3utilCommandSuite) TestGetObjectAcl(c *C) {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
-	//foundFull := false
-	//foundRead := false
-	//for i := 0; i < len(resp.Grants); i++ {
-	//	grant := resp.Grants[i]
-	//	if *grant.Permission == "FULL_CONTROL" {
-	//		foundFull = true
-	//	} else if *grant.Permission == "READ" {
-	//		foundRead = true
-	//	}
-	//}
-	//
 	fmt.Println("result：\n", s3.GetAcl(*resp))
 
 }
@@ -164,6 +219,44 @@ func (s *Ks3utilCommandSuite) TestCopyObject(c *C) {
 		XAmzTaggingDirective: aws.String("REPLACE"),
 	})
 	fmt.Println("result：\n", awsutil.StringValue(resp))
+}
+
+//分块拷贝用例
+func (s *Ks3utilCommandSuite) TestUploadPartCopy(c *C) {
+
+	key = "file.tar"
+	dstKey := "xxx/copy/" + key
+	//初始化分块
+	initResp, _ := client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(dstKey),
+	})
+	fmt.Println("result：\n", awsutil.StringValue(initResp))
+
+	uploadPartCopyresp, _ := client.UploadPartCopy(&s3.UploadPartCopyInput{
+		Bucket:          aws.String(bucket),
+		Key:             aws.String(dstKey),
+		CopySource:      aws.String(key),
+		UploadID:        initResp.UploadID,
+		PartNumber:      aws.Long(1),
+		CopySourceRange: aws.String("bytes=0-1024"),
+	})
+	fmt.Println("result：\n", awsutil.StringValue(uploadPartCopyresp))
+
+	//合并分块
+	completeMultipartResp, _ := client.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(dstKey),
+		UploadID: initResp.UploadID,
+		MultipartUpload: &s3.CompletedMultipartUpload{
+			Parts: []*s3.CompletedPart{
+				{
+					ETag: uploadPartCopyresp.CopyPartResult.ETag,
+				},
+			},
+		},
+	})
+	fmt.Println("result：\n", awsutil.StringValue(completeMultipartResp))
 }
 
 //抓取第三方URL上传到KS3
@@ -233,8 +326,8 @@ func (s *Ks3utilCommandSuite) TestModifyObjectMeta(c *C) {
 //注意: 当你启动分块上传后，并开始上传分块，你必须完成或者放弃上传任务，才能终止因为存储造成的收费。
 func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 
-	key = "jdexe"
-	fileName := "d:/upload-test/jd.exe"
+	//MIN_BANDWIDTH := 1024 * 100 * 8 //100K bits/s
+	createFile(content, 1024*1024*10)
 	initRet, _ := client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 		Bucket:      aws.String(bucket),
 		Key:         aws.String(key),
@@ -245,7 +338,7 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 	uploadId := *initRet.UploadID
 	fmt.Printf("%s %s", "uploadId=", uploadId)
 
-	f, err := os.Open(fileName)
+	f, err := os.Open(content)
 	if err != nil {
 		fmt.Println("can't opened this file")
 		return
@@ -254,7 +347,7 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 	defer f.Close()
 	var i int64 = 1
 	//组装分块参数
-	compParts := []*s3.CompletedPart{}
+	var compParts []*s3.CompletedPart
 	partsNum := []int64{0}
 	sc := make([]byte, 52428800)
 
@@ -274,6 +367,13 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 			//块的数量可以是1到10,000中的任意一个（包含1和10,000）。块序号用于标识一个块以及其在对象创建时的位置。如果你上传一个新的块，使用之前已经使用的序列号，那么之前的那个块将会被覆盖。当所有块总大小大于5M时，除了最后一个块没有大小限制外，其余的块的大小均要求在5MB以上。当所有块总大小小于5M时，除了最后一个块没有大小限制外，其余的块的大小均要求在100K以上。如果不符合上述要求，会返回413状态码。
 			//
 			//为了保证数据在传输过程中没有损坏，请使用 Content-MD5 头部。当使用此头部时，KS3会自动计算出MD5，并根据用户提供的MD5进行校验，如果不匹配，将会返回错误信息。
+			//计算sc[:nr]的md5值
+			md5Ctx := md5.New()
+			reader := bytes.NewReader(sc[0:nr])
+			io.Copy(md5Ctx, reader)
+			cipherStr := md5Ctx.Sum(nil)
+			md5Str := hex.EncodeToString(cipherStr)
+
 			resp, _ := client.UploadPart(&s3.UploadPartInput{
 				Bucket:        aws.String(bucket),
 				Key:           aws.String(key),
@@ -281,6 +381,8 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 				UploadID:      aws.String(uploadId),
 				Body:          bytes.NewReader(sc[0:nr]),
 				ContentLength: aws.Long(int64(len(sc[0:nr]))),
+				//TrafficLimit:  aws.Long(int64(MIN_BANDWIDTH)),
+				ContentMD5: aws.String(md5Str),
 			})
 			partsNum = append(partsNum, i)
 			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
@@ -320,46 +422,25 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithSSEC(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-//生成上传外链
-func (s *Ks3utilCommandSuite) TestPutObjectPresignedUrl(c *C) {
-	params := &s3.PutObjectInput{
-		Bucket: aws.String(bucket),               // bucket名称
-		Key:    aws.String("temp/ fix (4).toml"), // object key
-		//ACL:              aws.String("public-read"),             //设置ACL
-		//ContentType:      aws.String("application/ocet-stream"), //设置文件的content-type
-		//ContentMaxLength: aws.Long(20), //设置允许的最大长度，对应的header：x-amz-content-maxlength
-	}
-	resp, _ := client.PutObjectPresignedUrl(params, 1677144675000000000) //第二个参数为外链过期时间，第二个参数为time.Duration类型
-	fmt.Println("result：\n", awsutil.StringValue(resp))
-
-	////简单上传示例
-	//date := time.Now().UTC().Format(http.TimeFormat)
-	//httpReq, _ := http.NewRequest("PUT", "", strings.NewReader("123"))
-	//httpReq.URL = resp
-	//httpReq.Header["x-amz-acl"] = []string{"public-read"}
-	//httpReq.Header["x-amz-content-maxlength"] = []string{"20"}
-	//httpReq.Header.Add("Content-Type", "application/ocet-stream")
-	//httpReq.Header["Date"] = []string{date}
-	//upLoadResp, _ := http.DefaultClient.Do(httpReq)
-	//fmt.Println("result：\n", awsutil.StringValue(upLoadResp))
-}
-
 //判断文件是否存在
-func objectExists(bucket, key string) bool {
-	_, err := client.HeadObject(
-		&s3.HeadObjectInput{
-			Bucket: &bucket,
-			Key:    &key,
-		},
-	)
-	if err != nil {
-		aerr, ok := err.(awserr.Error)
-		if ok && (aerr.Code() == strconv.Itoa(403) || aerr.Code() == strconv.Itoa(404)) {
-			// Specific error code handling
-			return false
+func (s *Ks3utilCommandSuite) TestHeaObject(c *C) {
+
+	etag := s.uploadTmpFile(c)
+	params := &s3.HeadObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		IfNoneMatch: aws.String(etag),
+	}
+	resp, err := client.HeadObject(params)
+	//判断err的状态码是否为304
+	if awsErr, ok := err.(awserr.RequestFailure); ok {
+		if awsErr.StatusCode() == 304 {
+			fmt.Println("文件未修改")
+		} else if awsErr.StatusCode() == 404 {
+			fmt.Println("文件不存在")
 		}
 	}
-	return true
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 /**
@@ -517,4 +598,42 @@ func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
 	//prefix 桶下的路径
 	uploader.UploadDir(dir, bucket, "sns/")
 
+}
+
+func (s *Ks3utilCommandSuite) uploadTmpFile(c *C) (etag string) {
+	v := url.Values{}
+	v.Add("name", "yz")
+	v.Add("age", "11")
+	XAmzTagging := v.Encode()
+
+	object := randLowStr(10)
+	s.createFile(object, content, c)
+	fd, _ := os.Open(content)
+	input := s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		ACL:         aws.String("public-read"),
+		Body:        fd,
+		XAmzTagging: aws.String(XAmzTagging),
+	}
+	resp, _ := client.PutObject(&input)
+	fmt.Println("result：\n", awsutil.StringValue(resp))
+	os.Remove(object)
+	return *resp.ETag
+}
+func createFile(filePath string, size int64) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Set the file size
+	err = file.Truncate(size)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("File created: %s (size: %d bytes)\n", filePath, size)
+	return nil
 }
