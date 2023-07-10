@@ -1024,6 +1024,18 @@ func (c *S3) HeadBucket(input *HeadBucketInput) (*HeadBucketOutput, error) {
 	return out, err
 }
 
+//判断桶是否存在
+func (c *S3) HeadBucketExist(bucket string) bool {
+	input := &HeadBucketInput{
+		Bucket: aws.String(bucket),
+	}
+	_, err := c.HeadBucket(input)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 var opHeadBucket *aws.Operation
 
 // HeadObjectRequest generates a request for the HeadObject operation.
@@ -5699,6 +5711,8 @@ type FetchObjectOutput struct {
 	// The Server-side encryption algorithm used when storing this object in S3
 	// (e.g., AES256, aws:kms).
 	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 
 	metadataFetchObjectOutput `json:"-" xml:"-"`
 }
