@@ -612,17 +612,6 @@ func (s *Ks3utilCommandSuite) TestFetchUrl(c *C) {
 	fmt.Println(resp, err)
 }
 
-//判断bucket桶是否存在
-func (s *Ks3utilCommandSuite) TestBucketExist(c *C) {
-
-	exist := client.HeadBucketExist(bucket)
-	if exist {
-		fmt.Println("bucket exist")
-	} else {
-		fmt.Println("bucket not exist")
-	}
-}
-
 func (s *Ks3utilCommandSuite) uploadTmpFile(c *C) (etag string) {
 	v := url.Values{}
 	v.Add("name", "yz")
