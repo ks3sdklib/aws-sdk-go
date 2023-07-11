@@ -22,11 +22,11 @@ func (s *Ks3utilCommandSuite) TestCreateBucket(c *C) {
 //判断bucket桶是否存在
 func (s *Ks3utilCommandSuite) TestBucketExist(c *C) {
 
-	exist := client.HeadBucketExist(bucket)
-	if exist {
+	exist, err := client.HeadBucketExist(bucket)
+	if exist && err == nil {
 		fmt.Println("bucket exist")
 	} else {
-		fmt.Println("bucket not exist")
+		fmt.Println(err)
 	}
 }
 

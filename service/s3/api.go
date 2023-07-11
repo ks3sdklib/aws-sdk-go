@@ -1025,15 +1025,16 @@ func (c *S3) HeadBucket(input *HeadBucketInput) (*HeadBucketOutput, error) {
 }
 
 //判断桶是否存在
-func (c *S3) HeadBucketExist(bucket string) bool {
-	input := &HeadBucketInput{
+func (c *S3) HeadBucketExist(bucket string) (bool, error) {
+	var err error
+	req, _ := c.HeadBucketRequest(&HeadBucketInput{
 		Bucket: aws.String(bucket),
+	})
+	err = req.Send()
+	if err == nil && req.HTTPResponse.StatusCode == 200 {
+		return true, nil
 	}
-	_, err := c.HeadBucket(input)
-	if err != nil {
-		return false
-	}
-	return true
+	return false, err
 }
 
 var opHeadBucket *aws.Operation
