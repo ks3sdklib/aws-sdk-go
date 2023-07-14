@@ -1,36 +1,46 @@
 ## 1、概述
+
 金山云对象存储（Kingsoft Standard Storage Service，简称KS3），是金山云提供的无限制、多备份、分布式的低成本存储空间解决方案。目前提供多种语言SDK，替开发者解决存储扩容、数据可靠安全以及分布式访问等相关复杂问题，开发者可以快速的开发出涉及存储业务的程序或服务。
+
 ## 2、环境准备
 
 - 环境要求
-使用Golang 1.6及以上版本。
+  使用Golang 1.6及以上版本。
 
 请参考[Golang](https://golang.org/doc/install/source?spm=a2c4g.11186623.0.0.105764a8Y1NXVs)安装下载和安装Go编译运行环境。Go安装完毕后请新建系统变量GOPATH，并将其指向您的代码目录。要了解更多GOPATH相关信息，请执行以下命令。
+
 ```shell
 go help gopath
 ```
 
 - 查看语言版本
-要查看Go语言版本，请执行以下命令。
+  要查看Go语言版本，请执行以下命令。
+
 ```shell
 go version
 ```
+
 ## 3、初始化
+
 ### 3.1 下载安装 SDK
 
 - 安装方式：
+
 ```shell
 go get github.com/ks3sdklib/aws-sdk-go
 ```
 
 - 使用方法 参见 [Demo](https://github.com/ks3sdklib/aws-sdk-go/tree/master/test)。
+
 ### 3.2 获取密钥
 
-1.  [开通 KS3 服务, 注册账号](http://www.ksyun.com/user/register) 
-2.  [进入控制台，获取 AccessKeyID 、AccessKeySecret](https://iam.console.ksyun.com/#!/account) 
+1. [开通 KS3 服务, 注册账号](http://www.ksyun.com/user/register)
+2. [进入控制台，获取 AccessKeyID 、AccessKeySecret](https://iam.console.ksyun.com/#!/account)
+
 ### 3.3 初始化
 
 1. 初始化客户端
+
 ```go
   credentials := credentials.NewStaticCredentials("<AccessKeyID>","<AccessKeySecret>","")
 	client = s3.New(&aws.Config{
@@ -52,21 +62,25 @@ go get github.com/ks3sdklib/aws-sdk-go
 ```
 
 > 注意：
+>
 > - [endpoint 与 Region 对应关系](https://docs.ksyun.com/documents/6761)
 
 
 ### 3.4 常见术语介绍
 
 #### Object（对象，文件）
+
 在 KS3 中，用户操作的基本数据单元是 Object。单个 Object 允许存储 0~48.8TB 的数据。 Object 包含 key 和 data。其中，key 是 Object 的名字；data 是 Object 的数据。key 为 UTF-8 编码，且编码后的长度不得超过 1024 个字符。
 
 #### Key（文件名）
+
 即 Object 的名字，key 为 UTF-8 编码，且编码后的长度不得超过 1024 个字符。Key 中可以带有斜杠，当 Key 中带有斜杠的时候，将会自动在控制台里组织成目录结构。
 
 **其他术语请参考**[**概念与术语**](https://docs.ksyun.com/documents/2286)
 
 ## 4、空间相关
-### 4.1 创建 bucket
+
+### 4.1 创建bucket
 
 ```go
 resp, err := svc.CreateBucket(&s3.CreateBucketInput{
@@ -87,7 +101,26 @@ if err != nil {
 fmt.Println("结果：\n", awsutil.StringValue(resp))
 ```
 
-### 4.2 设置镜像回源规则
+### 4.2 判断bucket是否存在
+
+```python
+//判断bucket桶是否存在
+func (s *Ks3utilCommandSuite) TestBucketExist(c *C) {
+
+	exist := client.HeadBucketExist(bucket)
+	if exist {
+		fmt.Println("bucket exist")
+	} else {
+		fmt.Println("bucket not exist")
+	}
+}
+
+```
+
+### 镜像回源规则
+
+#### 1. 设置镜像回源规则
+
 ```go
 params := &s3.PutBucketMirrorInput{
     Bucket: aws.String(BucketName), // 桶名，必填字段
@@ -169,7 +202,8 @@ var bodyStr = string(resp.Body[:])
 fmt.Println("resp.Body is:", bodyStr)
 ```
 
-### 4.3 获取镜像回源规则
+#### 2.获取镜像回源规则
+
 ```go
  	params := &s3.GetBucketMirrorInput{
 	  	Bucket: aws.String(BucketName),
@@ -182,8 +216,9 @@ fmt.Println("resp.Body is:", bodyStr)
 	fmt.Println("resp.Body is:", bodyStr)
 ```
 
-### 4.4 删除镜像回源规则
-```go
+#### 3. 删除镜像回源规则
+
+```python
 params := &s3.DeleteBucketMirrorInput{
     Bucket: aws.String(BucketName),
 }
@@ -195,8 +230,12 @@ var bodyStr = string(resp.Body[:])
 fmt.Println("resp.Body is:", bodyStr)
 ```
 
+#### 
+
 ### 生命周期规则
-####  1.配置生命周期规则
+
+#### 1.配置生命周期规则
+
 ```go
 lifecycleConfiguration := &s3.LifecycleConfiguration{
     Rules: []*s3.LifecycleRule{
@@ -215,20 +254,27 @@ resp, err := client.PutBucketLifecycle(&s3.PutBucketLifecycleInput{
 })
 fmt.Println("结果：\n", awsutil.StringValue(resp), err)
 ```
+
 #### 2.获取生命周期规则
+
 ```go
 resp, err := client.GetBucketLifecycle(&s3.GetBucketLifecycleInput{
 		Bucket: aws.String(bucket),
 	})
 fmt.Println("结果：\n", awsutil.StringValue(resp), err)
 ```
+
 #### 3.删除生命周期规则
+
 ```go
 resp, err := client.DeleteBucketLifecycle(&s3.DeleteBucketLifecycleInput{})
 fmt.Println("结果：\n", awsutil.StringValue(resp), err)
 ```
+
 ### 跨域规则
-####  1.配置跨域规则
+
+#### 1.配置跨域规则
+
 ```go
 // 配置CORS规则
 corsConfiguration := &s3.CORSConfiguration{
@@ -254,14 +300,18 @@ resp, err := client.PutBucketCORS(&s3.PutBucketCORSInput{
 })
 fmt.Println("结果：\n", awsutil.StringValue(resp), err)
 ```
+
 #### 2.获取跨域规则
+
 ```go
 resp, err := client.GetBucketCORS(&s3.GetBucketCORSInput{
     Bucket: aws.String(bucket),
 })
 fmt.Println("结果：\n", awsutil.StringValue(resp), err)
 ```
+
 #### 3.删除跨域规则
+
 ```go
 	resp, err := client.DeleteBucketCORS(&s3.DeleteBucketCORSInput{
 		Bucket: aws.String(bucket),
@@ -270,7 +320,9 @@ fmt.Println("结果：\n", awsutil.StringValue(resp), err)
 ```
 
 ### 桶日志
-####  1.配置日志
+
+#### 1.配置日志
+
 ```go
 logStatus := &s3.BucketLoggingStatus{
     LoggingEnabled: &s3.LoggingEnabled{
@@ -285,7 +337,9 @@ resp, err := client.PutBucketLogging(&s3.PutBucketLoggingInput{
 })
 fmt.Println("结果：\n", awsutil.StringValue(resp), err)
 ```
+
 #### 2.获取日志配置
+
 ```go
 resp, err := client.GetBucketLogging(&s3.GetBucketLoggingInput{
     Bucket: aws.String(bucket),
@@ -294,7 +348,9 @@ fmt.Println("结果：\n", awsutil.StringValue(resp), err)
 ```
 
 ## 5、对象相关
+
 ### 5.1  获取元数据
+
 ```go
 input := s3.HeadObjectInput{
 	Bucket: aws.String(bucketname),
@@ -316,6 +372,7 @@ fmt.Println("结果：\n", awsutil.StringValue(resp))
 ```
 
 ### 5.2 上传本地文件
+
 ```go
 filename = "/Users/user/Downloads/aaa.docx"
 file, err := ioutil.ReadFile(filename)
@@ -342,6 +399,7 @@ fmt.Println(resp)
 ```
 
 ### 5.3 下载文件
+
 ```go
  params := &s3.GetObjectInput{
  			Bucket: aws.String("BucketName"), // bucket名称
@@ -358,6 +416,7 @@ fmt.Println(resp)
 ```
 
 ### 5.4 生成文件下载外链
+
 ```go
  params := &s3.GetObjectInput{
      Bucket: aws.String("BucketName"), // bucket名称
@@ -383,6 +442,7 @@ fmt.Println(resp)
 ```
 
 ### 5.5 生成文件上传外链
+
 ```go
  params := &s3.PutObjectInput{
      Bucket: aws.String(bucket), // bucket名称
@@ -413,6 +473,7 @@ fmt.Println(resp)
 ```
 
 ### 5.6 生成设置文件 ACL 的外链
+
 ```go
  params := &s3.PutObjectACLInput{
      Bucket: aws.String(bucket), // bucket名称
@@ -442,6 +503,7 @@ fmt.Println(resp)
 ```
 
 ### 5.7 修改元数据
+
 ```go
   key_modify_meta := string("yourkey")
   metadata := make(map[string]*string)
@@ -460,6 +522,7 @@ fmt.Println(resp)
 ```
 
 ### 5.8 批量删除对象
+
 ```go
  params := &s3.DeleteObjectsInput{
     Bucket: aws.String(""), // 桶名称
@@ -481,6 +544,7 @@ fmt.Println("deleted keys:",resp.Deleted)
 ```
 
 ### 5.9 目录删除
+
 ```go
 params := &s3.DeleteBucketPrefixInput{
   Bucket: aws.String(""),  //桶名称
@@ -492,6 +556,7 @@ fmt.Println("deleted keys:",resp.Deleted)
 ```
 
 ### 5.10 列举文件
+
 ```go
 resp, err := client.ListObjects(&s3.ListObjectsInput{
   Bucket: aws.String(BucketName),
@@ -506,6 +571,7 @@ fmt.Println(len(resp.Contents))
 ```
 
 ### 5.11 抓取远程数据到KS3
+
 ```go
 sourceUrl := "https://img0.pconline.com.cn/pconline/1111/04/2483449_20061139501.jpg"
     input := s3.FetchObjectInput{
@@ -552,7 +618,9 @@ fmt.Println("结果：\n", awsutil.StringValue(resp))
 ```
 
 ### 5.13 对象标签
+
 ### 5.13.1 设置对象标签
+
 ```go
 tagkey := "name"
 tagval := "yz"
@@ -590,6 +658,7 @@ fmt.Println("结果：\n", awsutil.StringValue(resp))
 ```
 
 ### 5.18.2 获取对象标签
+
 ```go
 params := &s3.GetObjectTaggingInput{
     Bucket: aws.String(bucketname), // Required
@@ -611,6 +680,7 @@ fmt.Println("结果：\n", awsutil.StringValue(resp))
 ```
 
 ### 5.18.3 删除对象标签
+
 ```go
  params := &s3.DeleteObjectTaggingInput{
 		Bucket: aws.String(bucketname), // Required
@@ -633,7 +703,9 @@ fmt.Println("结果：\n", awsutil.StringValue(resp))
 ```
 
 ## 6、分块相关
+
 ### 6.1 初始化分块上传
+
 ```go
 params := &s3.CreateMultipartUploadInput{
      Bucket: aws.String("BucketName"), // bucket名称
@@ -654,7 +726,9 @@ if err != nil{
 //获取这次初始化的uploadid
 fmt.Println(*resp.UploadID)
 ```
+
 ### 6.2 分块上传 - 上传块
+
 ```go
 params := &s3.UploadPartInput{
  Bucket:aws.String(bucket),//bucket名称
@@ -673,6 +747,7 @@ fmt.Println(resp)
 ```
 
 ### 6.3 完成分块上传并合并块
+
 ```go
 params := &s3.CompleteMultipartUploadInput{
  Bucket:aws.String(bucket),//bucket名称
@@ -691,6 +766,7 @@ fmt.Println(resp)
 ```
 
 ### 6.4 取消分块上传
+
 ```go
  params := &s3.AbortMultipartUploadInput{
      Bucket:aws.String(bucket),//bucket名称
@@ -706,6 +782,7 @@ fmt.Println(resp)
 ```
 
 ### 6.5 罗列分块上传已经上传的块
+
 ```go
  params := &s3.ListPartsInput{
      Bucket:aws.String(bucket),//bucket名称
@@ -720,8 +797,10 @@ fmt.Println(resp)
  fmt.Println(resp)
 ```
 
-##  7.部分示例
+## 7.部分示例
+
 ### 计算签名
+
 ```go
  package main
 
@@ -755,6 +834,7 @@ fmt.Println(resp)
 ```
 
 ### 上传文件夹
+
 ```go
 package main
 
@@ -808,5 +888,4 @@ func main() {
 	//prefix 桶下的路径
 	uploader.UploadDir(dir, bucket, "aaa/")
 }
-
 ```

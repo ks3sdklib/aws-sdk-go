@@ -19,6 +19,17 @@ func (s *Ks3utilCommandSuite) TestCreateBucket(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
+//判断bucket桶是否存在
+func (s *Ks3utilCommandSuite) TestBucketExist(c *C) {
+
+	exist, err := client.HeadBucketExist(bucket)
+	if exist && err == nil {
+		fmt.Println("bucket exist")
+	} else {
+		fmt.Println(err)
+	}
+}
+
 //设置bucketAcl
 func (s *Ks3utilCommandSuite) TestPutBucketAcl(c *C) {
 
