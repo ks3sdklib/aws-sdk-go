@@ -600,6 +600,18 @@ func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
 
 }
 
+func (s *Ks3utilCommandSuite) TestFetchUrl(c *C) {
+	url := "https://huggingface.co/baichuan-inc/baichuan-7B/resolve/main/pytorch_model.bin"
+	parms := &s3.FetchObjectInput{
+		ACL:       aws.String("public-read"),
+		Bucket:    aws.String(bucket),
+		Key:       aws.String(key),
+		SourceUrl: aws.String(url),
+	}
+	resp, err := client.FetchObject(parms)
+	fmt.Println(resp, err)
+}
+
 func (s *Ks3utilCommandSuite) uploadTmpFile(c *C) (etag string) {
 	v := url.Values{}
 	v.Add("name", "yz")
