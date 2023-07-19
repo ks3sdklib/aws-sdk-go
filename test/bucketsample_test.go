@@ -93,7 +93,7 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketLifeRules(c *C) {
 }
 
 //设置bucket cors
-func (s *Ks3utilCommandSuite) TestSetBucketCors() {
+func (s *Ks3utilCommandSuite) TestSetBucketCors(c *C) {
 
 	// 配置CORS规则
 	corsConfiguration := &s3.CORSConfiguration{
@@ -127,6 +127,8 @@ func (s *Ks3utilCommandSuite) TestGetBucketCors(c *C) {
 	})
 	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
 }
+
+//删除bucket cors
 func (s *Ks3utilCommandSuite) TestDeleteBucketCors(c *C) {
 	resp, err := client.DeleteBucketCORS(&s3.DeleteBucketCORSInput{
 		Bucket: aws.String(bucket),

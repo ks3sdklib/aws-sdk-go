@@ -38,6 +38,9 @@ func PayloadType(i interface{}) string {
 	}
 	if field, ok := v.Type().FieldByName("SDKShapeTraits"); ok {
 		if payloadName := field.Tag.Get("payload"); payloadName != "" {
+			if payloadName == "GetBucketCORSInput" {
+				return field.Tag.Get("type")
+			}
 			if member, ok := v.Type().FieldByName(payloadName); ok {
 				return member.Tag.Get("type")
 			}
