@@ -31,6 +31,9 @@ func (c *S3) GetBucketCORSRequest(input *GetBucketCORSInput) (req *aws.Request, 
 func (c *S3) GetBucketCORS(input *GetBucketCORSInput) (*GetBucketCORSOutput, error) {
 	req, out := c.GetBucketCORSRequest(input)
 	err := req.Send()
+	if req.Data != nil {
+		out = req.Data.(*GetBucketCORSOutput)
+	}
 	return out, err
 }
 
@@ -114,16 +117,6 @@ type metadataPutBucketCORSInput struct {
 	AutoFillMD5    bool
 }
 
-type PutBucketCORSOutput struct {
-	metadataPutBucketCORSOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-type metadataPutBucketCORSOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type GetBucketCORSInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -137,19 +130,34 @@ type metadataInput struct {
 }
 
 type GetBucketCORSOutput struct {
-	CORSRules     []*CORSRule `locationName:"CORSRule" type:"list" flattened:"true"`
-	metadataInput `json:"-" xml:"-"`
-	Metadata      map[string]*string `location:"headers"  type:"map"`
+	Metadata map[string]*string `location:"headers"  type:"map"`
+	Rules    []*GetCORSRule     `locationName:"CORSRule" type:"list" flattened:"true" xml:"CORSRule"`
+}
+type GetCORSRule struct {
+	AllowedHeader []*string `locationName:"AllowedHeader" type:"list" flattened:"true" `
+	AllowedMethod []*string `locationName:"AllowedMethod" type:"list" flattened:"true"`
+	AllowedOrigin []*string `locationName:"AllowedOrigin" type:"list" flattened:"true"`
+	ExposeHeader  []*string `locationName:"ExposeHeader" type:"list" flattened:"true"`
+	MaxAgeSeconds *int64    `locationName:"MaxAgeSeconds" flattened:"true"` // Max cache ages in seconds
+}
+type CORSConfiguration struct {
+	Rules []*CORSRule `locationName:"CORSRule" type:"list" flattened:"true" xml:"CORSRule"`
 }
 
-type CORSConfiguration struct {
-	Rules []*CORSRule `locationName:"CORSRule" type:"list" flattened:"true"` // CORS rules
+type PutBucketCORSOutput struct {
+	metadataPutBucketCORSOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
+}
+
+type metadataPutBucketCORSOutput struct {
+	SDKShapeTraits bool `type:"structure"`
 }
 
 type CORSRule struct {
-	AllowedHeader []string `locationName:"AllowedHeader" type:"list" flattened:"true" `
+	AllowedHeader []string `locationName:"AllowedHeader" type:"list" flattened:"true"`
 	AllowedMethod []string `locationName:"AllowedMethod" type:"list" flattened:"true"`
 	AllowedOrigin []string `locationName:"AllowedOrigin" type:"list" flattened:"true"`
 	ExposeHeader  []string `locationName:"ExposeHeader" type:"list" flattened:"true"`
-	MaxAgeSeconds int      `locationName:"MaxAgeSeconds" flattened:"true"` // Max cache ages in seconds
+	MaxAgeSeconds int64    `locationName:"MaxAgeSeconds" flattened:"true"` // Max cache ages in seconds
 }

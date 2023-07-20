@@ -14,6 +14,7 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/query"
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/rest"
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/xml/xmlutil"
+	"io/ioutil"
 )
 
 // Build builds a request payload for the REST XML protocol.
@@ -39,13 +40,36 @@ func Build(r *aws.Request) {
 func Unmarshal(r *aws.Request) {
 	if t := rest.PayloadType(r.Data); t == "structure" || t == "" {
 		defer r.HTTPResponse.Body.Close()
-		decoder := xml.NewDecoder(r.HTTPResponse.Body)
-		err := xmlutil.UnmarshalXML(r.Data, decoder, "")
+		data, err := ioutil.ReadAll(r.HTTPResponse.Body)
+		if err != nil {
+			r.Error = apierr.New("ReadBody", "failed to read response body", err)
+			return
+		}
+		decoder := xml.NewDecoder(bytes.NewReader(data))
+		err = xmlutil.UnmarshalXML(r.Data, decoder, "")
 		if err != nil {
 			r.Error = apierr.New("Unmarshal", "failed to decode REST XML response", err)
 			return
 		}
+		return
 	}
+}
+
+type GetBucketCORSOutput struct {
+	CORSConfiguration *CORSConfiguration `xml:"CORSConfiguration"`
+	Metadata          map[string]*string `xml:"-"`
+}
+
+type CORSConfiguration struct {
+	Rules []*CORSRule `xml:"CORSRule"`
+}
+
+type CORSRule struct {
+	AllowedHeader []string `xml:"AllowedHeader"`
+	AllowedMethod []string `xml:"AllowedMethod"`
+	AllowedOrigin []string `xml:"AllowedOrigin"`
+	ExposeHeader  []string `xml:"ExposeHeader"`
+	MaxAgeSeconds int      `xml:"MaxAgeSeconds"`
 }
 
 // UnmarshalMeta unmarshals response headers for the REST XML protocol.
