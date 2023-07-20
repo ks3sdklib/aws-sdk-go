@@ -154,10 +154,6 @@ type metadataPutBucketCORSOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-type PutCORSConfiguration struct {
-	Rules []*CORSRule `locationName:"CORSRule" type:"list" flattened:"true"`
-}
-
 type CORSRule struct {
 	AllowedHeader []string `locationName:"AllowedHeader" type:"list" flattened:"true"`
 	AllowedMethod []string `locationName:"AllowedMethod" type:"list" flattened:"true"`

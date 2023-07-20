@@ -72,22 +72,6 @@ type CORSRule struct {
 	MaxAgeSeconds int      `xml:"MaxAgeSeconds"`
 }
 
-// 第二次解析
-func UnmarshalTwo(r *aws.Request, data []byte, error error) error {
-
-	if r.Operation.Name == "GetBucketCors" {
-		var output CORSConfiguration
-		err := xml.Unmarshal(data, &output)
-		if err != nil {
-			r.Error = apierr.New("Unmarshal", "failed to decode REST XML response", err)
-			return err
-		}
-		out := GetBucketCORSOutput{CORSConfiguration: &output}
-		r.Data = out
-	}
-	return error
-}
-
 // UnmarshalMeta unmarshals response headers for the REST XML protocol.
 func UnmarshalMeta(r *aws.Request) {
 	rest.Unmarshal(r)
