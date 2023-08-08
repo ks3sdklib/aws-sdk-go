@@ -1717,12 +1717,12 @@ func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
 //生成链接
 func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url string) {
 
-	opPutObject = &aws.Operation{
+	opGeneratePresigned := &aws.Operation{
 		HTTPMethod: string(input.HTTPMethod),
 		HTTPPath:   "/{Bucket}/{Key+}",
 	}
 	output := &GeneratePresignedUrlOutput{}
-	req := c.newRequest(opPutObject, input, output)
+	req := c.newRequest(opGeneratePresigned, input, output)
 	now := time.Now().Unix()
 	if c.Config.SignerVersion == "V2" {
 		req.ExpireTime = input.Expires + now
