@@ -43,26 +43,29 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 
 	//指定目标Object对象标签，可同时设置多个标签，如：TagA=A&TagB=B。
 	//说明 Key和Value需要先进行URL编码，如果某项没有“=”，则看作Value为空字符串。详情请见对象标签（https://docs.ksyun.com/documents/39576）。
-	v := url.Values{}
-	v.Add("name", "yz")
-	v.Add("age", "11")
-	XAmzTagging := v.Encode()
+	//v := url.Values{}
+	//v.Add("name", "yz")
+	//v.Add("age", "11")
+	//XAmzTagging := v.Encode()
 
 	object := randLowStr(10)
 	createFile(object, 1024*1024*1)
 	fd, _ := os.Open(object)
 	//md5, _ := utilfile.GetFileMD5(content)
 	input := s3.PutObjectInput{
-		Bucket:      aws.String(bucket),
+		Bucket:      aws.String("ks3tools-pm"),
 		Key:         aws.String(object),
-		ACL:         aws.String("public-read"),
+		ACL:         aws.String("private"),
 		Body:        fd,
-		XAmzTagging: aws.String(XAmzTagging),
+		ContentType: aws.String("application/octet-stream"),
+		//XAmzTagging: aws.String(XAmzTagging),
 		//ContentMD5:  aws.String(md5),
 	}
+
 	resp, _ := client.PutObject(&input)
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 	os.Remove(object)
+
 }
 
 /**
@@ -444,7 +447,7 @@ func (s *Ks3utilCommandSuite) TestHeaObject(c *C) {
 }
 
 /**
-批量删除对象
+  批量删除对象
 */
 func (s *Ks3utilCommandSuite) DeleteObjects() {
 
@@ -468,7 +471,7 @@ func (s *Ks3utilCommandSuite) DeleteObjects() {
 }
 
 /**
-删除前缀
+  删除前缀
 */
 func (s *Ks3utilCommandSuite) DeleteBucketPrefix(prefix string) {
 
@@ -482,7 +485,7 @@ func (s *Ks3utilCommandSuite) DeleteBucketPrefix(prefix string) {
 }
 
 /**
-删除前缀(包含三次重试)
+  删除前缀(包含三次重试)
 */
 func (s *Ks3utilCommandSuite) TryDeleteBucketPrefix(prefix string) {
 
@@ -648,4 +651,38 @@ func createFile(filePath string, size int64) error {
 
 	fmt.Printf("File created: %s (size: %d bytes)\n", filePath, size)
 	return nil
+}
+
+func (s *Ks3utilCommandSuite) TestPG(c *C) {
+
+	for i := 0; i < 2; i++ {
+		object := randLowStr(10)
+		createFile(object, 1024*1024*1)
+		fd, _ := os.Open(object)
+		input := s3.PutObjectInput{
+			Bucket:      aws.String(bucket),
+			Key:         aws.String(object),
+			Body:        fd,
+			ContentType: aws.String("application/octet-stream"),
+		}
+
+		resp, _ := client.PutObject(&input)
+		fmt.Println("result：\n", awsutil.StringValue(resp))
+		os.Remove(object)
+
+		params := &s3.GeneratePresignedUrlInput{
+			Bucket:       aws.String(bucket), // 设置 bucket 名称
+			Key:          aws.String(object), // 设置 object key
+			TrafficLimit: aws.Long(1000),     // 设置速度限制
+			//如果是PUT方法，需要设置content-type
+			//ContentType:  aws.String("image/jpeg"),
+			//多久后过期
+			Expires: 36000,
+			//可选值有 PUT, GET, DELETE, HEAD
+			HTTPMethod: s3.GET,
+		}
+		url := client.GeneratePresignedUrlInput(params)
+		fmt.Println("Result:\n", url)
+	}
+
 }
