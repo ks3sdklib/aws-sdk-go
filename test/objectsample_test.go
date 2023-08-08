@@ -53,7 +53,7 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 	fd, _ := os.Open(object)
 	//md5, _ := utilfile.GetFileMD5(content)
 	input := s3.PutObjectInput{
-		Bucket:      aws.String("ks3tools-pm"),
+		Bucket:      aws.String(bucket),
 		Key:         aws.String(object),
 		ACL:         aws.String("private"),
 		Body:        fd,
@@ -679,7 +679,7 @@ func (s *Ks3utilCommandSuite) TestPG(c *C) {
 			//多久后过期
 			Expires: 36000,
 			//可选值有 PUT, GET, DELETE, HEAD
-			HTTPMethod: s3.GET,
+			HTTPMethod: s3.HEAD,
 		}
 		url := client.GeneratePresignedUrlInput(params)
 		fmt.Println("Result:\n", url)
