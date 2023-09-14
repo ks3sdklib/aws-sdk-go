@@ -161,9 +161,9 @@ func (s *Ks3utilCommandSuite) TestDelObject(c *C) {
 func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 
 	params := &s3.GeneratePresignedUrlInput{
-		Bucket:       aws.String(bucket), // 设置 bucket 名称
-		Key:          aws.String("test"), // 设置 object key
-		TrafficLimit: aws.Long(1000),     // 设置速度限制
+		Bucket:       aws.String(bucket),    // 设置 bucket 名称
+		Key:          aws.String("123.txt"), // 设置 object key
+		TrafficLimit: aws.Long(1000),        // 设置速度限制
 		//如果是PUT方法，需要设置content-type
 		//ContentType:  aws.String("image/jpeg"),
 		//多久后过期
@@ -180,7 +180,7 @@ func (s *Ks3utilCommandSuite) TestGetObjectAcl(c *C) {
 
 	resp, _ := client.GetObjectACL(&s3.GetObjectACLInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+		Key:    aws.String("demo.txt"),
 	})
 	fmt.Println("result：\n", s3.GetAcl(*resp))
 
@@ -449,10 +449,11 @@ func (s *Ks3utilCommandSuite) TestHeaObject(c *C) {
 /**
   批量删除对象
 */
-func (s *Ks3utilCommandSuite) DeleteObjects() {
+func (s *Ks3utilCommandSuite) TestDeleteObjects(c *C) {
 
 	params := &s3.DeleteObjectsInput{
-		Bucket: aws.String(""), // Required
+		Bucket:          aws.String(bucket), // Required
+		IsReTurnResults: aws.Boolean(true),
 		Delete: &s3.Delete{ // Required
 			Objects: []*s3.ObjectIdentifier{
 				{
@@ -466,51 +467,54 @@ func (s *Ks3utilCommandSuite) DeleteObjects() {
 		},
 	}
 	resp := client.DeleteObjects(params)
-	fmt.Println("error keys:", resp.Errors)
-	fmt.Println("deleted keys:", resp.Deleted)
+	fmt.Println("error keys:", awsutil.StringValue(resp.Errors))
+	fmt.Println("deleted keys:", awsutil.StringValue(resp.Deleted))
 }
 
 /**
   删除前缀
 */
-func (s *Ks3utilCommandSuite) DeleteBucketPrefix(prefix string) {
+func (s *Ks3utilCommandSuite) TestDeleteBucketPrefix(c *C) {
 
 	params := &s3.DeleteBucketPrefixInput{
-		Bucket: aws.String(""), // Required
-		Prefix: aws.String(prefix),
+		Bucket:          aws.String(bucket), // Required
+		IsReTurnResults: aws.Boolean(true),
+		Prefix:          aws.String("123/"),
 	}
 	resp, _ := client.DeleteBucketPrefix(params)
-	fmt.Println("error keys:", resp.Errors)
-	fmt.Println("deleted keys:", resp.Deleted)
+	fmt.Println("error keys:", awsutil.StringValue(resp.Errors))
+	fmt.Println("deleted keys:", awsutil.StringValue(resp.Deleted))
 }
 
 /**
   删除前缀(包含三次重试)
 */
-func (s *Ks3utilCommandSuite) TryDeleteBucketPrefix(prefix string) {
+func (s *Ks3utilCommandSuite) TestTryDeleteBucketPrefix(c *C) {
 
 	params := &s3.DeleteBucketPrefixInput{
-		Bucket: aws.String(""),
-		Prefix: aws.String(prefix),
+		Bucket:          aws.String(bucket),
+		IsReTurnResults: aws.Boolean(true),
+		Prefix:          aws.String("123/"),
 	}
 	resp, _ := client.TryDeleteBucketPrefix(params)
-	fmt.Println("error keys:", resp.Errors)
-	fmt.Println("deleted keys:", resp.Deleted)
+	fmt.Println("error keys:", awsutil.StringValue(resp.Errors))
+	fmt.Println("deleted keys:", awsutil.StringValue(resp.Deleted))
 }
 
 //文件解冻
-func RestoreObject() {
+func (s *Ks3utilCommandSuite) TestRestoreObject(c *C) {
 
 	params := &s3.RestoreObjectInput{
-		Bucket: aws.String("ks3tools-test"),    // bucket名称
-		Key:    aws.String("/restore/big.txt"), // object key
+		Bucket: aws.String(bucket),     // bucket名称
+		Key:    aws.String("demo.txt"), // object key
 	}
 	resp, err := client.RestoreObject(params)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(resp.HttpCode)
-	fmt.Println(resp.Message)
+	//fmt.Println(resp.HttpCode)
+	//fmt.Println(resp.Message)
+	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //delObjectTagging

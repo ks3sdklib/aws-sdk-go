@@ -4,7 +4,7 @@ package s3
 
 import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
-	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/restxml"
+	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/body"
 	v2 "github.com/ks3sdklib/aws-sdk-go/internal/signer/v2"
 	v4 "github.com/ks3sdklib/aws-sdk-go/internal/signer/v4"
 	"strings"
@@ -39,11 +39,11 @@ func New(config *aws.Config) *S3 {
 		service.Handlers.Sign.PushBack(v2.Sign)
 	}
 
-	service.Handlers.Build.PushBack(restxml.Build)
+	service.Handlers.Build.PushBack(body.Build)
 	//service.Handlers.Build.PushBack(aws.ContentTypeHandler)
-	service.Handlers.Unmarshal.PushBack(restxml.Unmarshal)
-	service.Handlers.UnmarshalMeta.PushBack(restxml.UnmarshalMeta)
-	service.Handlers.UnmarshalError.PushBack(restxml.UnmarshalError)
+	service.Handlers.Unmarshal.PushBack(body.Unmarshal)
+	service.Handlers.UnmarshalMeta.PushBack(body.UnmarshalMeta)
+	service.Handlers.UnmarshalError.PushBack(body.UnmarshalError)
 
 	// Run custom service initialization if present
 	if initService != nil {

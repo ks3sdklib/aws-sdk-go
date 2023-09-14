@@ -92,6 +92,9 @@ func (s *Ks3utilCommandSuite) TestGetBucketLifeRules(c *C) {
 	resp, err := client.GetBucketLifecycle(&s3.GetBucketLifecycleInput{
 		Bucket: aws.String(bucket),
 	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
 }
 
@@ -136,6 +139,9 @@ func (s *Ks3utilCommandSuite) TestGetBucketCors(c *C) {
 	resp, err := client.GetBucketCORS(&s3.GetBucketCORSInput{
 		Bucket: aws.String(bucket),
 	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
 }
 
@@ -279,23 +285,30 @@ func (s *Ks3utilCommandSuite) TestPutBucketMirrorRules(c *C) {
 			},
 		},
 	}
-	resp, _ := client.PutBucketMirror(params)
+	resp, err := client.PutBucketMirror(params)
+	if err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 
 }
 
 //获取镜像回源规则
-func (s *Ks3utilCommandSuite) GetBucketMirrorRules(c *C) {
+func (s *Ks3utilCommandSuite) TestGetBucketMirrorRules(c *C) {
 
 	params := &s3.GetBucketMirrorInput{
 		Bucket: aws.String(bucket),
 	}
-	resp, _ := client.GetBucketMirror(params)
+	resp, err := client.GetBucketMirror(params)
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
 //删除镜像回源规则
-func (s *Ks3utilCommandSuite) DeleteBucketMirrorRules(c *C) {
+func (s *Ks3utilCommandSuite) TestDeleteBucketMirrorRules(c *C) {
 
 	params := &s3.DeleteBucketMirrorInput{
 		Bucket: aws.String(bucket),

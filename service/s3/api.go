@@ -8,15 +8,11 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
-	"encoding/json"
-	"encoding/xml"
-	"errors"
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"hash"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"sort"
@@ -433,7 +429,7 @@ func (c *S3) DeleteObjects(input *DeleteObjectsInput) *DeleteObjectsOutput {
 	}
 	for _, t := range input.Delete.Objects {
 		_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-		if input.IsReTurnResults == aws.Boolean(false) {
+		if input.IsReTurnResults != nil && *input.IsReTurnResults == true {
 			if err != nil {
 				aerr, _ := err.(awserr.Error)
 				errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
@@ -472,7 +468,7 @@ func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsO
 		if err == nil {
 			for _, t := range resp.Contents {
 				_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-				if input.IsReTurnResults == aws.Boolean(false) {
+				if input.IsReTurnResults != nil && *input.IsReTurnResults == true {
 					if err != nil {
 						aerr, _ := err.(awserr.Error)
 						errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
@@ -1724,10 +1720,10 @@ func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url st
 	output := &GeneratePresignedUrlOutput{}
 	req := c.newRequest(opGeneratePresigned, input, output)
 	now := time.Now().Unix()
-	if c.Config.SignerVersion == "V2" {
-		req.ExpireTime = input.Expires + now
-	} else {
+	if c.Config.SignerVersion == "V4" || c.Config.SignerVersion == "V4_UNSIGNED_PAYLOAD_SIGNER" {
 		req.ExpireTime = input.Expires
+	} else {
+		req.ExpireTime = input.Expires + now
 	}
 	req.Sign()
 	//if input.TrafficLimit != nil && *input.TrafficLimit > 0 {
@@ -1798,6 +1794,12 @@ func (c *S3) RestoreObjectRequest(input *RestoreObjectInput) (req *aws.Request, 
 	output = &RestoreObjectOutput{}
 	req.Data = output
 	return
+}
+
+func (c *S3) RestoreObject(input *RestoreObjectInput) (*RestoreObjectOutput, error) {
+	req, out := c.RestoreObjectRequest(input)
+	err := req.Send()
+	return out, err
 }
 
 var opRestoreObject *aws.Operation
@@ -4855,7 +4857,7 @@ type metadataRestoreObjectInput struct {
 }
 
 type RestoreObjectOutput struct {
-	Ks3WebServiceResponse
+	//Ks3WebServiceResponse
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
 }
@@ -5227,15 +5229,15 @@ type metadataWebsiteConfiguration struct {
 
 type Header map[string][]string
 
-type Ks3WebServiceResponse struct {
-	HttpCode  int    `xml:"HttpCode"`
-	Code      string `xml:"Code"`
-	Message   string `xml:"Message"`
-	Resource  string `xml:"Resource"`
-	RequestId string `xml:"RequestId"`
-	Header    Header
-	Body      []byte
-}
+//type Ks3WebServiceResponse struct {
+//	HttpCode  int    `xml:"HttpCode"`
+//	Code      string `xml:"Code"`
+//	Message   string `xml:"Message"`
+//	Resource  string `xml:"Resource"`
+//	RequestId string `xml:"RequestId"`
+//	Header    Header
+//	Body      []byte
+//}
 
 func (c *S3) SignedReq(req *http.Request, canonicalizedResource string) {
 
@@ -5340,44 +5342,6 @@ func GetAcl(resp GetObjectACLOutput) CannedAccessControlType {
 	} else {
 		return Private
 	}
-}
-
-func (c *S3) RestoreObject(input *RestoreObjectInput) (*RestoreObjectOutput, error) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if input == nil {
-		input = &RestoreObjectInput{}
-	}
-	out := &RestoreObjectOutput{}
-
-	date := time.Now().UTC().Format(http.TimeFormat)
-	client := &http.Client{}
-	objectKey := *input.Key + "?restore"
-	resource := "/" + *input.Bucket + "/" + objectKey
-	url := c.Endpoint + resource
-	req, err := http.NewRequest("POST", url, nil)
-	req.Header.Set(HTTPHeaderDate, date)
-	req.Header.Set(HTTPHeaderHost, c.Endpoint)
-	c.SignedReq(req, resource)
-	res, err := client.Do(req)
-	if res != nil {
-		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		xml.Unmarshal((body), &out)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if res.Header != nil {
-			out.Header = Header(res.Header)
-			out.HttpCode = res.StatusCode
-		}
-		if body != nil {
-			out.Body = body
-		}
-	}
-	return out, err
-
 }
 
 //----obj tag start--
@@ -5723,209 +5687,3 @@ type metadataFetchObjectOutput struct {
 }
 
 //--------fetch object end-------
-
-//--------镜像回源-------
-type BucketMirror struct {
-	Version          *string            `json:"version"`
-	UseDefaultRobots *bool              `json:"use_default_robots"`
-	AsyncMirrorRule  *AsyncMirrorRule   `json:"async_mirror_rule,omitempty"`
-	SyncMirrorRules  []*SyncMirrorRules `json:"sync_mirror_rules,omitempty"`
-}
-type SavingSetting struct {
-	ACL *string `json:"acl,omitempty"  required:"true"`
-}
-type AsyncMirrorRule struct {
-	MirrorUrls    []*string      `json:"mirror_urls,omitempty" required:"true"`
-	SavingSetting *SavingSetting `json:"saving_setting,omitempty" required:"true"`
-}
-type MatchCondition struct {
-	HTTPCodes   []*string `json:"http_codes,omitempty"`
-	KeyPrefixes []*string `json:"key_prefixes,omitempty"`
-}
-type SetHeaders struct {
-	Key   *string `json:"key,omitempty"`
-	Value *string `json:"value,omitempty"`
-}
-type RemoveHeaders struct {
-	Key *string `json:"key,omitempty"`
-}
-type PassHeaders struct {
-	Key *string `json:"key,omitempty"`
-}
-type HeaderSetting struct {
-	SetHeaders    []*SetHeaders    `json:"set_headers,omitempty"`
-	RemoveHeaders []*RemoveHeaders `json:"remove_headers,omitempty"`
-	PassAll       *bool            `json:"pass_all,omitempty"`
-	PassHeaders   []*PassHeaders   `json:"pass_headers,omitempty"`
-}
-type MirrorRequestSetting struct {
-	PassQueryString *bool          `json:"pass_query_string,omitempty"`
-	Follow3Xx       *bool          `json:"follow3xx,omitempty"`
-	HeaderSetting   *HeaderSetting `json:"header_setting,omitempty"`
-}
-type SyncMirrorRules struct {
-	MatchCondition       MatchCondition        `json:"match_condition"`
-	MirrorURL            *string               `json:"mirror_url,omitempty"`
-	MirrorRequestSetting *MirrorRequestSetting `json:"mirror_request_setting,omitempty"`
-	SavingSetting        *SavingSetting        `json:"saving_setting,omitempty"`
-}
-
-func (c *S3) PutBucketMirror(input *PutBucketMirrorInput) (*PutBucketMirrorOutput, error) {
-
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if input == nil {
-		input = &PutBucketMirrorInput{}
-	}
-	out := &PutBucketMirrorOutput{}
-	date := time.Now().UTC().Format(http.TimeFormat)
-	resource := "/?mirror"
-	url := c.Endpoint + resource
-	data, err := json.Marshal(input.BucketMirror)
-	if err != nil {
-		return nil, errors.New("error：" + string(data))
-	}
-	request, _ := http.NewRequest("PUT", url, bytes.NewReader(data))
-	request.Header.Set(HTTPHeaderContentType, "application/json")
-	request.Header.Set(HTTPHeaderDate, date)
-	request.Header.Set(HTTPHeaderHost, c.Endpoint)
-	c.SignedReq(request, resource)
-	client := &http.Client{}
-	res, err := client.Do(request)
-	if res != nil {
-		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		xml.Unmarshal((body), &out)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if res.Header != nil {
-			out.Header = Header(res.Header)
-			out.HttpCode = res.StatusCode
-		}
-		if body != nil {
-			out.Body = body
-		}
-	}
-	return out, err
-
-}
-
-var opPutBucketMirror *aws.Operation
-
-type PutBucketMirrorInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	BucketMirror *BucketMirror `locationName:"Mirror" type:"structure"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-}
-
-type PutBucketMirrorOutput struct {
-	Ks3WebServiceResponse `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-type GetBucketMirrorInput struct {
-	Bucket      *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-}
-type GetBucketMirrorOutput struct {
-	Ks3WebServiceResponse `json:"-" xml:"-"`
-	BucketMirror          *BucketMirror `locationName:"Mirror" type:"structure"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-func (c *S3) GetBucketMirror(input *GetBucketMirrorInput) (*GetBucketMirrorOutput, error) {
-
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if input == nil {
-		input = &GetBucketMirrorInput{}
-	}
-	out := &GetBucketMirrorOutput{}
-	date := time.Now().UTC().Format(http.TimeFormat)
-	resource := "/" + *input.Bucket + "?mirror"
-	signResource := "/" + *input.Bucket + "/?mirror"
-	url := c.Endpoint + resource
-	request, _ := http.NewRequest("GET", url, nil)
-	request.Header.Set(HTTPHeaderContentType, "application/json")
-	request.Header.Set(HTTPHeaderDate, date)
-	request.Header.Set(HTTPHeaderHost, c.Endpoint)
-	c.SignedReq(request, signResource)
-	client := &http.Client{}
-	res, err := client.Do(request)
-	if res != nil {
-		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		xml.Unmarshal((body), &out)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if res.Header != nil {
-			out.Header = Header(res.Header)
-			out.HttpCode = res.StatusCode
-			if res.StatusCode == 200 {
-				json.Unmarshal(out.Body, &out.BucketMirror)
-			}
-		}
-		if body != nil {
-			out.Body = body
-		}
-	}
-	return out, err
-
-}
-
-type DeleteBucketMirrorInput struct {
-	Bucket      *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-}
-type DeleteBucketMirrorOutput struct {
-	Ks3WebServiceResponse `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-func (c *S3) DeleteBucketMirror(input *DeleteBucketMirrorInput) (*DeleteBucketMirrorOutput, error) {
-
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if input == nil {
-		input = &DeleteBucketMirrorInput{}
-	}
-	out := &DeleteBucketMirrorOutput{}
-	date := time.Now().UTC().Format(http.TimeFormat)
-	resource := "/" + *input.Bucket + "?mirror"
-	signResource := "/" + *input.Bucket + "/?mirror"
-	url := c.Endpoint + resource
-	request, _ := http.NewRequest("DELETE", url, nil)
-	request.Header.Set(HTTPHeaderContentType, "application/json")
-	request.Header.Set(HTTPHeaderDate, date)
-	request.Header.Set(HTTPHeaderHost, c.Endpoint)
-	c.SignedReq(request, signResource)
-	client := &http.Client{}
-	res, err := client.Do(request)
-	if res != nil {
-		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		xml.Unmarshal((body), &out)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if res.Header != nil {
-			out.Header = Header(res.Header)
-			out.HttpCode = res.StatusCode
-		}
-		if body != nil {
-			out.Body = body
-		}
-	}
-	return out, err
-
-}
