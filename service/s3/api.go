@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
+	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 	"hash"
 	"io"
 	"net/http"
@@ -1632,10 +1633,10 @@ type GeneratePresignedUrlInput struct {
 
 	TrafficLimit *int64 `location:"querystring" locationName:"x-kss-traffic-limit"  type:"integer"`
 
-	HTTPMethod HTTPMethod
+	HTTPMethod HTTPMethod `locationName:"HTTPMethod" type:"string" required:"true"`
 
 	// The date and time at which the object is no longer cacheable.
-	Expires int64
+	Expires *int64 `locationName:"Expires" type:"integer" required:"true"`
 
 	metadataGeneratePresignedUrlInput `json:"-" xml:"-"`
 }
@@ -1711,7 +1712,7 @@ func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
 //}
 
 //生成链接
-func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url string) {
+func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url string, err error) {
 
 	opGeneratePresigned := &aws.Operation{
 		HTTPMethod: string(input.HTTPMethod),
@@ -1719,17 +1720,27 @@ func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url st
 	}
 	output := &GeneratePresignedUrlOutput{}
 	req := c.newRequest(opGeneratePresigned, input, output)
+	aws.ValidateParameters(req)
+	if req.Error != nil {
+		return "", req.Error
+	}
+	if string(input.HTTPMethod) == "" {
+		return "", apierr.New("InvalidParameter", "missing required parameter: HTTPMethod", nil)
+	}
 	now := time.Now().Unix()
+	if *input.Expires <= 0 {
+		return "", apierr.New("InvalidParameter", "expires must bigger than 0", nil)
+	}
 	if c.Config.SignerVersion == "V4" || c.Config.SignerVersion == "V4_UNSIGNED_PAYLOAD_SIGNER" {
-		req.ExpireTime = input.Expires
+		if *input.Expires > 604800 {
+			return "", apierr.New("InvalidParameter", "expires must between 1 and 604800 in V4 signature", nil)
+		}
+		req.ExpireTime = *input.Expires
 	} else {
-		req.ExpireTime = input.Expires + now
+		req.ExpireTime = *input.Expires + now
 	}
 	req.Sign()
-	//if input.TrafficLimit != nil && *input.TrafficLimit > 0 {
-	//	req.HTTPRequest.URL.RawQuery += "&x-amz-traffic-limit=" + strconv.FormatInt(*input.TrafficLimit, 10)
-	//}
-	return req.HTTPRequest.URL.String()
+	return req.HTTPRequest.URL.String(), nil
 }
 
 func (c *S3) PutObjectPreassignedInput(input *PutObjectInput) (*http.Request, error) {
@@ -1904,6 +1915,8 @@ type AbortMultipartUploadOutput struct {
 	metadataAbortMultipartUploadOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataAbortMultipartUploadOutput struct {
@@ -2038,6 +2051,8 @@ type CompleteMultipartUploadOutput struct {
 	metadataCompleteMultipartUploadOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataCompleteMultipartUploadOutput struct {
@@ -2253,6 +2268,8 @@ type CopyObjectOutput struct {
 	metadataCopyObjectOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataCopyObjectOutput struct {
@@ -2340,6 +2357,8 @@ type CreateBucketOutput struct {
 	metadataCreateBucketOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataCreateBucketOutput struct {
@@ -2491,28 +2510,6 @@ type metadataDelete struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-type DeleteBucketCORSInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	metadataDeleteBucketCORSInput `json:"-" xml:"-"`
-}
-
-type metadataDeleteBucketCORSInput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type DeleteBucketCORSOutput struct {
-	metadataDeleteBucketCORSOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-type metadataDeleteBucketCORSOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type DeleteBucketInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -2529,6 +2526,8 @@ type DeleteBucketOutput struct {
 	metadataDeleteBucketOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteBucketOutput struct {
@@ -2551,6 +2550,8 @@ type DeleteBucketPolicyOutput struct {
 	metadataDeleteBucketPolicyOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteBucketPolicyOutput struct {
@@ -2573,6 +2574,8 @@ type DeleteBucketReplicationOutput struct {
 	metadataDeleteBucketReplicationOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteBucketReplicationOutput struct {
@@ -2595,6 +2598,8 @@ type DeleteBucketTaggingOutput struct {
 	metadataDeleteBucketTaggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteBucketTaggingOutput struct {
@@ -2617,6 +2622,8 @@ type DeleteBucketWebsiteOutput struct {
 	metadataDeleteBucketWebsiteOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteBucketWebsiteOutput struct {
@@ -2695,6 +2702,8 @@ type DeleteObjectOutput struct {
 	metadataDeleteObjectOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteObjectOutput struct {
@@ -2741,6 +2750,8 @@ type DeleteObjectsOutput struct {
 	metadataDeleteObjectsOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteObjectsOutput struct {
@@ -2823,6 +2834,8 @@ type GetBucketACLOutput struct {
 	metadataGetBucketACLOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketACLOutput struct {
@@ -2847,6 +2860,8 @@ type GetBucketLocationOutput struct {
 	metadataGetBucketLocationOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketLocationOutput struct {
@@ -2871,6 +2886,8 @@ type GetBucketLoggingOutput struct {
 	metadataGetBucketLoggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketLoggingOutput struct {
@@ -2907,6 +2924,8 @@ type GetBucketPolicyOutput struct {
 	metadataGetBucketPolicyOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketPolicyOutput struct {
@@ -2933,6 +2952,8 @@ type GetBucketReplicationOutput struct {
 	metadataGetBucketReplicationOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketReplicationOutput struct {
@@ -2958,6 +2979,8 @@ type GetBucketRequestPaymentOutput struct {
 	metadataGetBucketRequestPaymentOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketRequestPaymentOutput struct {
@@ -2982,6 +3005,8 @@ type GetBucketTaggingOutput struct {
 	metadataGetBucketTaggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketTaggingOutput struct {
@@ -3012,6 +3037,8 @@ type GetBucketVersioningOutput struct {
 	metadataGetBucketVersioningOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketVersioningOutput struct {
@@ -3042,6 +3069,8 @@ type GetBucketWebsiteOutput struct {
 	metadataGetBucketWebsiteOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketWebsiteOutput struct {
@@ -3084,6 +3113,8 @@ type GetObjectACLOutput struct {
 	metadataGetObjectACLOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetObjectACLOutput struct {
@@ -3263,6 +3294,8 @@ type GetObjectOutput struct {
 	metadataGetObjectOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetObjectOutput struct {
@@ -3299,6 +3332,8 @@ type GetObjectTorrentOutput struct {
 	metadataGetObjectTorrentOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetObjectTorrentOutput struct {
@@ -3357,6 +3392,8 @@ type HeadBucketOutput struct {
 	metadataHeadBucketOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataHeadBucketOutput struct {
@@ -3510,6 +3547,8 @@ type HeadObjectOutput struct {
 	metadataHeadObjectOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataHeadObjectOutput struct {
@@ -3581,6 +3620,8 @@ type ListBucketsOutput struct {
 	metadataListBucketsOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataListBucketsOutput struct {
@@ -3672,6 +3713,8 @@ type ListMultipartUploadsOutput struct {
 	metadataListMultipartUploadsOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataListMultipartUploadsOutput struct {
@@ -3753,6 +3796,8 @@ type ListObjectVersionsOutput struct {
 	metadataListObjectVersionsOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataListObjectVersionsOutput struct {
@@ -3826,6 +3871,8 @@ type ListObjectsOutput struct {
 	metadataListObjectsOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataListObjectsOutput struct {
@@ -3903,6 +3950,8 @@ type ListPartsOutput struct {
 	metadataListPartsOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataListPartsOutput struct {
@@ -4164,6 +4213,8 @@ type PutBucketACLOutput struct {
 	metadataPutBucketACLOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketACLOutput struct {
@@ -4188,6 +4239,8 @@ type PutBucketLoggingOutput struct {
 	metadataPutBucketLoggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketLoggingOutput struct {
@@ -4214,6 +4267,8 @@ type PutBucketNotificationConfigurationOutput struct {
 	metadataPutBucketNotificationConfigurationOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketNotificationConfigurationOutput struct {
@@ -4238,6 +4293,8 @@ type PutBucketNotificationOutput struct {
 	metadataPutBucketNotificationOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketNotificationOutput struct {
@@ -4263,6 +4320,8 @@ type PutBucketPolicyOutput struct {
 	metadataPutBucketPolicyOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketPolicyOutput struct {
@@ -4289,6 +4348,8 @@ type PutBucketReplicationOutput struct {
 	metadataPutBucketReplicationOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketReplicationOutput struct {
@@ -4335,6 +4396,8 @@ type PutBucketTaggingOutput struct {
 	metadataPutBucketTaggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketTaggingOutput struct {
@@ -4363,6 +4426,8 @@ type PutBucketVersioningOutput struct {
 	metadataPutBucketVersioningOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketVersioningOutput struct {
@@ -4387,6 +4452,8 @@ type PutBucketWebsiteOutput struct {
 	metadataPutBucketWebsiteOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketWebsiteOutput struct {
@@ -4442,6 +4509,8 @@ type PutObjectACLOutput struct {
 	metadataPutObjectACLOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutObjectACLOutput struct {
@@ -4690,6 +4759,8 @@ type PutObjectOutput struct {
 	metadataPutObjectOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutObjectOutput struct {
@@ -4857,9 +4928,9 @@ type metadataRestoreObjectInput struct {
 }
 
 type RestoreObjectOutput struct {
-	//Ks3WebServiceResponse
-
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type RestoreRequest struct {
@@ -5101,6 +5172,8 @@ type UploadPartCopyOutput struct {
 	metadataUploadPartCopyOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataUploadPartCopyOutput struct {
@@ -5189,6 +5262,8 @@ type UploadPartOutput struct {
 	metadataUploadPartOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataUploadPartOutput struct {
@@ -5394,6 +5469,8 @@ type DeleteObjectTaggingOutput struct {
 	metadataDeleteObjectTaggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteObjectTaggingOutput struct {
@@ -5452,6 +5529,8 @@ type GetObjectTaggingOutput struct {
 	metadataGetObjectTaggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetObjectTaggingOutput struct {
@@ -5509,6 +5588,8 @@ type PutObjectTaggingOutput struct {
 	metadataPutObjectTaggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutObjectTaggingOutput struct {
@@ -5678,6 +5759,8 @@ type FetchObjectOutput struct {
 	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 
 	metadataFetchObjectOutput `json:"-" xml:"-"`
 }

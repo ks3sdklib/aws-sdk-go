@@ -58,12 +58,18 @@ type PutBucketMirrorInput struct {
 	BucketMirror *BucketMirror `locationName:"BucketMirror" json:"-" type:"structure"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	metadataPutBucketMirrorInput `json:"-" xml:"-"`
+}
+
+type metadataPutBucketMirrorInput struct {
+	SDKShapeTraits bool `type:"structure" payload:"BucketMirror"`
 }
 
 type PutBucketMirrorOutput struct {
-	//Ks3WebServiceResponse `json:"-" xml:"-"`
-
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 var opGetBucketMirror *aws.Operation
@@ -73,10 +79,17 @@ type GetBucketMirrorInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 }
 type GetBucketMirrorOutput struct {
-	//Ks3WebServiceResponse `json:"-" xml:"-"`
 	BucketMirror *BucketMirror `locationName:"BucketMirror" type:"structure"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
+
+	metadataGetBucketMirrorInput `json:"-" xml:"-"`
+}
+
+type metadataGetBucketMirrorInput struct {
+	SDKShapeTraits bool `type:"structure" payload:"BucketMirror"`
 }
 
 var opDeleteBucketMirror *aws.Operation
@@ -86,9 +99,9 @@ type DeleteBucketMirrorInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 }
 type DeleteBucketMirrorOutput struct {
-	//Ks3WebServiceResponse `json:"-" xml:"-"`
-
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 func (c *S3) PutBucketMirrorRequest(input *PutBucketMirrorInput) (req *aws.Request, output *PutBucketMirrorOutput) {
@@ -104,7 +117,6 @@ func (c *S3) PutBucketMirrorRequest(input *PutBucketMirrorInput) (req *aws.Reque
 	if input == nil {
 		input = &PutBucketMirrorInput{}
 	}
-	input.ContentType = aws.String("application/json")
 	req = c.newRequest(opPutBucketMirror, input, output)
 	output = &PutBucketMirrorOutput{}
 	req.Data = output

@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/ks3sdklib/aws-sdk-go/aws"
+	"io"
 	"io/ioutil"
 	"reflect"
 	"strings"
@@ -12,10 +12,10 @@ import (
 )
 
 // UnmarshalJSON reads a stream and unmarshals the results in object v.
-func UnmarshalJSON(req *aws.Request) error {
+func UnmarshalJSON(v interface{}, stream io.Reader) error {
 	var out interface{}
 
-	b, err := ioutil.ReadAll(req.HTTPResponse.Body)
+	b, err := ioutil.ReadAll(stream)
 	if err != nil {
 		return err
 	}
@@ -28,11 +28,7 @@ func UnmarshalJSON(req *aws.Request) error {
 		return err
 	}
 
-	v := reflect.ValueOf(req.Data)
-	if req.Operation.Name == "GetBucketMirror" {
-		v = v.Elem().FieldByName("BucketMirror")
-	}
-	return unmarshalAny(v, out, "")
+	return unmarshalAny(reflect.ValueOf(v), out, "")
 }
 
 func unmarshalAny(value reflect.Value, data interface{}, tag reflect.StructTag) error {

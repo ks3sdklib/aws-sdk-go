@@ -8,6 +8,7 @@ package jsonrpc
 import (
 	"encoding/json"
 	"io/ioutil"
+	"reflect"
 	"strings"
 
 	"github.com/ks3sdklib/aws-sdk-go/aws"
@@ -22,7 +23,18 @@ func Build(req *aws.Request) {
 	var buf []byte
 	var err error
 	if req.ParamsFilled() {
-		buf, err = jsonutil.BuildJSON(req.Params)
+		v := reflect.ValueOf(req.Params).Elem()
+		if field, ok := v.Type().FieldByName("SDKShapeTraits"); ok {
+			if payloadName := field.Tag.Get("payload"); payloadName != "" {
+				pfield, _ := v.Type().FieldByName(payloadName)
+				if ptag := pfield.Tag.Get("type"); ptag == "" || ptag == "structure" {
+					payload := reflect.Indirect(v.FieldByName(payloadName))
+					if payload.IsValid() && payload.Interface() != nil {
+						buf, err = jsonutil.BuildJSON(payload.Interface())
+					}
+				}
+			}
+		}
 		if err != nil {
 			req.Error = apierr.New("Marshal", "failed encoding JSON RPC request", err)
 			return
@@ -49,9 +61,20 @@ func Build(req *aws.Request) {
 func Unmarshal(req *aws.Request) {
 	defer req.HTTPResponse.Body.Close()
 	if req.DataFilled() {
-		err := jsonutil.UnmarshalJSON(req)
-		if err != nil {
-			req.Error = apierr.New("Unmarshal", "failed decoding JSON RPC response", err)
+		v := reflect.ValueOf(req.Data).Elem()
+		if field, ok := v.Type().FieldByName("SDKShapeTraits"); ok {
+			if payloadName := field.Tag.Get("payload"); payloadName != "" {
+				pfield, _ := v.Type().FieldByName(payloadName)
+				if ptag := pfield.Tag.Get("type"); ptag == "" || ptag == "structure" {
+					payload := v.FieldByName(payloadName)
+					if payload.IsValid() && payload.Interface() != nil {
+						err := jsonutil.UnmarshalJSON(payload.Interface(), req.HTTPResponse.Body)
+						if err != nil {
+							req.Error = apierr.New("Unmarshal", "failed decoding JSON RPC response", err)
+						}
+					}
+				}
+			}
 		}
 	}
 	return

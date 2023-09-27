@@ -2,8 +2,6 @@ package lib
 
 import (
 	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
@@ -11,33 +9,35 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3manager"
 	. "gopkg.in/check.v1"
-	"io"
 	"net/url"
 	"os"
 	"time"
 )
 
 var (
-	key      = randLowStr(10)
+	randKey  = randLowStr(10)
+	key      = "123.txt"
 	key_copy = randLowStr(10)
 )
 
-//列表bucket下对象
+//列举bucket下对象
 func (s *Ks3utilCommandSuite) TestListObjects(c *C) {
 
-	resp, _ := client.ListObjects(&s3.ListObjectsInput{
+	resp, err := client.ListObjects(&s3.ListObjectsInput{
 		Bucket: aws.String(bucket),
 		//Delimiter: aws.String("/"),       //分隔符，用于对一组参数进行分割的字符
 		MaxKeys: aws.Long(int64(1000)), //设置响应体中返回的最大记录数（最后实际返回可能小于该值）。默认为1000。如果你想要的result在1000条以后，你可以设定 marker 的值来调整起始位置。
-		Prefix:  aws.String("temp/"),   //限定响应result列表使用的前缀，正如你在电脑中使用的文件夹一样。
+		Prefix:  aws.String(""),        //限定响应result列表使用的前缀，正如你在电脑中使用的文件夹一样。
 		Marker:  aws.String(""),        //指定列举指定空间中对象的起始位置。KS3按照字母排序方式返回result，将从给定的 marker 开始返回列表。
 	})
-	//获取对象列表
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 /**
-  上传示例 -可设置标签  acl
+上传示例 -可设置标签  acl
 */
 func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 
@@ -62,45 +62,51 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 		//ContentMD5:  aws.String(md5),
 	}
 
-	resp, _ := client.PutObject(&input)
+	resp, err := client.PutObject(&input)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 	os.Remove(object)
 
 }
 
 /**
-  上传示例 -限速
+上传示例 -限速
 */
 func (s *Ks3utilCommandSuite) TestPutObjectByLimit(c *C) {
 
-	MIN_BANDWIDTH := 1024 * 1024 * 100 * 8 //100K bits/s
-	createFile(content, 1024*1024*100)
+	MIN_BANDWIDTH := 1024 * 100 * 8  // 100KB/s
+	createFile(content, 1024*1024*1) // 1MB大小的文件
+	object := randLowStr(10)
 	fd, _ := os.Open(content)
 	input := s3.PutObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+		Key:    aws.String(object),
 		Body:   fd,
 		//设置上传速度
 		TrafficLimit: aws.Long(int64(MIN_BANDWIDTH)),
 	}
 	// 记录开始时间
 	startTime := time.Now()
-	resp, _ := client.PutObject(&input)
+	resp, err := client.PutObject(&input)
+	if err != nil {
+		panic(err)
+	}
 	// 计算上传耗时
 	elapsed := time.Since(startTime)
 
 	fmt.Println("Upload completed successfully.")
 	fmt.Println("Elapsed time:", elapsed)
 	fmt.Println("result：\n", awsutil.StringValue(resp))
-
 }
 
 /**
-  下载限速示例
+下载限速示例
 */
 func (s *Ks3utilCommandSuite) TestGetObjectByLimit(c *C) {
 
-	MIN_BANDWIDTH := 1024 * 100 * 8 //100K bits/s
+	MIN_BANDWIDTH := 1024 * 100 * 8 // 100KB/s
 	fd, _ := os.Open(content)
 	input := s3.PutObjectInput{
 		Bucket: aws.String(bucket),
@@ -108,7 +114,10 @@ func (s *Ks3utilCommandSuite) TestGetObjectByLimit(c *C) {
 		ACL:    aws.String("public-read"),
 		Body:   fd,
 	}
-	resp, _ := client.PutObject(&input)
+	resp, err := client.PutObject(&input)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 
 	//下载
@@ -117,13 +126,16 @@ func (s *Ks3utilCommandSuite) TestGetObjectByLimit(c *C) {
 		Key:          aws.String(key),
 		TrafficLimit: aws.Long(int64(MIN_BANDWIDTH)),
 	}
-	DownloadResp, _ := client.GetObject(&getInput)
+	DownloadResp, err := client.GetObject(&getInput)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(DownloadResp))
 
 }
 
 /**
-  下载示例
+下载示例
 */
 func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
 
@@ -134,7 +146,10 @@ func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
 		ACL:    aws.String("public-read"),
 		Body:   fd,
 	}
-	resp, _ := client.PutObject(&input)
+	resp, err := client.PutObject(&input)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 
 	//下载
@@ -142,7 +157,10 @@ func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	}
-	DownloadResp, _ := client.GetObject(&getInput)
+	DownloadResp, err := client.GetObject(&getInput)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(DownloadResp))
 
 }
@@ -150,10 +168,13 @@ func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
 //删除对象
 func (s *Ks3utilCommandSuite) TestDelObject(c *C) {
 
-	resp, _ := client.DeleteObject(&s3.DeleteObjectInput{
+	resp, err := client.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
@@ -161,39 +182,46 @@ func (s *Ks3utilCommandSuite) TestDelObject(c *C) {
 func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 
 	params := &s3.GeneratePresignedUrlInput{
-		Bucket:       aws.String(bucket),    // 设置 bucket 名称
-		Key:          aws.String("123.txt"), // 设置 object key
-		TrafficLimit: aws.Long(1000),        // 设置速度限制
-		//如果是PUT方法，需要设置content-type
-		//ContentType:  aws.String("image/jpeg"),
-		//多久后过期
-		Expires: 3600,
-		//可选值有 PUT, GET, DELETE, HEAD
-		HTTPMethod: s3.GET,
+		Bucket: aws.String(bucket), // 设置 bucket 名称
+		Key:    aws.String(key),    // 设置 object key
+		//TrafficLimit: aws.Long(1000),            // 设置速度限制
+		//ContentType:  aws.String("image/jpeg"),  //如果是PUT方法，需要设置content-type
+		Expires:    aws.Long(3600), // 过期时间
+		HTTPMethod: s3.GET,         //可选值有 PUT, GET, DELETE, HEAD
 	}
-	url := client.GeneratePresignedUrlInput(params)
+	url, err := client.GeneratePresignedUrlInput(params)
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
 	fmt.Println("Result:\n", url)
 }
 
 //获取对象Acl
 func (s *Ks3utilCommandSuite) TestGetObjectAcl(c *C) {
 
-	resp, _ := client.GetObjectACL(&s3.GetObjectACLInput{
+	resp, err := client.GetObjectACL(&s3.GetObjectACLInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String("demo.txt"),
+		Key:    aws.String(key),
 	})
-	fmt.Println("result：\n", s3.GetAcl(*resp))
-
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("result：\n", awsutil.StringValue(resp))
+	fmt.Println("acl type：\n", s3.GetAcl(*resp))
 }
 
 //设置对象Acl
 func (s *Ks3utilCommandSuite) TestPutObjectAcl(c *C) {
 
-	resp, _ := client.PutObjectACL(&s3.PutObjectACLInput{
+	resp, err := client.PutObjectACL(&s3.PutObjectACLInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
-		ACL:    aws.String("private"),
+		ACL:    aws.String("public-read"),
 	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 
 }
@@ -212,90 +240,86 @@ func (s *Ks3utilCommandSuite) TestCopyObject(c *C) {
 	metadata["yourmetakey1"] = aws.String("yourmetavalue1")
 	metadata["yourmetakey2"] = aws.String("yourmetavalue2")
 
-	resp, _ := client.CopyObject(&s3.CopyObjectInput{
+	resp, err := client.CopyObject(&s3.CopyObjectInput{
 		Bucket:               aws.String(bucket),
-		Key:                  aws.String(key),
-		CopySource:           aws.String("/" + bucket + "/" + key_copy),
+		Key:                  aws.String("copy_" + key),
+		CopySource:           aws.String("/" + bucket + "/" + key),
 		MetadataDirective:    aws.String("REPLACE"),
 		Metadata:             metadata,
 		XAmzTagging:          aws.String(XAmzTagging),
 		XAmzTaggingDirective: aws.String("REPLACE"),
 	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //分块拷贝用例
 func (s *Ks3utilCommandSuite) TestUploadPartCopy(c *C) {
 
-	key = "file.tar"
 	dstKey := "xxx/copy/" + key
 	//初始化分块
-	initResp, _ := client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
+	initResp, err := client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(dstKey),
 	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(initResp))
 
-	uploadPartCopyresp, _ := client.UploadPartCopy(&s3.UploadPartCopyInput{
+	uploadPartCopyresp, err := client.UploadPartCopy(&s3.UploadPartCopyInput{
 		Bucket:          aws.String(bucket),
 		Key:             aws.String(dstKey),
-		CopySource:      aws.String(key),
+		CopySource:      aws.String("/" + bucket + "/" + key),
 		UploadID:        initResp.UploadID,
 		PartNumber:      aws.Long(1),
 		CopySourceRange: aws.String("bytes=0-1024"),
 	})
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(uploadPartCopyresp))
 
 	//合并分块
-	completeMultipartResp, _ := client.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
+	completeMultipartResp, err := client.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
 		Bucket:   aws.String(bucket),
 		Key:      aws.String(dstKey),
 		UploadID: initResp.UploadID,
 		MultipartUpload: &s3.CompletedMultipartUpload{
 			Parts: []*s3.CompletedPart{
 				{
-					ETag: uploadPartCopyresp.CopyPartResult.ETag,
+					PartNumber: aws.Long(1),
+					ETag:       uploadPartCopyresp.CopyPartResult.ETag,
 				},
 			},
 		},
 	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(completeMultipartResp))
 }
 
 //抓取第三方URL上传到KS3
-func (s *Ks3utilCommandSuite) TestFetchObj(c *C) {
-
-	for {
-
-		//源站url
-		sourceUrl := "https://aaaab.ks3-cn-beijing.ksyuncs.com/57phjpj0j9"
-		input := s3.FetchObjectInput{
-			Bucket:      aws.String(bucket),
-			Key:         aws.String("dst/testa"),
-			SourceUrl:   aws.String(sourceUrl),
-			ACL:         aws.String("public-read"), //对象acl
-			CallbackUrl: aws.String("https://live-console.staging.qinghedaxue.com/2"),
-		}
-		resp, _ := client.FetchObject(&input)
-		fmt.Println("result：\n", awsutil.StringValue(resp))
-		time.Sleep(2 * time.Second)
+func (s *Ks3utilCommandSuite) TestFetchObject(c *C) {
+	// 填写源站对象的url
+	sourceUrl := "https://img0.pconline.com.cn/pconline/1111/04/2483449_20061139501.jpg"
+	// 对源站对象url进行编码
+	encodedUrl := url.QueryEscape(sourceUrl)
+	// 通过第三方URL拉取文件上传
+	resp, err := client.FetchObject(&s3.FetchObjectInput{
+		Bucket:    aws.String(bucket),        // 存储空间名称，必填
+		Key:       aws.String(key),           // 对象的key，必填
+		SourceUrl: aws.String(encodedUrl),    // 编码后的源站url，必填
+		ACL:       aws.String("public-read"), // 对象访问权限，非必填
+	})
+	if err != nil {
+		panic(err)
 	}
-
-	//for {
-	//
-	//	//源站url
-	//	sourceUrl := "https://aaaab.ks3-cn-beijing.ksyuncs.com/57phjpj0j9"
-	//	input := s3.FetchObjectInput{
-	//		Bucket:      aws.String(bucket),
-	//		Key:         aws.String("dst/testa"),
-	//		SourceUrl:   aws.String(sourceUrl),
-	//		ACL:         aws.String("public-read"), //对象acl
-	//		CallbackUrl: aws.String("http://www.cqc.cool:8080/"),
-	//	}
-	//	resp, _ := client.FetchObject(&input)
-	//	fmt.Println("result：\n", awsutil.StringValue(resp))
-	//	time.Sleep(2 * time.Second)
-	//}
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
 //修改元数据信息
@@ -306,7 +330,7 @@ func (s *Ks3utilCommandSuite) TestModifyObjectMeta(c *C) {
 	metadata["yourmetakey1"] = aws.String("yourmetavalue1")
 	metadata["yourmetakey2"] = aws.String("yourmetavalue2")
 
-	resp, _ := client.CopyObject(&s3.CopyObjectInput{
+	resp, err := client.CopyObject(&s3.CopyObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key_modify_meta),
 		////空间名称与对象的object key名称的组合，通过斜杠分隔(’/’)。
@@ -319,6 +343,9 @@ func (s *Ks3utilCommandSuite) TestModifyObjectMeta(c *C) {
 		MetadataDirective: aws.String("REPLACE"),
 		Metadata:          metadata,
 	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
@@ -331,12 +358,15 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 
 	//MIN_BANDWIDTH := 1024 * 100 * 8 //100K bits/s
 	createFile(content, 1024*1024*10)
-	initRet, _ := client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
+	initRet, err := client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 		Bucket:      aws.String(bucket),
 		Key:         aws.String(key),
 		ACL:         aws.String("public-read"),
 		ContentType: aws.String("application/octet-stream"),
 	})
+	if err != nil {
+		panic(err)
+	}
 	//获取分块Id
 	uploadId := *initRet.UploadID
 	fmt.Printf("%s %s", "uploadId=", uploadId)
@@ -371,13 +401,13 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 			//
 			//为了保证数据在传输过程中没有损坏，请使用 Content-MD5 头部。当使用此头部时，KS3会自动计算出MD5，并根据用户提供的MD5进行校验，如果不匹配，将会返回错误信息。
 			//计算sc[:nr]的md5值
-			md5Ctx := md5.New()
-			reader := bytes.NewReader(sc[0:nr])
-			io.Copy(md5Ctx, reader)
-			cipherStr := md5Ctx.Sum(nil)
-			md5Str := hex.EncodeToString(cipherStr)
-
-			resp, _ := client.UploadPart(&s3.UploadPartInput{
+			//md5Ctx := md5.New()
+			//reader := bytes.NewReader(sc[0:nr])
+			//io.Copy(md5Ctx, reader)
+			//cipherStr := md5Ctx.Sum(nil)
+			//md5Str := hex.EncodeToString(cipherStr)
+			//fmt.Println(md5Str)
+			resp, err := client.UploadPart(&s3.UploadPartInput{
 				Bucket:        aws.String(bucket),
 				Key:           aws.String(key),
 				PartNumber:    aws.Long(i),
@@ -385,8 +415,11 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 				Body:          bytes.NewReader(sc[0:nr]),
 				ContentLength: aws.Long(int64(len(sc[0:nr]))),
 				//TrafficLimit:  aws.Long(int64(MIN_BANDWIDTH)),
-				ContentMD5: aws.String(md5Str),
+				//ContentMD5: aws.String(md5Str),
 			})
+			if err != nil {
+				panic(err)
+			}
 			partsNum = append(partsNum, i)
 			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
 			i++
@@ -399,7 +432,7 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 	//用户启动一个分块上传任务后，会使用 Upload Parts 接口上传所有的块。成功上传所有相关块之后，用户需要调用此接口来完成分块上传。收到完成请求后，KS3将会根据块序号将所有的块组装起来创建一个新的对象。在用户的完成任务请求中需要用户提供分块列表，由于KS3将会按照列表将所有块连接起来，所以要求用户保证所有的块已经完成上传。对于分块列表中的每一个块，用户需要在上传块时添加块序号以及对象的 ETag 头部，KS3则会在块完成上传后回复完成响应。
 	//
 	//请注意，如果 Complete Multipart Upload 请求失败了，用户应用应当能够进行重试操作。
-	compRet, _ := client.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
+	compRet, err := client.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
 		Bucket:   aws.String(bucket),
 		Key:      aws.String(key),
 		UploadID: aws.String(uploadId),
@@ -407,6 +440,9 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 			Parts: compParts,
 		},
 	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(compRet))
 
 }
@@ -416,12 +452,16 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 //只要您验证了您的请求并且拥有访问权限，您访问加密和未加密数据元的方式就没有区别。
 //例如，如果您使用预签名的 URL 来共享您的对象，那么对于加密和解密对象，该 URL 的工作方式是相同的。
 func (s *Ks3utilCommandSuite) TestPutObjectWithSSEC(c *C) {
-	resp, _ := client.PutObject(&s3.PutObjectInput{
+	resp, err := client.PutObject(&s3.PutObjectInput{
 		Bucket:               aws.String(bucket),
 		Key:                  aws.String(key),
-		SSECustomerAlgorithm: aws.String("AES256"), //加密类型
-		SSECustomerKey:       aws.String("12345678901234567890123456789012"),
+		SSECustomerAlgorithm: aws.String("AES256"),                                       //加密类型
+		SSECustomerKey:       aws.String("WKEOUdGRnEK7HISNCOjMjM0NTY3ODlBQkNER5AldAUY="), // 客户端提供的加密密钥
+		SSECustomerKeyMD5:    aws.String("mrtoxMuTClsH3tw78pFoIA=="),                     // 客户端提供的通过BASE64编码的通过128位MD5加密的密钥的MD5值
 	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
@@ -447,7 +487,7 @@ func (s *Ks3utilCommandSuite) TestHeaObject(c *C) {
 }
 
 /**
-  批量删除对象
+批量删除对象
 */
 func (s *Ks3utilCommandSuite) TestDeleteObjects(c *C) {
 
@@ -472,7 +512,7 @@ func (s *Ks3utilCommandSuite) TestDeleteObjects(c *C) {
 }
 
 /**
-  删除前缀
+删除前缀
 */
 func (s *Ks3utilCommandSuite) TestDeleteBucketPrefix(c *C) {
 
@@ -481,13 +521,16 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketPrefix(c *C) {
 		IsReTurnResults: aws.Boolean(true),
 		Prefix:          aws.String("123/"),
 	}
-	resp, _ := client.DeleteBucketPrefix(params)
+	resp, err := client.DeleteBucketPrefix(params)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("error keys:", awsutil.StringValue(resp.Errors))
 	fmt.Println("deleted keys:", awsutil.StringValue(resp.Deleted))
 }
 
 /**
-  删除前缀(包含三次重试)
+删除前缀(包含三次重试)
 */
 func (s *Ks3utilCommandSuite) TestTryDeleteBucketPrefix(c *C) {
 
@@ -496,7 +539,10 @@ func (s *Ks3utilCommandSuite) TestTryDeleteBucketPrefix(c *C) {
 		IsReTurnResults: aws.Boolean(true),
 		Prefix:          aws.String("123/"),
 	}
-	resp, _ := client.TryDeleteBucketPrefix(params)
+	resp, err := client.TryDeleteBucketPrefix(params)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("error keys:", awsutil.StringValue(resp.Errors))
 	fmt.Println("deleted keys:", awsutil.StringValue(resp.Deleted))
 }
@@ -505,65 +551,46 @@ func (s *Ks3utilCommandSuite) TestTryDeleteBucketPrefix(c *C) {
 func (s *Ks3utilCommandSuite) TestRestoreObject(c *C) {
 
 	params := &s3.RestoreObjectInput{
-		Bucket: aws.String(bucket),     // bucket名称
-		Key:    aws.String("demo.txt"), // object key
+		Bucket: aws.String(bucket), // bucket名称
+		Key:    aws.String(key),    // object key
 	}
 	resp, err := client.RestoreObject(params)
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
-	//fmt.Println(resp.HttpCode)
-	//fmt.Println(resp.Message)
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //delObjectTagging
-func (s *Ks3utilCommandSuite) DelTag(c *C) {
+func (s *Ks3utilCommandSuite) TestDeleteObjectTagging(c *C) {
 
 	params := &s3.DeleteObjectTaggingInput{
 		Bucket: aws.String(bucket), // Required
 		Key:    aws.String(key),
 	}
 	resp, err := client.DeleteObjectTagging(params)
-
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
-			if reqErr, ok := err.(awserr.RequestFailure); ok {
-				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
-			}
-		} else {
-			fmt.Println(err.Error())
-		}
+		panic(err)
 	}
-
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //getObjectTagging
-func (s *Ks3utilCommandSuite) GetTag(c *C) {
+func (s *Ks3utilCommandSuite) TestGetObjectTagging(c *C) {
 
 	params := &s3.GetObjectTaggingInput{
 		Bucket: aws.String(bucket), // Required
 		Key:    aws.String(key),
 	}
 	resp, err := client.GetObjectTagging(params)
-
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
-			if reqErr, ok := err.(awserr.RequestFailure); ok {
-				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
-			}
-		} else {
-			fmt.Println(err.Error())
-		}
+		panic(err)
 	}
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //设置对象Tag
-func (s *Ks3utilCommandSuite) PutTag(c *C) {
+func (s *Ks3utilCommandSuite) TestPutObjectTagging(c *C) {
 
 	//指定目标Object对象标签
 	objTagging := s3.Tagging{
@@ -581,14 +608,17 @@ func (s *Ks3utilCommandSuite) PutTag(c *C) {
 		Key:     aws.String(key),
 		Tagging: &objTagging,
 	}
-	resp, _ := client.PutObjectTagging(params)
+	resp, err := client.PutObjectTagging(params)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
 //上传文件夹
 func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
 
-	dir := "/Users/cqc/data/未命名文件夹"
+	dir := "/Users/test/data/未命名文件夹"
 	uploader := s3manager.NewUploader(&s3manager.UploadOptions{
 		//分块大小 5MB
 		PartSize: 0,
@@ -605,18 +635,6 @@ func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
 	//prefix 桶下的路径
 	uploader.UploadDir(dir, bucket, "sns/")
 
-}
-
-func (s *Ks3utilCommandSuite) TestFetchUrl(c *C) {
-	url := "https://huggingface.co/baichuan-inc/baichuan-7B/resolve/main/pytorch_model.bin"
-	parms := &s3.FetchObjectInput{
-		ACL:       aws.String("public-read"),
-		Bucket:    aws.String(bucket),
-		Key:       aws.String(key),
-		SourceUrl: aws.String(url),
-	}
-	resp, err := client.FetchObject(parms)
-	fmt.Println(resp, err)
 }
 
 func (s *Ks3utilCommandSuite) uploadTmpFile(c *C) (etag string) {
@@ -678,14 +696,14 @@ func (s *Ks3utilCommandSuite) TestPG(c *C) {
 			Bucket:       aws.String(bucket), // 设置 bucket 名称
 			Key:          aws.String(object), // 设置 object key
 			TrafficLimit: aws.Long(1000),     // 设置速度限制
-			//如果是PUT方法，需要设置content-type
-			//ContentType:  aws.String("image/jpeg"),
-			//多久后过期
-			Expires: 36000,
-			//可选值有 PUT, GET, DELETE, HEAD
-			HTTPMethod: s3.HEAD,
+			// ContentType:  aws.String("image/jpeg"),  //如果是PUT方法，需要设置content-type
+			Expires:    aws.Long(3600), //多久后过期
+			HTTPMethod: s3.HEAD,        //可选值有 PUT, GET, DELETE, HEAD
 		}
-		url := client.GeneratePresignedUrlInput(params)
+		url, err := client.GeneratePresignedUrlInput(params)
+		if err != nil {
+			panic(err)
+		}
 		fmt.Println("Result:\n", url)
 	}
 

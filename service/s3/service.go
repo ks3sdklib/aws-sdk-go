@@ -41,7 +41,7 @@ func New(config *aws.Config) *S3 {
 
 	service.Handlers.Build.PushBack(body.Build)
 	//service.Handlers.Build.PushBack(aws.ContentTypeHandler)
-	service.Handlers.Unmarshal.PushBack(body.Unmarshal)
+	service.Handlers.Unmarshal.PushBack(body.UnmarshalBody)
 	service.Handlers.UnmarshalMeta.PushBack(body.UnmarshalMeta)
 	service.Handlers.UnmarshalError.PushBack(body.UnmarshalError)
 
