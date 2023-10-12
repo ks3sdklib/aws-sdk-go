@@ -186,10 +186,10 @@ func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 		Key:    aws.String(key),    // 设置 object key
 		//TrafficLimit: aws.Long(1000),            // 设置速度限制
 		//ContentType:  aws.String("image/jpeg"),  //如果是PUT方法，需要设置content-type
-		Expires:    aws.Long(3600), // 过期时间
-		HTTPMethod: s3.GET,         //可选值有 PUT, GET, DELETE, HEAD
+		Expires:    3600,   // 过期时间
+		HTTPMethod: s3.GET, //可选值有 PUT, GET, DELETE, HEAD
 	}
-	url, err := client.GeneratePresignedUrlInput(params)
+	url, err := client.GeneratePresignedUrl(params)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -697,10 +697,10 @@ func (s *Ks3utilCommandSuite) TestPG(c *C) {
 			Key:          aws.String(object), // 设置 object key
 			TrafficLimit: aws.Long(1000),     // 设置速度限制
 			// ContentType:  aws.String("image/jpeg"),  //如果是PUT方法，需要设置content-type
-			Expires:    aws.Long(3600), //多久后过期
-			HTTPMethod: s3.HEAD,        //可选值有 PUT, GET, DELETE, HEAD
+			Expires:    3600,    //多久后过期
+			HTTPMethod: s3.HEAD, //可选值有 PUT, GET, DELETE, HEAD
 		}
-		url, err := client.GeneratePresignedUrlInput(params)
+		url, err := client.GeneratePresignedUrl(params)
 		if err != nil {
 			panic(err)
 		}

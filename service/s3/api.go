@@ -1636,7 +1636,7 @@ type GeneratePresignedUrlInput struct {
 	HTTPMethod HTTPMethod `locationName:"HTTPMethod" type:"string" required:"true"`
 
 	// The date and time at which the object is no longer cacheable.
-	Expires *int64 `locationName:"Expires" type:"integer" required:"true"`
+	Expires int64 `locationName:"Expires" type:"integer" required:"true"`
 
 	metadataGeneratePresignedUrlInput `json:"-" xml:"-"`
 }
@@ -1712,7 +1712,7 @@ func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
 //}
 
 //生成链接
-func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url string, err error) {
+func (c *S3) GeneratePresignedUrl(input *GeneratePresignedUrlInput) (url string, err error) {
 
 	opGeneratePresigned := &aws.Operation{
 		HTTPMethod: string(input.HTTPMethod),
@@ -1728,19 +1728,38 @@ func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url st
 		return "", apierr.New("InvalidParameter", "missing required parameter: HTTPMethod", nil)
 	}
 	now := time.Now().Unix()
-	if *input.Expires <= 0 {
-		return "", apierr.New("InvalidParameter", "expires must bigger than 0", nil)
+	if input.Expires <= 0 {
+		return "", apierr.New("InvalidParameter", "Expires is required and Expires must bigger than 0", nil)
 	}
 	if c.Config.SignerVersion == "V4" || c.Config.SignerVersion == "V4_UNSIGNED_PAYLOAD_SIGNER" {
-		if *input.Expires > 604800 {
-			return "", apierr.New("InvalidParameter", "expires must between 1 and 604800 in V4 signature", nil)
+		if input.Expires > 604800 {
+			return "", apierr.New("InvalidParameter", "Expires must between 1 and 604800 in V4 signature", nil)
 		}
-		req.ExpireTime = *input.Expires
+		req.ExpireTime = input.Expires
 	} else {
-		req.ExpireTime = *input.Expires + now
+		req.ExpireTime = input.Expires + now
 	}
 	req.Sign()
 	return req.HTTPRequest.URL.String(), nil
+}
+
+//生成链接（旧版本）
+func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url string) {
+
+	opGeneratePresigned := &aws.Operation{
+		HTTPMethod: string(input.HTTPMethod),
+		HTTPPath:   "/{Bucket}/{Key+}",
+	}
+	output := &GeneratePresignedUrlOutput{}
+	req := c.newRequest(opGeneratePresigned, input, output)
+	now := time.Now().Unix()
+	if c.Config.SignerVersion == "V4" || c.Config.SignerVersion == "V4_UNSIGNED_PAYLOAD_SIGNER" {
+		req.ExpireTime = input.Expires
+	} else {
+		req.ExpireTime = input.Expires + now
+	}
+	req.Sign()
+	return req.HTTPRequest.URL.String()
 }
 
 func (c *S3) PutObjectPreassignedInput(input *PutObjectInput) (*http.Request, error) {
