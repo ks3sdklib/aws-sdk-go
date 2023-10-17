@@ -506,7 +506,10 @@ func (s *Ks3utilCommandSuite) TestDeleteObjects(c *C) {
 			},
 		},
 	}
-	resp := client.DeleteObjects(params)
+	resp, err := client.DeleteObjects(params)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("error keys:", awsutil.StringValue(resp.Errors))
 	fmt.Println("deleted keys:", awsutil.StringValue(resp.Deleted))
 }

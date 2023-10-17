@@ -422,7 +422,7 @@ func (c *S3) DeleteObjectsRequest(input *DeleteObjectsInput) (req *aws.Request, 
 
 // This operation enables you to delete multiple objects from a bucket using
 // a single HTTP request. You may specify up to 1000 keys.
-func (c *S3) DeleteObjects(input *DeleteObjectsInput) *DeleteObjectsOutput {
+func (c *S3) DeleteObjects(input *DeleteObjectsInput) (*DeleteObjectsOutput, error) {
 	var errors []*Error
 	var okList []*DeletedObject
 	if input == nil {
@@ -443,7 +443,7 @@ func (c *S3) DeleteObjects(input *DeleteObjectsInput) *DeleteObjectsOutput {
 		Deleted: okList,
 		Errors:  errors,
 	}
-	return output
+	return output, nil
 }
 func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
 
