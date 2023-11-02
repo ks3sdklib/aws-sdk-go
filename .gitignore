@@ -1,2 +1,4 @@
 vendor
 doc
+.idea/
+.DS_Store

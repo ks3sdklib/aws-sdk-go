@@ -39,11 +39,11 @@ var (
 	errout           = os.Stderr
 	sleepTime        = time.Second
 
-	//accessKeyID     = "p0C0lcSAet4Bdfk8"
-	//accessKeySecret = "e40keB3spMJ7Z65rttEPZiCZqz7Vos5s"
-	//bucket          = "aaaab"
-	//endpoint        = "aaaab.cqc.cool:9000"
-	//region          = "us-east-1"
+	//accessKeyID     = "<accessKeyID>"
+	//accessKeySecret = "<accessKeySecret>"
+	//bucket          = "<bucketName>"
+	//endpoint        = "ks3-cn-beijing.ksyuncs.com"
+	//region          = "BEIJING"
 )
 
 var (

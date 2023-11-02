@@ -19,6 +19,12 @@ func Unmarshal(r *aws.Request) {
 	if r.DataFilled() {
 		v := reflect.Indirect(reflect.ValueOf(r.Data))
 		unmarshalBody(r, v)
+	}
+}
+
+func UnmarshalMeta(r *aws.Request) {
+	if r.DataFilled() {
+		v := reflect.Indirect(reflect.ValueOf(r.Data))
 		unmarshalLocationElements(r, v)
 	}
 }
