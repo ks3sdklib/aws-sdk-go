@@ -8,15 +8,12 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
-	"encoding/json"
-	"encoding/xml"
-	"errors"
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
+	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 	"hash"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"sort"
@@ -425,7 +422,7 @@ func (c *S3) DeleteObjectsRequest(input *DeleteObjectsInput) (req *aws.Request, 
 
 // This operation enables you to delete multiple objects from a bucket using
 // a single HTTP request. You may specify up to 1000 keys.
-func (c *S3) DeleteObjects(input *DeleteObjectsInput) *DeleteObjectsOutput {
+func (c *S3) DeleteObjects(input *DeleteObjectsInput) (*DeleteObjectsOutput, error) {
 	var errors []*Error
 	var okList []*DeletedObject
 	if input == nil {
@@ -433,7 +430,7 @@ func (c *S3) DeleteObjects(input *DeleteObjectsInput) *DeleteObjectsOutput {
 	}
 	for _, t := range input.Delete.Objects {
 		_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-		if input.IsReTurnResults == aws.Boolean(false) {
+		if input.IsReTurnResults != nil && *input.IsReTurnResults == true {
 			if err != nil {
 				aerr, _ := err.(awserr.Error)
 				errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
@@ -446,7 +443,7 @@ func (c *S3) DeleteObjects(input *DeleteObjectsInput) *DeleteObjectsOutput {
 		Deleted: okList,
 		Errors:  errors,
 	}
-	return output
+	return output, nil
 }
 func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
 
@@ -472,7 +469,7 @@ func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsO
 		if err == nil {
 			for _, t := range resp.Contents {
 				_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-				if input.IsReTurnResults == aws.Boolean(false) {
+				if input.IsReTurnResults != nil && *input.IsReTurnResults == true {
 					if err != nil {
 						aerr, _ := err.(awserr.Error)
 						errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
@@ -1636,10 +1633,10 @@ type GeneratePresignedUrlInput struct {
 
 	TrafficLimit *int64 `location:"querystring" locationName:"x-kss-traffic-limit"  type:"integer"`
 
-	HTTPMethod HTTPMethod
+	HTTPMethod HTTPMethod `locationName:"HTTPMethod" type:"string" required:"true"`
 
 	// The date and time at which the object is no longer cacheable.
-	Expires int64
+	Expires int64 `locationName:"Expires" type:"integer" required:"true"`
 
 	metadataGeneratePresignedUrlInput `json:"-" xml:"-"`
 }
@@ -1715,6 +1712,38 @@ func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
 //}
 
 //生成链接
+func (c *S3) GeneratePresignedUrl(input *GeneratePresignedUrlInput) (url string, err error) {
+
+	opGeneratePresigned := &aws.Operation{
+		HTTPMethod: string(input.HTTPMethod),
+		HTTPPath:   "/{Bucket}/{Key+}",
+	}
+	output := &GeneratePresignedUrlOutput{}
+	req := c.newRequest(opGeneratePresigned, input, output)
+	aws.ValidateParameters(req)
+	if req.Error != nil {
+		return "", req.Error
+	}
+	if string(input.HTTPMethod) == "" {
+		return "", apierr.New("InvalidParameter", "missing required parameter: HTTPMethod", nil)
+	}
+	now := time.Now().Unix()
+	if input.Expires <= 0 {
+		return "", apierr.New("InvalidParameter", "Expires is required and Expires must bigger than 0", nil)
+	}
+	if c.Config.SignerVersion == "V4" || c.Config.SignerVersion == "V4_UNSIGNED_PAYLOAD_SIGNER" {
+		if input.Expires > 604800 {
+			return "", apierr.New("InvalidParameter", "Expires must between 1 and 604800 in V4 signature", nil)
+		}
+		req.ExpireTime = input.Expires
+	} else {
+		req.ExpireTime = input.Expires + now
+	}
+	req.Sign()
+	return req.HTTPRequest.URL.String(), nil
+}
+
+//生成链接（旧版本）
 func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url string) {
 
 	opGeneratePresigned := &aws.Operation{
@@ -1724,15 +1753,12 @@ func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url st
 	output := &GeneratePresignedUrlOutput{}
 	req := c.newRequest(opGeneratePresigned, input, output)
 	now := time.Now().Unix()
-	if c.Config.SignerVersion == "V2" {
-		req.ExpireTime = input.Expires + now
-	} else {
+	if c.Config.SignerVersion == "V4" || c.Config.SignerVersion == "V4_UNSIGNED_PAYLOAD_SIGNER" {
 		req.ExpireTime = input.Expires
+	} else {
+		req.ExpireTime = input.Expires + now
 	}
 	req.Sign()
-	//if input.TrafficLimit != nil && *input.TrafficLimit > 0 {
-	//	req.HTTPRequest.URL.RawQuery += "&x-amz-traffic-limit=" + strconv.FormatInt(*input.TrafficLimit, 10)
-	//}
 	return req.HTTPRequest.URL.String()
 }
 
@@ -1798,6 +1824,12 @@ func (c *S3) RestoreObjectRequest(input *RestoreObjectInput) (req *aws.Request, 
 	output = &RestoreObjectOutput{}
 	req.Data = output
 	return
+}
+
+func (c *S3) RestoreObject(input *RestoreObjectInput) (*RestoreObjectOutput, error) {
+	req, out := c.RestoreObjectRequest(input)
+	err := req.Send()
+	return out, err
 }
 
 var opRestoreObject *aws.Operation
@@ -1902,6 +1934,8 @@ type AbortMultipartUploadOutput struct {
 	metadataAbortMultipartUploadOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataAbortMultipartUploadOutput struct {
@@ -2036,6 +2070,8 @@ type CompleteMultipartUploadOutput struct {
 	metadataCompleteMultipartUploadOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataCompleteMultipartUploadOutput struct {
@@ -2251,6 +2287,8 @@ type CopyObjectOutput struct {
 	metadataCopyObjectOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataCopyObjectOutput struct {
@@ -2338,6 +2376,8 @@ type CreateBucketOutput struct {
 	metadataCreateBucketOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataCreateBucketOutput struct {
@@ -2489,28 +2529,6 @@ type metadataDelete struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-type DeleteBucketCORSInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	metadataDeleteBucketCORSInput `json:"-" xml:"-"`
-}
-
-type metadataDeleteBucketCORSInput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type DeleteBucketCORSOutput struct {
-	metadataDeleteBucketCORSOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-type metadataDeleteBucketCORSOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type DeleteBucketInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -2527,6 +2545,8 @@ type DeleteBucketOutput struct {
 	metadataDeleteBucketOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteBucketOutput struct {
@@ -2549,6 +2569,8 @@ type DeleteBucketPolicyOutput struct {
 	metadataDeleteBucketPolicyOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteBucketPolicyOutput struct {
@@ -2571,6 +2593,8 @@ type DeleteBucketReplicationOutput struct {
 	metadataDeleteBucketReplicationOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteBucketReplicationOutput struct {
@@ -2593,6 +2617,8 @@ type DeleteBucketTaggingOutput struct {
 	metadataDeleteBucketTaggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteBucketTaggingOutput struct {
@@ -2615,6 +2641,8 @@ type DeleteBucketWebsiteOutput struct {
 	metadataDeleteBucketWebsiteOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteBucketWebsiteOutput struct {
@@ -2693,6 +2721,8 @@ type DeleteObjectOutput struct {
 	metadataDeleteObjectOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteObjectOutput struct {
@@ -2739,6 +2769,8 @@ type DeleteObjectsOutput struct {
 	metadataDeleteObjectsOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteObjectsOutput struct {
@@ -2821,6 +2853,8 @@ type GetBucketACLOutput struct {
 	metadataGetBucketACLOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketACLOutput struct {
@@ -2845,6 +2879,8 @@ type GetBucketLocationOutput struct {
 	metadataGetBucketLocationOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketLocationOutput struct {
@@ -2869,6 +2905,8 @@ type GetBucketLoggingOutput struct {
 	metadataGetBucketLoggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketLoggingOutput struct {
@@ -2905,6 +2943,8 @@ type GetBucketPolicyOutput struct {
 	metadataGetBucketPolicyOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketPolicyOutput struct {
@@ -2931,6 +2971,8 @@ type GetBucketReplicationOutput struct {
 	metadataGetBucketReplicationOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketReplicationOutput struct {
@@ -2956,6 +2998,8 @@ type GetBucketRequestPaymentOutput struct {
 	metadataGetBucketRequestPaymentOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketRequestPaymentOutput struct {
@@ -2980,6 +3024,8 @@ type GetBucketTaggingOutput struct {
 	metadataGetBucketTaggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketTaggingOutput struct {
@@ -3010,6 +3056,8 @@ type GetBucketVersioningOutput struct {
 	metadataGetBucketVersioningOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketVersioningOutput struct {
@@ -3040,6 +3088,8 @@ type GetBucketWebsiteOutput struct {
 	metadataGetBucketWebsiteOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketWebsiteOutput struct {
@@ -3082,6 +3132,8 @@ type GetObjectACLOutput struct {
 	metadataGetObjectACLOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetObjectACLOutput struct {
@@ -3261,6 +3313,8 @@ type GetObjectOutput struct {
 	metadataGetObjectOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetObjectOutput struct {
@@ -3297,6 +3351,8 @@ type GetObjectTorrentOutput struct {
 	metadataGetObjectTorrentOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetObjectTorrentOutput struct {
@@ -3355,6 +3411,8 @@ type HeadBucketOutput struct {
 	metadataHeadBucketOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataHeadBucketOutput struct {
@@ -3508,6 +3566,8 @@ type HeadObjectOutput struct {
 	metadataHeadObjectOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataHeadObjectOutput struct {
@@ -3579,6 +3639,8 @@ type ListBucketsOutput struct {
 	metadataListBucketsOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataListBucketsOutput struct {
@@ -3670,6 +3732,8 @@ type ListMultipartUploadsOutput struct {
 	metadataListMultipartUploadsOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataListMultipartUploadsOutput struct {
@@ -3751,6 +3815,8 @@ type ListObjectVersionsOutput struct {
 	metadataListObjectVersionsOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataListObjectVersionsOutput struct {
@@ -3824,6 +3890,8 @@ type ListObjectsOutput struct {
 	metadataListObjectsOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataListObjectsOutput struct {
@@ -3901,6 +3969,8 @@ type ListPartsOutput struct {
 	metadataListPartsOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataListPartsOutput struct {
@@ -4162,6 +4232,8 @@ type PutBucketACLOutput struct {
 	metadataPutBucketACLOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketACLOutput struct {
@@ -4186,6 +4258,8 @@ type PutBucketLoggingOutput struct {
 	metadataPutBucketLoggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketLoggingOutput struct {
@@ -4212,6 +4286,8 @@ type PutBucketNotificationConfigurationOutput struct {
 	metadataPutBucketNotificationConfigurationOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketNotificationConfigurationOutput struct {
@@ -4236,6 +4312,8 @@ type PutBucketNotificationOutput struct {
 	metadataPutBucketNotificationOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketNotificationOutput struct {
@@ -4261,6 +4339,8 @@ type PutBucketPolicyOutput struct {
 	metadataPutBucketPolicyOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketPolicyOutput struct {
@@ -4287,6 +4367,8 @@ type PutBucketReplicationOutput struct {
 	metadataPutBucketReplicationOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketReplicationOutput struct {
@@ -4333,6 +4415,8 @@ type PutBucketTaggingOutput struct {
 	metadataPutBucketTaggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketTaggingOutput struct {
@@ -4361,6 +4445,8 @@ type PutBucketVersioningOutput struct {
 	metadataPutBucketVersioningOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketVersioningOutput struct {
@@ -4385,6 +4471,8 @@ type PutBucketWebsiteOutput struct {
 	metadataPutBucketWebsiteOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketWebsiteOutput struct {
@@ -4440,6 +4528,8 @@ type PutObjectACLOutput struct {
 	metadataPutObjectACLOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutObjectACLOutput struct {
@@ -4688,6 +4778,8 @@ type PutObjectOutput struct {
 	metadataPutObjectOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutObjectOutput struct {
@@ -4855,9 +4947,9 @@ type metadataRestoreObjectInput struct {
 }
 
 type RestoreObjectOutput struct {
-	Ks3WebServiceResponse
-
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type RestoreRequest struct {
@@ -5099,6 +5191,8 @@ type UploadPartCopyOutput struct {
 	metadataUploadPartCopyOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataUploadPartCopyOutput struct {
@@ -5187,6 +5281,8 @@ type UploadPartOutput struct {
 	metadataUploadPartOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataUploadPartOutput struct {
@@ -5227,15 +5323,15 @@ type metadataWebsiteConfiguration struct {
 
 type Header map[string][]string
 
-type Ks3WebServiceResponse struct {
-	HttpCode  int    `xml:"HttpCode"`
-	Code      string `xml:"Code"`
-	Message   string `xml:"Message"`
-	Resource  string `xml:"Resource"`
-	RequestId string `xml:"RequestId"`
-	Header    Header
-	Body      []byte
-}
+//type Ks3WebServiceResponse struct {
+//	HttpCode  int    `xml:"HttpCode"`
+//	Code      string `xml:"Code"`
+//	Message   string `xml:"Message"`
+//	Resource  string `xml:"Resource"`
+//	RequestId string `xml:"RequestId"`
+//	Header    Header
+//	Body      []byte
+//}
 
 func (c *S3) SignedReq(req *http.Request, canonicalizedResource string) {
 
@@ -5342,44 +5438,6 @@ func GetAcl(resp GetObjectACLOutput) CannedAccessControlType {
 	}
 }
 
-func (c *S3) RestoreObject(input *RestoreObjectInput) (*RestoreObjectOutput, error) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if input == nil {
-		input = &RestoreObjectInput{}
-	}
-	out := &RestoreObjectOutput{}
-
-	date := time.Now().UTC().Format(http.TimeFormat)
-	client := &http.Client{}
-	objectKey := *input.Key + "?restore"
-	resource := "/" + *input.Bucket + "/" + objectKey
-	url := c.Endpoint + resource
-	req, err := http.NewRequest("POST", url, nil)
-	req.Header.Set(HTTPHeaderDate, date)
-	req.Header.Set(HTTPHeaderHost, c.Endpoint)
-	c.SignedReq(req, resource)
-	res, err := client.Do(req)
-	if res != nil {
-		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		xml.Unmarshal((body), &out)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if res.Header != nil {
-			out.Header = Header(res.Header)
-			out.HttpCode = res.StatusCode
-		}
-		if body != nil {
-			out.Body = body
-		}
-	}
-	return out, err
-
-}
-
 //----obj tag start--
 
 func (c *S3) DeleteObjectTaggingRequest(input *DeleteObjectTaggingInput) (req *aws.Request, output *DeleteObjectTaggingOutput) {
@@ -5430,6 +5488,8 @@ type DeleteObjectTaggingOutput struct {
 	metadataDeleteObjectTaggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteObjectTaggingOutput struct {
@@ -5488,6 +5548,8 @@ type GetObjectTaggingOutput struct {
 	metadataGetObjectTaggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetObjectTaggingOutput struct {
@@ -5545,6 +5607,8 @@ type PutObjectTaggingOutput struct {
 	metadataPutObjectTaggingOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutObjectTaggingOutput struct {
@@ -5715,6 +5779,8 @@ type FetchObjectOutput struct {
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
 
+	StatusCode *int64 `location:"statusCode" type:"integer"`
+
 	metadataFetchObjectOutput `json:"-" xml:"-"`
 }
 
@@ -5723,209 +5789,3 @@ type metadataFetchObjectOutput struct {
 }
 
 //--------fetch object end-------
-
-//--------镜像回源-------
-type BucketMirror struct {
-	Version          *string            `json:"version"`
-	UseDefaultRobots *bool              `json:"use_default_robots"`
-	AsyncMirrorRule  *AsyncMirrorRule   `json:"async_mirror_rule,omitempty"`
-	SyncMirrorRules  []*SyncMirrorRules `json:"sync_mirror_rules,omitempty"`
-}
-type SavingSetting struct {
-	ACL *string `json:"acl,omitempty"  required:"true"`
-}
-type AsyncMirrorRule struct {
-	MirrorUrls    []*string      `json:"mirror_urls,omitempty" required:"true"`
-	SavingSetting *SavingSetting `json:"saving_setting,omitempty" required:"true"`
-}
-type MatchCondition struct {
-	HTTPCodes   []*string `json:"http_codes,omitempty"`
-	KeyPrefixes []*string `json:"key_prefixes,omitempty"`
-}
-type SetHeaders struct {
-	Key   *string `json:"key,omitempty"`
-	Value *string `json:"value,omitempty"`
-}
-type RemoveHeaders struct {
-	Key *string `json:"key,omitempty"`
-}
-type PassHeaders struct {
-	Key *string `json:"key,omitempty"`
-}
-type HeaderSetting struct {
-	SetHeaders    []*SetHeaders    `json:"set_headers,omitempty"`
-	RemoveHeaders []*RemoveHeaders `json:"remove_headers,omitempty"`
-	PassAll       *bool            `json:"pass_all,omitempty"`
-	PassHeaders   []*PassHeaders   `json:"pass_headers,omitempty"`
-}
-type MirrorRequestSetting struct {
-	PassQueryString *bool          `json:"pass_query_string,omitempty"`
-	Follow3Xx       *bool          `json:"follow3xx,omitempty"`
-	HeaderSetting   *HeaderSetting `json:"header_setting,omitempty"`
-}
-type SyncMirrorRules struct {
-	MatchCondition       MatchCondition        `json:"match_condition"`
-	MirrorURL            *string               `json:"mirror_url,omitempty"`
-	MirrorRequestSetting *MirrorRequestSetting `json:"mirror_request_setting,omitempty"`
-	SavingSetting        *SavingSetting        `json:"saving_setting,omitempty"`
-}
-
-func (c *S3) PutBucketMirror(input *PutBucketMirrorInput) (*PutBucketMirrorOutput, error) {
-
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if input == nil {
-		input = &PutBucketMirrorInput{}
-	}
-	out := &PutBucketMirrorOutput{}
-	date := time.Now().UTC().Format(http.TimeFormat)
-	resource := "/?mirror"
-	url := c.Endpoint + resource
-	data, err := json.Marshal(input.BucketMirror)
-	if err != nil {
-		return nil, errors.New("error：" + string(data))
-	}
-	request, _ := http.NewRequest("PUT", url, bytes.NewReader(data))
-	request.Header.Set(HTTPHeaderContentType, "application/json")
-	request.Header.Set(HTTPHeaderDate, date)
-	request.Header.Set(HTTPHeaderHost, c.Endpoint)
-	c.SignedReq(request, resource)
-	client := &http.Client{}
-	res, err := client.Do(request)
-	if res != nil {
-		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		xml.Unmarshal((body), &out)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if res.Header != nil {
-			out.Header = Header(res.Header)
-			out.HttpCode = res.StatusCode
-		}
-		if body != nil {
-			out.Body = body
-		}
-	}
-	return out, err
-
-}
-
-var opPutBucketMirror *aws.Operation
-
-type PutBucketMirrorInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	BucketMirror *BucketMirror `locationName:"Mirror" type:"structure"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-}
-
-type PutBucketMirrorOutput struct {
-	Ks3WebServiceResponse `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-type GetBucketMirrorInput struct {
-	Bucket      *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-}
-type GetBucketMirrorOutput struct {
-	Ks3WebServiceResponse `json:"-" xml:"-"`
-	BucketMirror          *BucketMirror `locationName:"Mirror" type:"structure"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-func (c *S3) GetBucketMirror(input *GetBucketMirrorInput) (*GetBucketMirrorOutput, error) {
-
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if input == nil {
-		input = &GetBucketMirrorInput{}
-	}
-	out := &GetBucketMirrorOutput{}
-	date := time.Now().UTC().Format(http.TimeFormat)
-	resource := "/" + *input.Bucket + "?mirror"
-	signResource := "/" + *input.Bucket + "/?mirror"
-	url := c.Endpoint + resource
-	request, _ := http.NewRequest("GET", url, nil)
-	request.Header.Set(HTTPHeaderContentType, "application/json")
-	request.Header.Set(HTTPHeaderDate, date)
-	request.Header.Set(HTTPHeaderHost, c.Endpoint)
-	c.SignedReq(request, signResource)
-	client := &http.Client{}
-	res, err := client.Do(request)
-	if res != nil {
-		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		xml.Unmarshal((body), &out)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if res.Header != nil {
-			out.Header = Header(res.Header)
-			out.HttpCode = res.StatusCode
-			if res.StatusCode == 200 {
-				json.Unmarshal(out.Body, &out.BucketMirror)
-			}
-		}
-		if body != nil {
-			out.Body = body
-		}
-	}
-	return out, err
-
-}
-
-type DeleteBucketMirrorInput struct {
-	Bucket      *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-}
-type DeleteBucketMirrorOutput struct {
-	Ks3WebServiceResponse `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-}
-
-func (c *S3) DeleteBucketMirror(input *DeleteBucketMirrorInput) (*DeleteBucketMirrorOutput, error) {
-
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if input == nil {
-		input = &DeleteBucketMirrorInput{}
-	}
-	out := &DeleteBucketMirrorOutput{}
-	date := time.Now().UTC().Format(http.TimeFormat)
-	resource := "/" + *input.Bucket + "?mirror"
-	signResource := "/" + *input.Bucket + "/?mirror"
-	url := c.Endpoint + resource
-	request, _ := http.NewRequest("DELETE", url, nil)
-	request.Header.Set(HTTPHeaderContentType, "application/json")
-	request.Header.Set(HTTPHeaderDate, date)
-	request.Header.Set(HTTPHeaderHost, c.Endpoint)
-	c.SignedReq(request, signResource)
-	client := &http.Client{}
-	res, err := client.Do(request)
-	if res != nil {
-		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		xml.Unmarshal((body), &out)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if res.Header != nil {
-			out.Header = Header(res.Header)
-			out.HttpCode = res.StatusCode
-		}
-		if body != nil {
-			out.Body = body
-		}
-	}
-	return out, err
-
-}

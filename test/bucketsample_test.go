@@ -10,12 +10,15 @@ import (
 
 //创建bucket并关联项目
 func (s *Ks3utilCommandSuite) TestCreateBucket(c *C) {
-	resp, _ := client.CreateBucket(&s3.CreateBucketInput{
+	resp, err := client.CreateBucket(&s3.CreateBucketInput{
 		ACL:    aws.String("public-read"),
-		Bucket: aws.String("vvvvv"),
+		Bucket: aws.String(bucket),
 		//ProjectId:  aws.String("1232"), //项目ID
-		BucketType: aws.String("IA"),
+		//BucketType: aws.String("IA"),
 	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
@@ -33,31 +36,24 @@ func (s *Ks3utilCommandSuite) TestBucketExist(c *C) {
 //设置bucketAcl
 func (s *Ks3utilCommandSuite) TestPutBucketAcl(c *C) {
 
-	resp, _ := client.PutBucketACL(&s3.PutBucketACLInput{
+	resp, err := client.PutBucketACL(&s3.PutBucketACLInput{
 		Bucket: aws.String(bucket),
 		ACL:    aws.String("public-read"),
 	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//设置bucketAcl
+//获取bucketAcl
 func (s *Ks3utilCommandSuite) TestGetBucketAcl(c *C) {
-	resp, _ := client.GetBucketACL(&s3.GetBucketACLInput{
+	resp, err := client.GetBucketACL(&s3.GetBucketACLInput{
 		Bucket: aws.String(bucket),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
-
-}
-
-//设置bucketlog
-func (s *Ks3utilCommandSuite) TestSetBucketLogStatus(c *C) {
-	resp, _ := client.PutBucketLogging(&s3.PutBucketLoggingInput{
-		Bucket: aws.String(bucket),
-		BucketLoggingStatus: &s3.BucketLoggingStatus{LoggingEnabled: &s3.LoggingEnabled{
-			TargetBucket: aws.String(bucket),
-			TargetPrefix: aws.String(bucket),
-		}},
-	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 
 }
@@ -81,26 +77,37 @@ func (s *Ks3utilCommandSuite) TestSetBucketLiferules(c *C) {
 		Bucket:                 aws.String(bucket),
 		LifecycleConfiguration: lifecycleConfiguration,
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
 
 }
 
 /*
- //获取bucket life rules
+//获取bucket life rules
 */
 func (s *Ks3utilCommandSuite) TestGetBucketLifeRules(c *C) {
 	resp, err := client.GetBucketLifecycle(&s3.GetBucketLifecycleInput{
 		Bucket: aws.String(bucket),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
 /*
- //删除bucket life rules
+//删除bucket life rules
 */
 func (s *Ks3utilCommandSuite) TestDeleteBucketLifeRules(c *C) {
-	resp, err := client.DeleteBucketLifecycle(&s3.DeleteBucketLifecycleInput{})
-	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+	resp, err := client.DeleteBucketLifecycle(&s3.DeleteBucketLifecycleInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
 //设置bucket cors
@@ -114,7 +121,7 @@ func (s *Ks3utilCommandSuite) TestSetBucketCors(c *C) {
 					"*",
 				},
 				AllowedMethod: []string{
-					"PUT",
+					"GET",
 				},
 				AllowedOrigin: []string{
 					"*",
@@ -128,15 +135,21 @@ func (s *Ks3utilCommandSuite) TestSetBucketCors(c *C) {
 		Bucket:            aws.String(bucket),
 		CORSConfiguration: corsConfiguration,
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//bucket cors
+//获取bucket cors
 func (s *Ks3utilCommandSuite) TestGetBucketCors(c *C) {
 	resp, err := client.GetBucketCORS(&s3.GetBucketCORSInput{
 		Bucket: aws.String(bucket),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
 //删除bucket cors
@@ -144,7 +157,10 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketCors(c *C) {
 	resp, err := client.DeleteBucketCORS(&s3.DeleteBucketCORSInput{
 		Bucket: aws.String(bucket),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
 //设置bucket log
@@ -161,7 +177,10 @@ func (s *Ks3utilCommandSuite) TestSetBucketLog(c *C) {
 		BucketLoggingStatus: logStatus,
 		ContentType:         aws.String("application/xml"),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
 //获取bucket log
@@ -170,34 +189,35 @@ func (s *Ks3utilCommandSuite) TestGetBucketLog(c *C) {
 	resp, err := client.GetBucketLogging(&s3.GetBucketLoggingInput{
 		Bucket: aws.String(bucket),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp), err)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
 //遍历bucket
 func (s *Ks3utilCommandSuite) TestListBuckets(c *C) {
-	resp, _ := client.ListBuckets(nil)
+	resp, err := client.ListBuckets(&s3.ListBucketsInput{})
+	if err != nil {
+		panic(err)
+	}
 	//bucket列表
 	buckets := resp.Buckets
 	for i := 0; i < len(buckets); i++ {
 		fmt.Println(*buckets[i].Name)
-		//		fmt.Println(*buckets[i].Region)
+		// fmt.Println(*buckets[i].Region)
 	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
 //判断bucket是否存在
 func (s *Ks3utilCommandSuite) TestHeadBucket(c *C) {
-	resp, _ := client.HeadBucket(&s3.HeadBucketInput{
+	resp, err := client.HeadBucket(&s3.HeadBucketInput{
 		Bucket: aws.String(bucket),
 	})
-	fmt.Println("结果：\n", awsutil.StringValue(resp))
-}
-
-//删除bucket
-func (s *Ks3utilCommandSuite) TestDeleteBucket(c *C) {
-	resp, _ := client.DeleteBucket(&s3.DeleteBucketInput{
-		Bucket: aws.String(bucket),
-	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
@@ -279,36 +299,81 @@ func (s *Ks3utilCommandSuite) TestPutBucketMirrorRules(c *C) {
 			},
 		},
 	}
-	resp, _ := client.PutBucketMirror(params)
+	resp, err := client.PutBucketMirror(params)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 
 }
 
 //获取镜像回源规则
-func (s *Ks3utilCommandSuite) GetBucketMirrorRules(c *C) {
+func (s *Ks3utilCommandSuite) TestGetBucketMirrorRules(c *C) {
 
 	params := &s3.GetBucketMirrorInput{
 		Bucket: aws.String(bucket),
 	}
-	resp, _ := client.GetBucketMirror(params)
+	resp, err := client.GetBucketMirror(params)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
 //删除镜像回源规则
-func (s *Ks3utilCommandSuite) DeleteBucketMirrorRules(c *C) {
+func (s *Ks3utilCommandSuite) TestDeleteBucketMirrorRules(c *C) {
 
 	params := &s3.DeleteBucketMirrorInput{
 		Bucket: aws.String(bucket),
 	}
-	resp, _ := client.DeleteBucketMirror(params)
+	resp, err := client.DeleteBucketMirror(params)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
 //创建bucket 策略
 func (s *Ks3utilCommandSuite) TestCreateBucketPolicy(c *C) {
-	resp, _ := client.PutBucketPolicy(&s3.PutBucketPolicyInput{
+	resp, err := client.PutBucketPolicy(&s3.PutBucketPolicyInput{
 		Bucket: aws.String(bucket),
-		Policy: aws.String("{\"Statement\":[{\"Resource\":[\"krn:ksc:ks3:::aaaab/中文22prefix\"],\"Action\":[\"ks3:AbortMultipartUpload\",\"ks3:DeleteObject\"],\"Principal\":{\"KSC\":[\"*\"]},\"Effect\":\"Allow\"}]}"), //项目ID
+		Policy: aws.String("{\"Statement\":[{\"Resource\":[\"krn:ksc:ks3:::" + bucket + "/中文22prefix\"],\"Action\":[\"ks3:AbortMultipartUpload\",\"ks3:DeleteObject\"],\"Principal\":{\"KSC\":[\"*\"]},\"Effect\":\"Allow\"}]}"), //项目ID
 	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
+}
+
+//获取bucket 策略
+func (s *Ks3utilCommandSuite) TestGetBucketPolicy(c *C) {
+	resp, err := client.GetBucketPolicy(&s3.GetBucketPolicyInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
+}
+
+//删除bucket 策略
+func (s *Ks3utilCommandSuite) TestDeleteBucketPolicy(c *C) {
+	resp, err := client.DeleteBucketPolicy(&s3.DeleteBucketPolicyInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("结果：\n", awsutil.StringValue(resp))
+}
+
+//删除bucket
+func (s *Ks3utilCommandSuite) TestDeleteBucket(c *C) {
+	resp, err := client.DeleteBucket(&s3.DeleteBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }

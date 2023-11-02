@@ -82,6 +82,8 @@ type PutBucketLifecycleOutput struct {
 	metadataPutBucketLifecycleOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketLifecycleOutput struct {
@@ -104,6 +106,8 @@ type DeleteBucketLifecycleOutput struct {
 	metadataDeleteBucketLifecycleOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataDeleteBucketLifecycleOutput struct {
@@ -145,6 +149,8 @@ type GetBucketLifecycleOutput struct {
 	metadataGetBucketLifecycleOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataGetBucketLifecycleOutput struct {

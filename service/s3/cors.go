@@ -130,8 +130,9 @@ type metadataInput struct {
 }
 
 type GetBucketCORSOutput struct {
-	Metadata map[string]*string `location:"headers"  type:"map"`
-	Rules    []*GetCORSRule     `locationName:"CORSRule" type:"list" flattened:"true" xml:"CORSRule"`
+	Metadata   map[string]*string `location:"headers"  type:"map"`
+	Rules      []*GetCORSRule     `locationName:"CORSRule" type:"list" flattened:"true" xml:"CORSRule"`
+	StatusCode *int64             `location:"statusCode" type:"integer"`
 }
 type GetCORSRule struct {
 	AllowedHeader []*string `locationName:"AllowedHeader" type:"list" flattened:"true" `
@@ -148,6 +149,8 @@ type PutBucketCORSOutput struct {
 	metadataPutBucketCORSOutput `json:"-" xml:"-"`
 
 	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type metadataPutBucketCORSOutput struct {
@@ -160,4 +163,28 @@ type CORSRule struct {
 	AllowedOrigin []string `locationName:"AllowedOrigin" type:"list" flattened:"true"`
 	ExposeHeader  []string `locationName:"ExposeHeader" type:"list" flattened:"true"`
 	MaxAgeSeconds int64    `locationName:"MaxAgeSeconds" flattened:"true"` // Max cache ages in seconds
+}
+
+type DeleteBucketCORSInput struct {
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	metadataDeleteBucketCORSInput `json:"-" xml:"-"`
+}
+
+type metadataDeleteBucketCORSInput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+type DeleteBucketCORSOutput struct {
+	metadataDeleteBucketCORSOutput `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
+}
+
+type metadataDeleteBucketCORSOutput struct {
+	SDKShapeTraits bool `type:"structure"`
 }
