@@ -187,6 +187,13 @@ func (c *S3) DeleteBucketLifecycle(input *DeleteBucketLifecycleInput) (*DeleteBu
 	return out, err
 }
 
+func (c *S3) DeleteBucketLifecycleWithContext(ctx aws.Context, input *DeleteBucketLifecycleInput) (*DeleteBucketLifecycleOutput, error) {
+	req, out := c.DeleteBucketLifecycleRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opDeleteBucketLifecycle *aws.Operation
 
 // GetBucketLifecycleRequest generates a request for the GetBucketLifecycle operation.
@@ -215,6 +222,13 @@ func (c *S3) GetBucketLifecycleRequest(input *GetBucketLifecycleInput) (req *aws
 // Returns the lifecycle configuration information set on the bucket.
 func (c *S3) GetBucketLifecycle(input *GetBucketLifecycleInput) (*GetBucketLifecycleOutput, error) {
 	req, out := c.GetBucketLifecycleRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) GetBucketLifecycleWithContext(ctx aws.Context, input *GetBucketLifecycleInput) (*GetBucketLifecycleOutput, error) {
+	req, out := c.GetBucketLifecycleRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -248,6 +262,13 @@ func (c *S3) PutBucketLifecycleRequest(input *PutBucketLifecycleInput) (req *aws
 // exists, it replaces it.
 func (c *S3) PutBucketLifecycle(input *PutBucketLifecycleInput) (*PutBucketLifecycleOutput, error) {
 	req, out := c.PutBucketLifecycleRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) PutBucketLifecycleWithContext(ctx aws.Context, input *PutBucketLifecycleInput) (*PutBucketLifecycleOutput, error) {
+	req, out := c.PutBucketLifecycleRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }

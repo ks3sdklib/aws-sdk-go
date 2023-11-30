@@ -8,7 +8,7 @@ import (
 	. "gopkg.in/check.v1"
 )
 
-//创建bucket并关联项目
+// 创建bucket并关联项目
 func (s *Ks3utilCommandSuite) TestCreateBucket(c *C) {
 	resp, err := client.CreateBucket(&s3.CreateBucketInput{
 		ACL:    aws.String("public-read"),
@@ -22,7 +22,7 @@ func (s *Ks3utilCommandSuite) TestCreateBucket(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//判断bucket桶是否存在
+// 判断bucket桶是否存在
 func (s *Ks3utilCommandSuite) TestBucketExist(c *C) {
 
 	exist, err := client.HeadBucketExist(bucket)
@@ -33,7 +33,7 @@ func (s *Ks3utilCommandSuite) TestBucketExist(c *C) {
 	}
 }
 
-//设置bucketAcl
+// 设置bucketAcl
 func (s *Ks3utilCommandSuite) TestPutBucketAcl(c *C) {
 
 	resp, err := client.PutBucketACL(&s3.PutBucketACLInput{
@@ -46,7 +46,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketAcl(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//获取bucketAcl
+// 获取bucketAcl
 func (s *Ks3utilCommandSuite) TestGetBucketAcl(c *C) {
 	resp, err := client.GetBucketACL(&s3.GetBucketACLInput{
 		Bucket: aws.String(bucket),
@@ -55,10 +55,11 @@ func (s *Ks3utilCommandSuite) TestGetBucketAcl(c *C) {
 		panic(err)
 	}
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
+	fmt.Println("acl type：\n", s3.GetBucketAcl(*resp))
 
 }
 
-//设置bucket life rules
+// 设置bucket life rules
 func (s *Ks3utilCommandSuite) TestSetBucketLiferules(c *C) {
 
 	// 配置生命周期规则
@@ -110,7 +111,7 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketLifeRules(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//设置bucket cors
+// 设置bucket cors
 func (s *Ks3utilCommandSuite) TestSetBucketCors(c *C) {
 
 	// 配置CORS规则
@@ -141,7 +142,7 @@ func (s *Ks3utilCommandSuite) TestSetBucketCors(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//获取bucket cors
+// 获取bucket cors
 func (s *Ks3utilCommandSuite) TestGetBucketCors(c *C) {
 	resp, err := client.GetBucketCORS(&s3.GetBucketCORSInput{
 		Bucket: aws.String(bucket),
@@ -152,7 +153,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketCors(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//删除bucket cors
+// 删除bucket cors
 func (s *Ks3utilCommandSuite) TestDeleteBucketCors(c *C) {
 	resp, err := client.DeleteBucketCORS(&s3.DeleteBucketCORSInput{
 		Bucket: aws.String(bucket),
@@ -163,7 +164,7 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketCors(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//设置bucket log
+// 设置bucket log
 func (s *Ks3utilCommandSuite) TestSetBucketLog(c *C) {
 
 	logStatus := &s3.BucketLoggingStatus{
@@ -183,7 +184,7 @@ func (s *Ks3utilCommandSuite) TestSetBucketLog(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//获取bucket log
+// 获取bucket log
 func (s *Ks3utilCommandSuite) TestGetBucketLog(c *C) {
 
 	resp, err := client.GetBucketLogging(&s3.GetBucketLoggingInput{
@@ -195,7 +196,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketLog(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//遍历bucket
+// 遍历bucket
 func (s *Ks3utilCommandSuite) TestListBuckets(c *C) {
 	resp, err := client.ListBuckets(&s3.ListBucketsInput{})
 	if err != nil {
@@ -210,7 +211,7 @@ func (s *Ks3utilCommandSuite) TestListBuckets(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//判断bucket是否存在
+// 判断bucket是否存在
 func (s *Ks3utilCommandSuite) TestHeadBucket(c *C) {
 	resp, err := client.HeadBucket(&s3.HeadBucketInput{
 		Bucket: aws.String(bucket),
@@ -221,8 +222,8 @@ func (s *Ks3utilCommandSuite) TestHeadBucket(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//设置镜像回源规则
-//详情见API(https://docs.ksyun.com/documents/39134)
+// 设置镜像回源规则
+// 详情见API(https://docs.ksyun.com/documents/39134)
 func (s *Ks3utilCommandSuite) TestPutBucketMirrorRules(c *C) {
 
 	params := &s3.PutBucketMirrorInput{
@@ -307,7 +308,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketMirrorRules(c *C) {
 
 }
 
-//获取镜像回源规则
+// 获取镜像回源规则
 func (s *Ks3utilCommandSuite) TestGetBucketMirrorRules(c *C) {
 
 	params := &s3.GetBucketMirrorInput{
@@ -320,7 +321,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketMirrorRules(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//删除镜像回源规则
+// 删除镜像回源规则
 func (s *Ks3utilCommandSuite) TestDeleteBucketMirrorRules(c *C) {
 
 	params := &s3.DeleteBucketMirrorInput{
@@ -333,7 +334,7 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketMirrorRules(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//创建bucket 策略
+// 创建bucket 策略
 func (s *Ks3utilCommandSuite) TestCreateBucketPolicy(c *C) {
 	resp, err := client.PutBucketPolicy(&s3.PutBucketPolicyInput{
 		Bucket: aws.String(bucket),
@@ -345,7 +346,7 @@ func (s *Ks3utilCommandSuite) TestCreateBucketPolicy(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//获取bucket 策略
+// 获取bucket 策略
 func (s *Ks3utilCommandSuite) TestGetBucketPolicy(c *C) {
 	resp, err := client.GetBucketPolicy(&s3.GetBucketPolicyInput{
 		Bucket: aws.String(bucket),
@@ -356,7 +357,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketPolicy(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//删除bucket 策略
+// 删除bucket 策略
 func (s *Ks3utilCommandSuite) TestDeleteBucketPolicy(c *C) {
 	resp, err := client.DeleteBucketPolicy(&s3.DeleteBucketPolicyInput{
 		Bucket: aws.String(bucket),
@@ -367,7 +368,7 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketPolicy(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//删除bucket
+// 删除bucket
 func (s *Ks3utilCommandSuite) TestDeleteBucket(c *C) {
 	resp, err := client.DeleteBucket(&s3.DeleteBucketInput{
 		Bucket: aws.String(bucket),
