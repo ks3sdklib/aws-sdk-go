@@ -345,6 +345,43 @@ func (s *Ks3utilCommandSuite) TestRestoreObjectWithContext(c *C) {
 	os.Remove(object)
 }
 
+// GET Object To File
+func (s *Ks3utilCommandSuite) TestGetObjectToFileWithContext(c *C) {
+	object := randLowStr(10)
+	createFile(object, 1024*1024*20)
+	fd, _ := os.Open(object)
+	// put
+	_, err := client.PutObjectWithContext(context.Background(), &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		Body:   fd,
+	})
+	c.Assert(err, IsNil)
+	// head
+	_, err = client.GetObjectWithContext(context.Background(), &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	os.Remove(object)
+	tempFilePath := object
+	// 下载文件，不通过context取消
+	err = client.GetObjectToFileWithContext(context.Background(), bucket, object, tempFilePath, "")
+	os.Remove(object)
+	// 下载文件，通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), timeout)
+	defer cancelFunc()
+	err = client.GetObjectToFileWithContext(ctx, bucket, object, tempFilePath, "")
+	c.Assert(err, NotNil)
+	os.Remove(object + ".temp")
+	// delete
+	_, err = client.DeleteObjectWithContext(context.Background(), &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+}
+
 // s3manager Upload
 func (s *Ks3utilCommandSuite) TestUploadWithContext(c *C) {
 	object := randLowStr(10)
