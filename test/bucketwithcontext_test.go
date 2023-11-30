@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
+	"github.com/ks3sdklib/aws-sdk-go/aws/credentials"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	. "gopkg.in/check.v1"
 	"time"
@@ -962,6 +963,20 @@ func (s *Ks3utilCommandSuite) TestGetBucketLocationWithContext(c *C) {
 	// delete
 	_, err = client.DeleteBucketWithContext(context.Background(), &s3.DeleteBucketInput{
 		Bucket: aws.String(tempBucket),
+	})
+	c.Assert(err, IsNil)
+}
+
+// URL Redirect
+func (s *Ks3utilCommandSuite) TestURLRedirect(c *C) {
+	var cre = credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "")
+	client2 := s3.New(&aws.Config{
+		Credentials: cre,
+		Region:      "SHANGHAI",
+		Endpoint:    "ks3-cn-shanghai.ksyuncs.com",
+	})
+	_, err := client2.GetBucketACLWithContext(context.Background(), &s3.GetBucketACLInput{
+		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
 }
