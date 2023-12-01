@@ -130,19 +130,18 @@ func (c *S3) CreateBucketRequest(input *CreateBucketInput) (req *aws.Request, ou
 	oprw.Lock()
 	defer oprw.Unlock()
 
-	if opCreateBucket == nil {
-		if input.ProjectId == nil {
-			opCreateBucket = &aws.Operation{
-				Name:       "CreateBucket",
-				HTTPMethod: "PUT",
-				HTTPPath:   "/{Bucket}",
-			}
-		} else {
-			opCreateBucket = &aws.Operation{
-				Name:       "CreateBucket",
-				HTTPMethod: "PUT",
-				HTTPPath:   "/{Bucket}?projectId=" + *input.ProjectId,
-			}
+	var opCreateBucket *aws.Operation
+	if input.ProjectId == nil {
+		opCreateBucket = &aws.Operation{
+			Name:       "CreateBucket",
+			HTTPMethod: "PUT",
+			HTTPPath:   "/{Bucket}",
+		}
+	} else {
+		opCreateBucket = &aws.Operation{
+			Name:       "CreateBucket",
+			HTTPMethod: "PUT",
+			HTTPPath:   "/{Bucket}?projectId=" + *input.ProjectId,
 		}
 	}
 
@@ -162,8 +161,6 @@ func (c *S3) CreateBucket(input *CreateBucketInput) (*CreateBucketOutput, error)
 	err := req.Send()
 	return out, err
 }
-
-var opCreateBucket *aws.Operation
 
 // CreateMultipartUploadRequest generates a request for the CreateMultipartUpload operation.
 func (c *S3) CreateMultipartUploadRequest(input *CreateMultipartUploadInput) (req *aws.Request, output *CreateMultipartUploadOutput) {
@@ -1021,7 +1018,7 @@ func (c *S3) HeadBucket(input *HeadBucketInput) (*HeadBucketOutput, error) {
 	return out, err
 }
 
-//判断桶是否存在
+// 判断桶是否存在
 func (c *S3) HeadBucketExist(bucket string) (bool, error) {
 	var err error
 	req, _ := c.HeadBucketRequest(&HeadBucketInput{
@@ -1704,14 +1701,14 @@ func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
 	return out, err
 }
 
-//func (c *S3) PutObjectMD5Check(input *PutObjectInput) (*PutObjectOutput, error) {
+// func (c *S3) PutObjectMD5Check(input *PutObjectInput) (*PutObjectOutput, error) {
 //	req, out := c.PutObjectRequest(input)
 //	req.Handlers.Build.PushBack(contentMD5)
 //	err := req.Send()
 //	return out, err
-//}
+// }
 
-//生成链接
+// 生成链接
 func (c *S3) GeneratePresignedUrl(input *GeneratePresignedUrlInput) (url string, err error) {
 
 	opGeneratePresigned := &aws.Operation{
@@ -1743,7 +1740,7 @@ func (c *S3) GeneratePresignedUrl(input *GeneratePresignedUrlInput) (url string,
 	return req.HTTPRequest.URL.String(), nil
 }
 
-//生成链接（旧版本）
+// 生成链接（旧版本）
 func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url string) {
 
 	opGeneratePresigned := &aws.Operation{
@@ -5323,7 +5320,7 @@ type metadataWebsiteConfiguration struct {
 
 type Header map[string][]string
 
-//type Ks3WebServiceResponse struct {
+// type Ks3WebServiceResponse struct {
 //	HttpCode  int    `xml:"HttpCode"`
 //	Code      string `xml:"Code"`
 //	Message   string `xml:"Message"`
@@ -5331,7 +5328,7 @@ type Header map[string][]string
 //	RequestId string `xml:"RequestId"`
 //	Header    Header
 //	Body      []byte
-//}
+// }
 
 func (c *S3) SignedReq(req *http.Request, canonicalizedResource string) {
 
@@ -5438,7 +5435,7 @@ func GetAcl(resp GetObjectACLOutput) CannedAccessControlType {
 	}
 }
 
-//----obj tag start--
+// ----obj tag start--
 
 func (c *S3) DeleteObjectTaggingRequest(input *DeleteObjectTaggingInput) (req *aws.Request, output *DeleteObjectTaggingOutput) {
 	oprw.Lock()
@@ -5496,7 +5493,7 @@ type metadataDeleteObjectTaggingOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-//get 对象标签
+// get 对象标签
 func (c *S3) GetObjectTaggingRequest(input *GetObjectTaggingInput) (req *aws.Request, output *GetObjectTaggingOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
@@ -5556,7 +5553,7 @@ type metadataGetObjectTaggingOutput struct {
 	SDKShapeTraits bool `type:"structure" payload:"Tagging"`
 }
 
-//对象标签 put
+// 对象标签 put
 func (c *S3) PutObjectTaggingRequest(input *PutObjectTaggingInput) (req *aws.Request, output *PutObjectTaggingOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
@@ -5615,7 +5612,7 @@ type metadataPutObjectTaggingOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-//----obj tag end--
+// ----obj tag end--
 
 // FetchObjectRequest generates a request for the FetchObject operation.
 func (c *S3) FetchObjectRequest(input *FetchObjectInput) (req *aws.Request, output *FetchObjectOutput) {
@@ -5788,4 +5785,4 @@ type metadataFetchObjectOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-//--------fetch object end-------
+// --------fetch object end-------
