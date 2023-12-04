@@ -38,12 +38,6 @@ var (
 	out              = os.Stdout
 	errout           = os.Stderr
 	sleepTime        = time.Second
-
-	//accessKeyID     = "<accessKeyID>"
-	//accessKeySecret = "<accessKeySecret>"
-	//bucket          = "<bucketName>"
-	//endpoint        = "ks3-cn-beijing.ksyuncs.com"
-	//region          = "BEIJING"
 )
 
 var (
@@ -62,7 +56,7 @@ func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 		//Endpoint 可参考 https://docs.ksyun.com/documents/6761
 		Endpoint:         endpoint,
 		DisableSSL:       true, //是否禁用https
-		LogLevel:         1,    //是否开启日志,0为关闭日志，1为开启日志
+		LogLevel:         0,    //是否开启日志,0为关闭日志，1为开启日志
 		LogHTTPBody:      true, //是否把HTTP请求body打入日志
 		S3ForcePathStyle: false,
 		Logger:           nil,   //打日志的位置

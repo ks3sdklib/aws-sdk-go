@@ -20,7 +20,7 @@ var (
 	key_copy = randLowStr(10)
 )
 
-//列举bucket下对象
+// 列举bucket下对象
 func (s *Ks3utilCommandSuite) TestListObjects(c *C) {
 
 	resp, err := client.ListObjects(&s3.ListObjectsInput{
@@ -36,7 +36,8 @@ func (s *Ks3utilCommandSuite) TestListObjects(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-/**
+/*
+*
 上传示例 -可设置标签  acl
 */
 func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
@@ -71,7 +72,8 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 
 }
 
-/**
+/*
+*
 上传示例 -限速
 */
 func (s *Ks3utilCommandSuite) TestPutObjectByLimit(c *C) {
@@ -101,7 +103,8 @@ func (s *Ks3utilCommandSuite) TestPutObjectByLimit(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-/**
+/*
+*
 下载限速示例
 */
 func (s *Ks3utilCommandSuite) TestGetObjectByLimit(c *C) {
@@ -134,7 +137,8 @@ func (s *Ks3utilCommandSuite) TestGetObjectByLimit(c *C) {
 
 }
 
-/**
+/*
+*
 下载示例
 */
 func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
@@ -165,7 +169,7 @@ func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
 
 }
 
-//删除对象
+// 删除对象
 func (s *Ks3utilCommandSuite) TestDelObject(c *C) {
 
 	resp, err := client.DeleteObject(&s3.DeleteObjectInput{
@@ -178,7 +182,7 @@ func (s *Ks3utilCommandSuite) TestDelObject(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-//根据方法生成外链
+// 根据方法生成外链
 func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 
 	params := &s3.GeneratePresignedUrlInput{
@@ -197,7 +201,7 @@ func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 	fmt.Println("Result:\n", url)
 }
 
-//获取对象Acl
+// 获取对象Acl
 func (s *Ks3utilCommandSuite) TestGetObjectAcl(c *C) {
 
 	resp, err := client.GetObjectACL(&s3.GetObjectACLInput{
@@ -211,7 +215,7 @@ func (s *Ks3utilCommandSuite) TestGetObjectAcl(c *C) {
 	fmt.Println("acl type：\n", s3.GetAcl(*resp))
 }
 
-//设置对象Acl
+// 设置对象Acl
 func (s *Ks3utilCommandSuite) TestPutObjectAcl(c *C) {
 
 	resp, err := client.PutObjectACL(&s3.PutObjectACLInput{
@@ -226,7 +230,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectAcl(c *C) {
 
 }
 
-//复制对象
+// 复制对象
 func (s *Ks3utilCommandSuite) TestCopyObject(c *C) {
 
 	//设置对象Tag
@@ -255,7 +259,7 @@ func (s *Ks3utilCommandSuite) TestCopyObject(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-//分块拷贝用例
+// 分块拷贝用例
 func (s *Ks3utilCommandSuite) TestUploadPartCopy(c *C) {
 
 	dstKey := "xxx/copy/" + key
@@ -303,7 +307,7 @@ func (s *Ks3utilCommandSuite) TestUploadPartCopy(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(completeMultipartResp))
 }
 
-//抓取第三方URL上传到KS3
+// 抓取第三方URL上传到KS3
 func (s *Ks3utilCommandSuite) TestFetchObject(c *C) {
 	// 填写源站对象的url
 	sourceUrl := "https://img0.pconline.com.cn/pconline/1111/04/2483449_20061139501.jpg"
@@ -322,7 +326,7 @@ func (s *Ks3utilCommandSuite) TestFetchObject(c *C) {
 	fmt.Println("结果：\n", awsutil.StringValue(resp))
 }
 
-//修改元数据信息
+// 修改元数据信息
 func (s *Ks3utilCommandSuite) TestModifyObjectMeta(c *C) {
 	key_modify_meta := string("yourkey")
 
@@ -349,11 +353,11 @@ func (s *Ks3utilCommandSuite) TestModifyObjectMeta(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-//分块上传
-//此操作将启动一个分块上传任务并返回 upload ID。在一个确定的分块上传任务中，upload ID用于关联所有分块。连续分块上传请求中的 upload ID由用户指定。在Complete Multipart Upload 和 Abort Multipart Upload请求中同样包含 upload ID。
-//关于请求签名的问题，分块上传为一系列的请求（初始化分块上传，上传块，完成分块上传，终止分块上传），用户启动任务，发送一个或多个分块，最终完成任务。用户需要对每一个请求单独签名。
+// 分块上传
+// 此操作将启动一个分块上传任务并返回 upload ID。在一个确定的分块上传任务中，upload ID用于关联所有分块。连续分块上传请求中的 upload ID由用户指定。在Complete Multipart Upload 和 Abort Multipart Upload请求中同样包含 upload ID。
+// 关于请求签名的问题，分块上传为一系列的请求（初始化分块上传，上传块，完成分块上传，终止分块上传），用户启动任务，发送一个或多个分块，最终完成任务。用户需要对每一个请求单独签名。
 //
-//注意: 当你启动分块上传后，并开始上传分块，你必须完成或者放弃上传任务，才能终止因为存储造成的收费。
+// 注意: 当你启动分块上传后，并开始上传分块，你必须完成或者放弃上传任务，才能终止因为存储造成的收费。
 func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 
 	//MIN_BANDWIDTH := 1024 * 100 * 8 //100K bits/s
@@ -447,10 +451,10 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 
 }
 
-//上传加密
-//服务器端加密关乎静态数据加密，即 KS3 在将您的数据写入数据中心内的磁盘时会在对象级别上加密这些数据，并在您访问这些数据时为您解密这些数据。
-//只要您验证了您的请求并且拥有访问权限，您访问加密和未加密数据元的方式就没有区别。
-//例如，如果您使用预签名的 URL 来共享您的对象，那么对于加密和解密对象，该 URL 的工作方式是相同的。
+// 上传加密
+// 服务器端加密关乎静态数据加密，即 KS3 在将您的数据写入数据中心内的磁盘时会在对象级别上加密这些数据，并在您访问这些数据时为您解密这些数据。
+// 只要您验证了您的请求并且拥有访问权限，您访问加密和未加密数据元的方式就没有区别。
+// 例如，如果您使用预签名的 URL 来共享您的对象，那么对于加密和解密对象，该 URL 的工作方式是相同的。
 func (s *Ks3utilCommandSuite) TestPutObjectWithSSEC(c *C) {
 	resp, err := client.PutObject(&s3.PutObjectInput{
 		Bucket:               aws.String(bucket),
@@ -465,7 +469,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithSSEC(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-//判断文件是否存在
+// 判断文件是否存在
 func (s *Ks3utilCommandSuite) TestHeaObject(c *C) {
 
 	etag := s.uploadTmpFile(c)
@@ -486,7 +490,8 @@ func (s *Ks3utilCommandSuite) TestHeaObject(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-/**
+/*
+*
 批量删除对象
 */
 func (s *Ks3utilCommandSuite) TestDeleteObjects(c *C) {
@@ -514,7 +519,8 @@ func (s *Ks3utilCommandSuite) TestDeleteObjects(c *C) {
 	fmt.Println("deleted keys:", awsutil.StringValue(resp.Deleted))
 }
 
-/**
+/*
+*
 删除前缀
 */
 func (s *Ks3utilCommandSuite) TestDeleteBucketPrefix(c *C) {
@@ -532,7 +538,8 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketPrefix(c *C) {
 	fmt.Println("deleted keys:", awsutil.StringValue(resp.Deleted))
 }
 
-/**
+/*
+*
 删除前缀(包含三次重试)
 */
 func (s *Ks3utilCommandSuite) TestTryDeleteBucketPrefix(c *C) {
@@ -550,7 +557,7 @@ func (s *Ks3utilCommandSuite) TestTryDeleteBucketPrefix(c *C) {
 	fmt.Println("deleted keys:", awsutil.StringValue(resp.Deleted))
 }
 
-//文件解冻
+// 文件解冻
 func (s *Ks3utilCommandSuite) TestRestoreObject(c *C) {
 
 	params := &s3.RestoreObjectInput{
@@ -564,7 +571,7 @@ func (s *Ks3utilCommandSuite) TestRestoreObject(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-//delObjectTagging
+// delObjectTagging
 func (s *Ks3utilCommandSuite) TestDeleteObjectTagging(c *C) {
 
 	params := &s3.DeleteObjectTaggingInput{
@@ -578,7 +585,7 @@ func (s *Ks3utilCommandSuite) TestDeleteObjectTagging(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-//getObjectTagging
+// getObjectTagging
 func (s *Ks3utilCommandSuite) TestGetObjectTagging(c *C) {
 
 	params := &s3.GetObjectTaggingInput{
@@ -592,7 +599,7 @@ func (s *Ks3utilCommandSuite) TestGetObjectTagging(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-//设置对象Tag
+// 设置对象Tag
 func (s *Ks3utilCommandSuite) TestPutObjectTagging(c *C) {
 
 	//指定目标Object对象标签
@@ -618,7 +625,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectTagging(c *C) {
 	fmt.Println("result：\n", awsutil.StringValue(resp))
 }
 
-//上传文件夹
+// 上传文件夹
 func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
 
 	dir := "/Users/test/data/未命名文件夹"

@@ -129,6 +129,7 @@ func (c Config) Merge(newcfg *Config) *Config {
 	} else {
 		cfg.HTTPClient = c.HTTPClient
 	}
+	defaultHTTPRedirect(cfg.HTTPClient)
 
 	if newcfg.LogHTTPBody {
 		cfg.LogHTTPBody = newcfg.LogHTTPBody
