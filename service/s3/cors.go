@@ -37,6 +37,16 @@ func (c *S3) GetBucketCORS(input *GetBucketCORSInput) (*GetBucketCORSOutput, err
 	return out, err
 }
 
+func (c *S3) GetBucketCORSWithContext(ctx aws.Context, input *GetBucketCORSInput) (*GetBucketCORSOutput, error) {
+	req, out := c.GetBucketCORSRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	if req.Data != nil {
+		out = req.Data.(*GetBucketCORSOutput)
+	}
+	return out, err
+}
+
 var opGetBucketCORS *aws.Operation
 
 // DeleteBucketCORSRequest generates a request for the DeleteBucketCORS operation.
@@ -69,6 +79,13 @@ func (c *S3) DeleteBucketCORS(input *DeleteBucketCORSInput) (*DeleteBucketCORSOu
 	return out, err
 }
 
+func (c *S3) DeleteBucketCORSWithContext(ctx aws.Context, input *DeleteBucketCORSInput) (*DeleteBucketCORSOutput, error) {
+	req, out := c.DeleteBucketCORSRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opDeleteBucketCORS *aws.Operation
 
 // PutBucketCORSRequest generates a request for the PutBucketCORS operation.
@@ -96,6 +113,13 @@ func (c *S3) PutBucketCORSRequest(input *PutBucketCORSInput) (req *aws.Request, 
 // Sets the cors configuration for a bucket.
 func (c *S3) PutBucketCORS(input *PutBucketCORSInput) (*PutBucketCORSOutput, error) {
 	req, out := c.PutBucketCORSRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) PutBucketCORSWithContext(ctx aws.Context, input *PutBucketCORSInput) (*PutBucketCORSOutput, error) {
+	req, out := c.PutBucketCORSRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }

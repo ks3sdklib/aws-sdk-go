@@ -59,6 +59,13 @@ func (c *S3) AbortMultipartUpload(input *AbortMultipartUploadInput) (*AbortMulti
 	return out, err
 }
 
+func (c *S3) AbortMultipartUploadWithContext(ctx aws.Context, input *AbortMultipartUploadInput) (*AbortMultipartUploadOutput, error) {
+	req, out := c.AbortMultipartUploadRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opAbortMultipartUpload *aws.Operation
 
 // CompleteMultipartUploadRequest generates a request for the CompleteMultipartUpload operation.
@@ -87,6 +94,13 @@ func (c *S3) CompleteMultipartUploadRequest(input *CompleteMultipartUploadInput)
 // Completes a multipart upload by assembling previously uploaded parts.
 func (c *S3) CompleteMultipartUpload(input *CompleteMultipartUploadInput) (*CompleteMultipartUploadOutput, error) {
 	req, out := c.CompleteMultipartUploadRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) CompleteMultipartUploadWithContext(ctx aws.Context, input *CompleteMultipartUploadInput) (*CompleteMultipartUploadOutput, error) {
+	req, out := c.CompleteMultipartUploadRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -123,6 +137,13 @@ func (c *S3) CopyObject(input *CopyObjectInput) (*CopyObjectOutput, error) {
 	return out, err
 }
 
+func (c *S3) CopyObjectWithContext(ctx aws.Context, input *CopyObjectInput) (*CopyObjectOutput, error) {
+	req, out := c.CopyObjectRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opCopyObject *aws.Operation
 
 // CreateBucketRequest generates a request for the CreateBucket operation.
@@ -130,19 +151,18 @@ func (c *S3) CreateBucketRequest(input *CreateBucketInput) (req *aws.Request, ou
 	oprw.Lock()
 	defer oprw.Unlock()
 
-	if opCreateBucket == nil {
-		if input.ProjectId == nil {
-			opCreateBucket = &aws.Operation{
-				Name:       "CreateBucket",
-				HTTPMethod: "PUT",
-				HTTPPath:   "/{Bucket}",
-			}
-		} else {
-			opCreateBucket = &aws.Operation{
-				Name:       "CreateBucket",
-				HTTPMethod: "PUT",
-				HTTPPath:   "/{Bucket}?projectId=" + *input.ProjectId,
-			}
+	var opCreateBucket *aws.Operation
+	if input.ProjectId == nil {
+		opCreateBucket = &aws.Operation{
+			Name:       "CreateBucket",
+			HTTPMethod: "PUT",
+			HTTPPath:   "/{Bucket}",
+		}
+	} else {
+		opCreateBucket = &aws.Operation{
+			Name:       "CreateBucket",
+			HTTPMethod: "PUT",
+			HTTPPath:   "/{Bucket}?projectId=" + *input.ProjectId,
 		}
 	}
 
@@ -163,7 +183,12 @@ func (c *S3) CreateBucket(input *CreateBucketInput) (*CreateBucketOutput, error)
 	return out, err
 }
 
-var opCreateBucket *aws.Operation
+func (c *S3) CreateBucketWithContext(ctx aws.Context, input *CreateBucketInput) (*CreateBucketOutput, error) {
+	req, out := c.CreateBucketRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
 
 // CreateMultipartUploadRequest generates a request for the CreateMultipartUpload operation.
 func (c *S3) CreateMultipartUploadRequest(input *CreateMultipartUploadInput) (req *aws.Request, output *CreateMultipartUploadOutput) {
@@ -201,6 +226,13 @@ func (c *S3) CreateMultipartUpload(input *CreateMultipartUploadInput) (*CreateMu
 	return out, err
 }
 
+func (c *S3) CreateMultipartUploadWithContext(ctx aws.Context, input *CreateMultipartUploadInput) (*CreateMultipartUploadOutput, error) {
+	req, out := c.CreateMultipartUploadRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opCreateMultipartUpload *aws.Operation
 
 // DeleteBucketRequest generates a request for the DeleteBucket operation.
@@ -230,6 +262,13 @@ func (c *S3) DeleteBucketRequest(input *DeleteBucketInput) (req *aws.Request, ou
 // Markers) in the bucket must be deleted before the bucket itself can be deleted.
 func (c *S3) DeleteBucket(input *DeleteBucketInput) (*DeleteBucketOutput, error) {
 	req, out := c.DeleteBucketRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) DeleteBucketWithContext(ctx aws.Context, input *DeleteBucketInput) (*DeleteBucketOutput, error) {
+	req, out := c.DeleteBucketRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -266,6 +305,13 @@ func (c *S3) DeleteBucketPolicy(input *DeleteBucketPolicyInput) (*DeleteBucketPo
 	return out, err
 }
 
+func (c *S3) DeleteBucketPolicyWithContext(ctx aws.Context, input *DeleteBucketPolicyInput) (*DeleteBucketPolicyOutput, error) {
+	req, out := c.DeleteBucketPolicyRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opDeleteBucketPolicy *aws.Operation
 
 // DeleteBucketReplicationRequest generates a request for the DeleteBucketReplication operation.
@@ -293,6 +339,13 @@ func (c *S3) DeleteBucketReplicationRequest(input *DeleteBucketReplicationInput)
 
 func (c *S3) DeleteBucketReplication(input *DeleteBucketReplicationInput) (*DeleteBucketReplicationOutput, error) {
 	req, out := c.DeleteBucketReplicationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) DeleteBucketReplicationWithContext(ctx aws.Context, input *DeleteBucketReplicationInput) (*DeleteBucketReplicationOutput, error) {
+	req, out := c.DeleteBucketReplicationRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -329,6 +382,13 @@ func (c *S3) DeleteBucketTagging(input *DeleteBucketTaggingInput) (*DeleteBucket
 	return out, err
 }
 
+func (c *S3) DeleteBucketTaggingWithContext(ctx aws.Context, input *DeleteBucketTaggingInput) (*DeleteBucketTaggingOutput, error) {
+	req, out := c.DeleteBucketTaggingRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opDeleteBucketTagging *aws.Operation
 
 // DeleteBucketWebsiteRequest generates a request for the DeleteBucketWebsite operation.
@@ -357,6 +417,13 @@ func (c *S3) DeleteBucketWebsiteRequest(input *DeleteBucketWebsiteInput) (req *a
 // This operation removes the website configuration from the bucket.
 func (c *S3) DeleteBucketWebsite(input *DeleteBucketWebsiteInput) (*DeleteBucketWebsiteOutput, error) {
 	req, out := c.DeleteBucketWebsiteRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) DeleteBucketWebsiteWithContext(ctx aws.Context, input *DeleteBucketWebsiteInput) (*DeleteBucketWebsiteOutput, error) {
+	req, out := c.DeleteBucketWebsiteRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -391,6 +458,13 @@ func (c *S3) DeleteObjectRequest(input *DeleteObjectInput) (req *aws.Request, ou
 // null version, Amazon S3 does not remove any objects.
 func (c *S3) DeleteObject(input *DeleteObjectInput) (*DeleteObjectOutput, error) {
 	req, out := c.DeleteObjectRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) DeleteObjectWithContext(ctx aws.Context, input *DeleteObjectInput) (*DeleteObjectOutput, error) {
+	req, out := c.DeleteObjectRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -445,6 +519,31 @@ func (c *S3) DeleteObjects(input *DeleteObjectsInput) (*DeleteObjectsOutput, err
 	}
 	return output, nil
 }
+
+func (c *S3) DeleteObjectsWithContext(ctx aws.Context, input *DeleteObjectsInput) (*DeleteObjectsOutput, error) {
+	var errors []*Error
+	var okList []*DeletedObject
+	if input == nil {
+		input = &DeleteObjectsInput{}
+	}
+	for _, t := range input.Delete.Objects {
+		_, err := c.DeleteObjectWithContext(ctx, &DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
+		if input.IsReTurnResults != nil && *input.IsReTurnResults == true {
+			if err != nil {
+				aerr, _ := err.(awserr.Error)
+				errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
+			} else {
+				okList = append(okList, &DeletedObject{Key: t.Key})
+			}
+		}
+	}
+	output := &DeleteObjectsOutput{
+		Deleted: okList,
+		Errors:  errors,
+	}
+	return output, nil
+}
+
 func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
 
 	var errors []*Error
@@ -491,7 +590,54 @@ func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsO
 	return output, nil
 }
 
-/**
+func (c *S3) DeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
+
+	var errors []*Error
+	var okList []*DeletedObject
+
+	marker := aws.String("")
+	prefix := input.Prefix
+	var output = &DeleteObjectsOutput{
+		Deleted: okList,
+		Errors:  errors,
+	}
+	if input == nil {
+		input = &DeleteBucketPrefixInput{}
+	}
+	for {
+		resp, err := c.ListObjectsWithContext(ctx, &ListObjectsInput{
+			Bucket:  input.Bucket,
+			Prefix:  prefix,
+			Marker:  marker,
+			MaxKeys: aws.Long(1000),
+		})
+		if err == nil {
+			for _, t := range resp.Contents {
+				_, err := c.DeleteObjectWithContext(ctx, &DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
+				if input.IsReTurnResults != nil && *input.IsReTurnResults == true {
+					if err != nil {
+						aerr, _ := err.(awserr.Error)
+						errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
+						output.Errors = errors
+					} else {
+						okList = append(okList, &DeletedObject{Key: t.Key})
+						output.Deleted = okList
+					}
+				}
+			}
+			if *resp.IsTruncated == false {
+				break
+			}
+			marker = resp.Contents[999].Key
+		} else {
+			return output, err
+		}
+	}
+	return output, nil
+}
+
+/*
+*
 重试删除前缀
 */
 func (c *S3) TryDeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
@@ -501,15 +647,21 @@ func (c *S3) TryDeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjec
 	err := Do(func(attempt int) (bool, error) {
 		var err error
 		output, err = c.DeleteBucketPrefix(params)
-		if err != nil {
-			fmt.Println("DeleteBucketPrefix - ", err)
-		}
 		return attempt < 3, err // 重试3次
 	})
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	return output, nil
+	return output, err
+}
+
+func (c *S3) TryDeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
+
+	params := input
+	var output *DeleteObjectsOutput
+	err := Do(func(attempt int) (bool, error) {
+		var err error
+		output, err = c.DeleteBucketPrefixWithContext(ctx, params)
+		return attempt < 3, err // 重试3次
+	})
+	return output, err
 }
 
 var opDeleteObjects *aws.Operation
@@ -544,6 +696,13 @@ func (c *S3) GetBucketACL(input *GetBucketACLInput) (*GetBucketACLOutput, error)
 	return out, err
 }
 
+func (c *S3) GetBucketACLWithContext(ctx aws.Context, input *GetBucketACLInput) (*GetBucketACLOutput, error) {
+	req, out := c.GetBucketACLRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opGetBucketACL *aws.Operation
 
 // GetBucketLocationRequest generates a request for the GetBucketLocation operation.
@@ -572,6 +731,13 @@ func (c *S3) GetBucketLocationRequest(input *GetBucketLocationInput) (req *aws.R
 // Returns the region the bucket resides in.
 func (c *S3) GetBucketLocation(input *GetBucketLocationInput) (*GetBucketLocationOutput, error) {
 	req, out := c.GetBucketLocationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) GetBucketLocationWithContext(ctx aws.Context, input *GetBucketLocationInput) (*GetBucketLocationOutput, error) {
+	req, out := c.GetBucketLocationRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -609,6 +775,13 @@ func (c *S3) GetBucketLogging(input *GetBucketLoggingInput) (*GetBucketLoggingOu
 	return out, err
 }
 
+func (c *S3) GetBucketLoggingWithContext(ctx aws.Context, input *GetBucketLoggingInput) (*GetBucketLoggingOutput, error) {
+	req, out := c.GetBucketLoggingRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opGetBucketLogging *aws.Operation
 
 // GetBucketNotificationRequest generates a request for the GetBucketNotification operation.
@@ -637,6 +810,13 @@ func (c *S3) GetBucketNotificationRequest(input *GetBucketNotificationConfigurat
 // Deprecated, see the GetBucketNotificationConfiguration operation.
 func (c *S3) GetBucketNotification(input *GetBucketNotificationConfigurationRequest) (*NotificationConfigurationDeprecated, error) {
 	req, out := c.GetBucketNotificationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) GetBucketNotificationWithContext(ctx aws.Context, input *GetBucketNotificationConfigurationRequest) (*NotificationConfigurationDeprecated, error) {
+	req, out := c.GetBucketNotificationRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -673,6 +853,13 @@ func (c *S3) GetBucketNotificationConfiguration(input *GetBucketNotificationConf
 	return out, err
 }
 
+func (c *S3) GetBucketNotificationConfigurationWithContext(ctx aws.Context, input *GetBucketNotificationConfigurationRequest) (*NotificationConfiguration, error) {
+	req, out := c.GetBucketNotificationConfigurationRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opGetBucketNotificationConfiguration *aws.Operation
 
 // GetBucketPolicyRequest generates a request for the GetBucketPolicy operation.
@@ -705,6 +892,13 @@ func (c *S3) GetBucketPolicy(input *GetBucketPolicyInput) (*GetBucketPolicyOutpu
 	return out, err
 }
 
+func (c *S3) GetBucketPolicyWithContext(ctx aws.Context, input *GetBucketPolicyInput) (*GetBucketPolicyOutput, error) {
+	req, out := c.GetBucketPolicyRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opGetBucketPolicy *aws.Operation
 
 // GetBucketReplicationRequest generates a request for the GetBucketReplication operation.
@@ -732,6 +926,13 @@ func (c *S3) GetBucketReplicationRequest(input *GetBucketReplicationInput) (req 
 
 func (c *S3) GetBucketReplication(input *GetBucketReplicationInput) (*GetBucketReplicationOutput, error) {
 	req, out := c.GetBucketReplicationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) GetBucketReplicationWithContext(ctx aws.Context, input *GetBucketReplicationInput) (*GetBucketReplicationOutput, error) {
+	req, out := c.GetBucketReplicationRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -768,6 +969,13 @@ func (c *S3) GetBucketRequestPayment(input *GetBucketRequestPaymentInput) (*GetB
 	return out, err
 }
 
+func (c *S3) GetBucketRequestPaymentWithContext(ctx aws.Context, input *GetBucketRequestPaymentInput) (*GetBucketRequestPaymentOutput, error) {
+	req, out := c.GetBucketRequestPaymentRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opGetBucketRequestPayment *aws.Operation
 
 // GetBucketTaggingRequest generates a request for the GetBucketTagging operation.
@@ -796,6 +1004,13 @@ func (c *S3) GetBucketTaggingRequest(input *GetBucketTaggingInput) (req *aws.Req
 // Returns the tag set associated with the bucket.
 func (c *S3) GetBucketTagging(input *GetBucketTaggingInput) (*GetBucketTaggingOutput, error) {
 	req, out := c.GetBucketTaggingRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) GetBucketTaggingWithContext(ctx aws.Context, input *GetBucketTaggingInput) (*GetBucketTaggingOutput, error) {
+	req, out := c.GetBucketTaggingRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -832,6 +1047,13 @@ func (c *S3) GetBucketVersioning(input *GetBucketVersioningInput) (*GetBucketVer
 	return out, err
 }
 
+func (c *S3) GetBucketVersioningWithContext(ctx aws.Context, input *GetBucketVersioningInput) (*GetBucketVersioningOutput, error) {
+	req, out := c.GetBucketVersioningRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opGetBucketVersioning *aws.Operation
 
 // GetBucketWebsiteRequest generates a request for the GetBucketWebsite operation.
@@ -860,6 +1082,13 @@ func (c *S3) GetBucketWebsiteRequest(input *GetBucketWebsiteInput) (req *aws.Req
 // Returns the website configuration for a bucket.
 func (c *S3) GetBucketWebsite(input *GetBucketWebsiteInput) (*GetBucketWebsiteOutput, error) {
 	req, out := c.GetBucketWebsiteRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) GetBucketWebsiteWithContext(ctx aws.Context, input *GetBucketWebsiteInput) (*GetBucketWebsiteOutput, error) {
+	req, out := c.GetBucketWebsiteRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -895,6 +1124,14 @@ func (c *S3) GetObject(input *GetObjectInput) (*GetObjectOutput, error) {
 	err := req.Send()
 	return out, err
 }
+
+func (c *S3) GetObjectWithContext(ctx aws.Context, input *GetObjectInput) (*GetObjectOutput, error) {
+	req, out := c.GetObjectRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 func (c *S3) GetObjectToFile(bucket, objectKey, filePath, Range string) error {
 	tempFilePath := filePath + TempFileSuffix
 
@@ -905,6 +1142,35 @@ func (c *S3) GetObjectToFile(bucket, objectKey, filePath, Range string) error {
 	}
 	// Calls the API to actually download the object. Returns the result instance.
 	req, err := c.GetObject(getInput)
+	if err != nil {
+		return err
+	}
+	// If the local file does not exist, create a new one. If it exists, overwrite it.
+	fd, err := os.OpenFile(tempFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(0664))
+	if err != nil {
+		return err
+	}
+
+	// Copy the data to the local file path.
+	_, err = io.Copy(fd, req.Body)
+	fd.Close()
+	if err != nil {
+		return err
+	}
+
+	return os.Rename(tempFilePath, filePath)
+}
+
+func (c *S3) GetObjectToFileWithContext(ctx aws.Context, bucket, objectKey, filePath, Range string) error {
+	tempFilePath := filePath + TempFileSuffix
+
+	getInput := &GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(objectKey),
+		Range:  aws.String(Range),
+	}
+	// Calls the API to actually download the object. Returns the result instance.
+	req, err := c.GetObjectWithContext(ctx, getInput)
 	if err != nil {
 		return err
 	}
@@ -956,6 +1222,13 @@ func (c *S3) GetObjectACL(input *GetObjectACLInput) (*GetObjectACLOutput, error)
 	return out, err
 }
 
+func (c *S3) GetObjectACLWithContext(ctx aws.Context, input *GetObjectACLInput) (*GetObjectACLOutput, error) {
+	req, out := c.GetObjectACLRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opGetObjectACL *aws.Operation
 
 // GetObjectTorrentRequest generates a request for the GetObjectTorrent operation.
@@ -984,6 +1257,13 @@ func (c *S3) GetObjectTorrentRequest(input *GetObjectTorrentInput) (req *aws.Req
 // Return torrent files from a bucket.
 func (c *S3) GetObjectTorrent(input *GetObjectTorrentInput) (*GetObjectTorrentOutput, error) {
 	req, out := c.GetObjectTorrentRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) GetObjectTorrentWithContext(ctx aws.Context, input *GetObjectTorrentInput) (*GetObjectTorrentOutput, error) {
+	req, out := c.GetObjectTorrentRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -1021,12 +1301,32 @@ func (c *S3) HeadBucket(input *HeadBucketInput) (*HeadBucketOutput, error) {
 	return out, err
 }
 
-//判断桶是否存在
+func (c *S3) HeadBucketWithContext(ctx aws.Context, input *HeadBucketInput) (*HeadBucketOutput, error) {
+	req, out := c.HeadBucketRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
+// 判断桶是否存在
 func (c *S3) HeadBucketExist(bucket string) (bool, error) {
 	var err error
 	req, _ := c.HeadBucketRequest(&HeadBucketInput{
 		Bucket: aws.String(bucket),
 	})
+	err = req.Send()
+	if err == nil && req.HTTPResponse.StatusCode == 200 {
+		return true, nil
+	}
+	return false, err
+}
+
+func (c *S3) HeadBucketExistWithContext(ctx aws.Context, bucket string) (bool, error) {
+	var err error
+	req, _ := c.HeadBucketRequest(&HeadBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	req.SetContext(ctx)
 	err = req.Send()
 	if err == nil && req.HTTPResponse.StatusCode == 200 {
 		return true, nil
@@ -1068,6 +1368,13 @@ func (c *S3) HeadObject(input *HeadObjectInput) (*HeadObjectOutput, error) {
 	return out, err
 }
 
+func (c *S3) HeadObjectWithContext(ctx aws.Context, input *HeadObjectInput) (*HeadObjectOutput, error) {
+	req, out := c.HeadObjectRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opHeadObject *aws.Operation
 
 // ListBucketsRequest generates a request for the ListBuckets operation.
@@ -1096,6 +1403,13 @@ func (c *S3) ListBucketsRequest(input *ListBucketsInput) (req *aws.Request, outp
 // Returns a list of all buckets owned by the authenticated sender of the request.
 func (c *S3) ListBuckets(input *ListBucketsInput) (*ListBucketsOutput, error) {
 	req, out := c.ListBucketsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) ListBucketsWithContext(ctx aws.Context, input *ListBucketsInput) (*ListBucketsOutput, error) {
+	req, out := c.ListBucketsRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -1134,6 +1448,13 @@ func (c *S3) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) (req 
 // This operation lists in-progress multipart uploads.
 func (c *S3) ListMultipartUploads(input *ListMultipartUploadsInput) (*ListMultipartUploadsOutput, error) {
 	req, out := c.ListMultipartUploadsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) ListMultipartUploadsWithContext(ctx aws.Context, input *ListMultipartUploadsInput) (*ListMultipartUploadsOutput, error) {
+	req, out := c.ListMultipartUploadsRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -1179,6 +1500,13 @@ func (c *S3) ListObjectVersionsRequest(input *ListObjectVersionsInput) (req *aws
 // Returns metadata about all of the versions of objects in a bucket.
 func (c *S3) ListObjectVersions(input *ListObjectVersionsInput) (*ListObjectVersionsOutput, error) {
 	req, out := c.ListObjectVersionsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) ListObjectVersionsWithContext(ctx aws.Context, input *ListObjectVersionsInput) (*ListObjectVersionsOutput, error) {
+	req, out := c.ListObjectVersionsRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -1230,6 +1558,13 @@ func (c *S3) ListObjects(input *ListObjectsInput) (*ListObjectsOutput, error) {
 	return out, err
 }
 
+func (c *S3) ListObjectsWithContext(ctx aws.Context, input *ListObjectsInput) (*ListObjectsOutput, error) {
+	req, out := c.ListObjectsRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 func (c *S3) ListObjectsPages(input *ListObjectsInput, fn func(p *ListObjectsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListObjectsRequest(input)
 	return page.EachPage(func(p interface{}, lastPage bool) bool {
@@ -1275,6 +1610,13 @@ func (c *S3) ListParts(input *ListPartsInput) (*ListPartsOutput, error) {
 	return out, err
 }
 
+func (c *S3) ListPartsWithContext(ctx aws.Context, input *ListPartsInput) (*ListPartsOutput, error) {
+	req, out := c.ListPartsRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 func (c *S3) ListPartsPages(input *ListPartsInput, fn func(p *ListPartsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListPartsRequest(input)
 	return page.EachPage(func(p interface{}, lastPage bool) bool {
@@ -1314,6 +1656,13 @@ func (c *S3) PutBucketACL(input *PutBucketACLInput) (*PutBucketACLOutput, error)
 	return out, err
 }
 
+func (c *S3) PutBucketACLWithContext(ctx aws.Context, input *PutBucketACLInput) (*PutBucketACLOutput, error) {
+	req, out := c.PutBucketACLRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opPutBucketACL *aws.Operation
 
 // PutBucketLoggingRequest generates a request for the PutBucketLogging operation.
@@ -1344,6 +1693,13 @@ func (c *S3) PutBucketLoggingRequest(input *PutBucketLoggingInput) (req *aws.Req
 // a bucket, you must be the bucket owner.
 func (c *S3) PutBucketLogging(input *PutBucketLoggingInput) (*PutBucketLoggingOutput, error) {
 	req, out := c.PutBucketLoggingRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) PutBucketLoggingWithContext(ctx aws.Context, input *PutBucketLoggingInput) (*PutBucketLoggingOutput, error) {
+	req, out := c.PutBucketLoggingRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -1380,6 +1736,13 @@ func (c *S3) PutBucketNotification(input *PutBucketNotificationInput) (*PutBucke
 	return out, err
 }
 
+func (c *S3) PutBucketNotificationWithContext(ctx aws.Context, input *PutBucketNotificationInput) (*PutBucketNotificationOutput, error) {
+	req, out := c.PutBucketNotificationRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opPutBucketNotification *aws.Operation
 
 // PutBucketNotificationConfigurationRequest generates a request for the PutBucketNotificationConfiguration operation.
@@ -1408,6 +1771,13 @@ func (c *S3) PutBucketNotificationConfigurationRequest(input *PutBucketNotificat
 // Enables notifications of specified events for a bucket.
 func (c *S3) PutBucketNotificationConfiguration(input *PutBucketNotificationConfigurationInput) (*PutBucketNotificationConfigurationOutput, error) {
 	req, out := c.PutBucketNotificationConfigurationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) PutBucketNotificationConfigurationWithContext(ctx aws.Context, input *PutBucketNotificationConfigurationInput) (*PutBucketNotificationConfigurationOutput, error) {
+	req, out := c.PutBucketNotificationConfigurationRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -1445,6 +1815,13 @@ func (c *S3) PutBucketPolicy(input *PutBucketPolicyInput) (*PutBucketPolicyOutpu
 	return out, err
 }
 
+func (c *S3) PutBucketPolicyWithContext(ctx aws.Context, input *PutBucketPolicyInput) (*PutBucketPolicyOutput, error) {
+	req, out := c.PutBucketPolicyRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opPutBucketPolicy *aws.Operation
 
 // PutBucketReplicationRequest generates a request for the PutBucketReplication operation.
@@ -1474,6 +1851,13 @@ func (c *S3) PutBucketReplicationRequest(input *PutBucketReplicationInput) (req 
 // present).
 func (c *S3) PutBucketReplication(input *PutBucketReplicationInput) (*PutBucketReplicationOutput, error) {
 	req, out := c.PutBucketReplicationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) PutBucketReplicationWithContext(ctx aws.Context, input *PutBucketReplicationInput) (*PutBucketReplicationOutput, error) {
+	req, out := c.PutBucketReplicationRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -1514,6 +1898,13 @@ func (c *S3) PutBucketRequestPayment(input *PutBucketRequestPaymentInput) (*PutB
 	return out, err
 }
 
+func (c *S3) PutBucketRequestPaymentWithContext(ctx aws.Context, input *PutBucketRequestPaymentInput) (*PutBucketRequestPaymentOutput, error) {
+	req, out := c.PutBucketRequestPaymentRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opPutBucketRequestPayment *aws.Operation
 
 // PutBucketTaggingRequest generates a request for the PutBucketTagging operation.
@@ -1542,6 +1933,13 @@ func (c *S3) PutBucketTaggingRequest(input *PutBucketTaggingInput) (req *aws.Req
 // Sets the tags for a bucket.
 func (c *S3) PutBucketTagging(input *PutBucketTaggingInput) (*PutBucketTaggingOutput, error) {
 	req, out := c.PutBucketTaggingRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) PutBucketTaggingWithContext(ctx aws.Context, input *PutBucketTaggingInput) (*PutBucketTaggingOutput, error) {
+	req, out := c.PutBucketTaggingRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -1575,6 +1973,13 @@ func (c *S3) PutBucketVersioningRequest(input *PutBucketVersioningInput) (req *a
 // you must be the bucket owner.
 func (c *S3) PutBucketVersioning(input *PutBucketVersioningInput) (*PutBucketVersioningOutput, error) {
 	req, out := c.PutBucketVersioningRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) PutBucketVersioningWithContext(ctx aws.Context, input *PutBucketVersioningInput) (*PutBucketVersioningOutput, error) {
+	req, out := c.PutBucketVersioningRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -1651,6 +2056,13 @@ func (c *S3) PutBucketWebsite(input *PutBucketWebsiteInput) (*PutBucketWebsiteOu
 	return out, err
 }
 
+func (c *S3) PutBucketWebsiteWithContext(ctx aws.Context, input *PutBucketWebsiteInput) (*PutBucketWebsiteOutput, error) {
+	req, out := c.PutBucketWebsiteRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opPutBucketWebsite *aws.Operation
 
 // PutObjectRequest generates a request for the PutObject operation.
@@ -1675,7 +2087,22 @@ func (c *S3) PutObjectRequest(input *PutObjectInput) (req *aws.Request, output *
 	req.Data = output
 	return
 }
-func (c *S3) PutReader(input *PutReaderRequest) (*PutObjectOutput, error) {
+
+// Adds an object to a bucket.
+func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
+	req, out := c.PutObjectRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) PutObjectWithContext(ctx aws.Context, input *PutObjectInput) (*PutObjectOutput, error) {
+	req, out := c.PutObjectRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) PutReaderRequest(input *PutReaderRequest) (req *aws.Request, output *PutObjectOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
 
@@ -1690,28 +2117,35 @@ func (c *S3) PutReader(input *PutReaderRequest) (*PutObjectOutput, error) {
 	if input == nil {
 		input = &PutReaderRequest{}
 	}
-	out := &PutObjectOutput{}
-	req := c.newRequest(opPutObject, input, out)
-	req.Data = out
-	err := req.Send()
-	return out, err
+
+	req = c.newRequest(opPutObject, input, output)
+	output = &PutObjectOutput{}
+	req.Data = output
+	return
 }
 
 // Adds an object to a bucket.
-func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
-	req, out := c.PutObjectRequest(input)
+func (c *S3) PutReader(input *PutReaderRequest) (*PutObjectOutput, error) {
+	req, out := c.PutReaderRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-//func (c *S3) PutObjectMD5Check(input *PutObjectInput) (*PutObjectOutput, error) {
+func (c *S3) PutReaderWithContext(ctx aws.Context, input *PutReaderRequest) (*PutObjectOutput, error) {
+	req, out := c.PutReaderRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
+// func (c *S3) PutObjectMD5Check(input *PutObjectInput) (*PutObjectOutput, error) {
 //	req, out := c.PutObjectRequest(input)
 //	req.Handlers.Build.PushBack(contentMD5)
 //	err := req.Send()
 //	return out, err
-//}
+// }
 
-//生成链接
+// 生成链接
 func (c *S3) GeneratePresignedUrl(input *GeneratePresignedUrlInput) (url string, err error) {
 
 	opGeneratePresigned := &aws.Operation{
@@ -1743,7 +2177,7 @@ func (c *S3) GeneratePresignedUrl(input *GeneratePresignedUrlInput) (url string,
 	return req.HTTPRequest.URL.String(), nil
 }
 
-//生成链接（旧版本）
+// 生成链接（旧版本）
 func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url string) {
 
 	opGeneratePresigned := &aws.Operation{
@@ -1801,6 +2235,13 @@ func (c *S3) PutObjectACL(input *PutObjectACLInput) (*PutObjectACLOutput, error)
 	return out, err
 }
 
+func (c *S3) PutObjectACLWithContext(ctx aws.Context, input *PutObjectACLInput) (*PutObjectACLOutput, error) {
+	req, out := c.PutObjectACLRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opPutObjectACL *aws.Operation
 
 // RestoreObjectRequest generates a request for the RestoreObject operation.
@@ -1828,6 +2269,13 @@ func (c *S3) RestoreObjectRequest(input *RestoreObjectInput) (req *aws.Request, 
 
 func (c *S3) RestoreObject(input *RestoreObjectInput) (*RestoreObjectOutput, error) {
 	req, out := c.RestoreObjectRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) RestoreObjectWithContext(ctx aws.Context, input *RestoreObjectInput) (*RestoreObjectOutput, error) {
+	req, out := c.RestoreObjectRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -1870,6 +2318,13 @@ func (c *S3) UploadPart(input *UploadPartInput) (*UploadPartOutput, error) {
 	return out, err
 }
 
+func (c *S3) UploadPartWithContext(ctx aws.Context, input *UploadPartInput) (*UploadPartOutput, error) {
+	req, out := c.UploadPartRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opUploadPart *aws.Operation
 
 // UploadPartCopyRequest generates a request for the UploadPartCopy operation.
@@ -1898,6 +2353,13 @@ func (c *S3) UploadPartCopyRequest(input *UploadPartCopyInput) (req *aws.Request
 // Uploads a part by copying data from an existing object as data source.
 func (c *S3) UploadPartCopy(input *UploadPartCopyInput) (*UploadPartCopyOutput, error) {
 	req, out := c.UploadPartCopyRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) UploadPartCopyWithContext(ctx aws.Context, input *UploadPartCopyInput) (*UploadPartCopyOutput, error) {
+	req, out := c.UploadPartCopyRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -5323,16 +5785,6 @@ type metadataWebsiteConfiguration struct {
 
 type Header map[string][]string
 
-//type Ks3WebServiceResponse struct {
-//	HttpCode  int    `xml:"HttpCode"`
-//	Code      string `xml:"Code"`
-//	Message   string `xml:"Message"`
-//	Resource  string `xml:"Resource"`
-//	RequestId string `xml:"RequestId"`
-//	Header    Header
-//	Body      []byte
-//}
-
 func (c *S3) SignedReq(req *http.Request, canonicalizedResource string) {
 
 	ossHeadersMap := make(map[string]string)
@@ -5406,8 +5858,10 @@ func newHeaderSorter(m map[string]string) *headerSorter {
 	return hs
 }
 
-/**
-  ACL类型
+/*
+*
+
+	ACL类型
 */
 const AllUsersUri = "http://acs.amazonaws.com/groups/global/AllUsers"
 
@@ -5438,7 +5892,24 @@ func GetAcl(resp GetObjectACLOutput) CannedAccessControlType {
 	}
 }
 
-//----obj tag start--
+func GetBucketAcl(resp GetBucketACLOutput) CannedAccessControlType {
+
+	allUsersPermissions := map[string]*string{}
+	for _, value := range resp.Grants {
+		if value.Grantee.URI != nil && *value.Grantee.URI == AllUsersUri {
+			allUsersPermissions[*value.Permission] = value.Permission
+		}
+	}
+	_, read := allUsersPermissions["READ"]
+	_, write := allUsersPermissions["WRITE"]
+	if read && write {
+		return PublicReadWrite
+	} else if read {
+		return PublicRead
+	} else {
+		return Private
+	}
+}
 
 func (c *S3) DeleteObjectTaggingRequest(input *DeleteObjectTaggingInput) (req *aws.Request, output *DeleteObjectTaggingOutput) {
 	oprw.Lock()
@@ -5464,6 +5935,13 @@ func (c *S3) DeleteObjectTaggingRequest(input *DeleteObjectTaggingInput) (req *a
 
 func (c *S3) DeleteObjectTagging(input *DeleteObjectTaggingInput) (*DeleteObjectTaggingOutput, error) {
 	req, out := c.DeleteObjectTaggingRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) DeleteObjectTaggingWithContext(ctx aws.Context, input *DeleteObjectTaggingInput) (*DeleteObjectTaggingOutput, error) {
+	req, out := c.DeleteObjectTaggingRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -5496,7 +5974,7 @@ type metadataDeleteObjectTaggingOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-//get 对象标签
+// get 对象标签
 func (c *S3) GetObjectTaggingRequest(input *GetObjectTaggingInput) (req *aws.Request, output *GetObjectTaggingOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
@@ -5525,9 +6003,15 @@ func (c *S3) GetObjectTagging(input *GetObjectTaggingInput) (*GetObjectTaggingOu
 	return out, err
 }
 
+func (c *S3) GetObjectTaggingWithContext(ctx aws.Context, input *GetObjectTaggingInput) (*GetObjectTaggingOutput, error) {
+	req, out := c.GetObjectTaggingRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 var opGetObjectTagging *aws.Operation
 
-//
 type GetObjectTaggingInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -5556,7 +6040,7 @@ type metadataGetObjectTaggingOutput struct {
 	SDKShapeTraits bool `type:"structure" payload:"Tagging"`
 }
 
-//对象标签 put
+// 对象标签 put
 func (c *S3) PutObjectTaggingRequest(input *PutObjectTaggingInput) (req *aws.Request, output *PutObjectTaggingOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
@@ -5572,6 +6056,7 @@ func (c *S3) PutObjectTaggingRequest(input *PutObjectTaggingInput) (req *aws.Req
 	if input == nil {
 		input = &PutObjectTaggingInput{}
 	}
+	input.ContentType = aws.String("application/xml")
 	req = c.newRequest(opPutObjectTagging, input, output)
 	output = &PutObjectTaggingOutput{}
 	req.Data = output
@@ -5579,8 +6064,14 @@ func (c *S3) PutObjectTaggingRequest(input *PutObjectTaggingInput) (req *aws.Req
 }
 
 func (c *S3) PutObjectTagging(input *PutObjectTaggingInput) (*PutObjectTaggingOutput, error) {
-	input.ContentType = aws.String("application/xml")
 	req, out := c.PutObjectTaggingRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) PutObjectTaggingWithContext(ctx aws.Context, input *PutObjectTaggingInput) (*PutObjectTaggingOutput, error) {
+	req, out := c.PutObjectTaggingRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -5615,7 +6106,7 @@ type metadataPutObjectTaggingOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-//----obj tag end--
+// ----obj tag end--
 
 // FetchObjectRequest generates a request for the FetchObject operation.
 func (c *S3) FetchObjectRequest(input *FetchObjectInput) (req *aws.Request, output *FetchObjectOutput) {
@@ -5642,6 +6133,13 @@ func (c *S3) FetchObjectRequest(input *FetchObjectInput) (req *aws.Request, outp
 
 func (c *S3) FetchObject(input *FetchObjectInput) (*FetchObjectOutput, error) {
 	req, out := c.FetchObjectRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) FetchObjectWithContext(ctx aws.Context, input *FetchObjectInput) (*FetchObjectOutput, error) {
+	req, out := c.FetchObjectRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
@@ -5788,4 +6286,4 @@ type metadataFetchObjectOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-//--------fetch object end-------
+// --------fetch object end-------

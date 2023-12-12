@@ -19,7 +19,13 @@ type S3 struct {
 var initService func(*aws.Service)
 
 // Used for custom request initialization logic
-var initRequest func(*aws.Request)
+var initRequest = func(r *aws.Request) {
+	switch r.Operation.Name {
+	case "GetBucketLocation":
+		// GetBucketLocation has custom parsing logic
+		r.Handlers.Unmarshal.PushFront(buildGetBucketLocation)
+	}
+}
 
 // New returns a new S3 client.
 func New(config *aws.Config) *S3 {
@@ -31,9 +37,7 @@ func New(config *aws.Config) *S3 {
 	service.Initialize()
 
 	// Handlers
-	if config.SignerVersion == "V4" {
-		service.Handlers.Sign.PushBack(v4.Sign)
-	} else if config.SignerVersion == "V4_UNSIGNED_PAYLOAD_SIGNER" {
+	if service.Config.SignerVersion == "V4" || service.Config.SignerVersion == "V4_UNSIGNED_PAYLOAD_SIGNER" {
 		service.Handlers.Sign.PushBack(v4.Sign)
 	} else {
 		service.Handlers.Sign.PushBack(v2.Sign)
