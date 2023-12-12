@@ -64,7 +64,7 @@ type multiUploadError struct {
 
 // Error returns the string representation of the error.
 //
-// See apierr.BaseError ErrorWithExtra for output format
+// # See apierr.BaseError ErrorWithExtra for output format
 //
 // Satisfies the error interface.
 func (m multiUploadError) Error() string {
@@ -218,6 +218,16 @@ type UploadOptions struct {
 func NewUploader(opts *UploadOptions) *Uploader {
 	if opts == nil {
 		opts = DefaultUploadOptions
+	} else {
+		if opts.PartSize == 0 {
+			opts.PartSize = DefaultUploadOptions.PartSize
+		}
+		if opts.Parallel == 0 {
+			opts.Parallel = DefaultUploadOptions.Parallel
+		}
+		if opts.Jobs == 0 {
+			opts.Jobs = DefaultUploadOptions.Jobs
+		}
 	}
 	return &Uploader{opts: opts}
 }
@@ -237,7 +247,11 @@ type Uploader struct {
 // It is safe to call this method for multiple objects and across concurrent
 // goroutines.
 func (u *Uploader) Upload(input *UploadInput) (*UploadOutput, error) {
-	i := uploader{in: input, opts: *u.opts}
+	return u.UploadWithContext(aws.BackgroundContext(), input)
+}
+
+func (u Uploader) UploadWithContext(ctx aws.Context, input *UploadInput) (*UploadOutput, error) {
+	i := uploader{in: input, opts: *u.opts, ctx: ctx}
 	return i.upload()
 }
 
@@ -245,6 +259,7 @@ func (u *Uploader) Upload(input *UploadInput) (*UploadOutput, error) {
 type uploader struct {
 	in   *UploadInput
 	opts UploadOptions
+	ctx  aws.Context
 
 	readerPos int64 // current reader position
 	totalSize int64 // set to -1 if the size is not known
@@ -255,8 +270,13 @@ type uploader struct {
 func (u *uploader) upload() (*UploadOutput, error) {
 	u.init()
 
-	if u.in.Size <= MinUploadPartSize {
+	if u.in.Size != 0 {
 		u.opts.PartSize = u.in.Size
+	}
+
+	if u.opts.PartSize < MinUploadPartSize {
+		msg := fmt.Sprintf("part size must be at least %d bytes", MinUploadPartSize)
+		return nil, awserr.New("ConfigError", msg, nil)
 	}
 
 	// Do one read to determine if we have more than one part
@@ -325,6 +345,7 @@ func (u *uploader) nextReader() (io.ReadSeeker, error) {
 
 			if bytesLeft == 0 {
 				err = io.EOF
+				n = bytesLeft
 			} else if bytesLeft <= u.opts.PartSize {
 				err = io.ErrUnexpectedEOF
 				n = bytesLeft
@@ -354,6 +375,7 @@ func (u *uploader) singlePart(buf io.ReadSeeker) (*UploadOutput, error) {
 	params.Body = buf
 
 	req, _ := u.opts.S3.PutObjectRequest(params)
+	req.SetContext(u.ctx)
 	if err := req.Send(); err != nil {
 		return nil, err
 	}
@@ -393,7 +415,7 @@ func (u *multiuploader) upload(firstBuf io.ReadSeeker) (*UploadOutput, error) {
 	awsutil.Copy(params, u.in)
 
 	// Create the multipart
-	resp, err := u.opts.S3.CreateMultipartUpload(params)
+	resp, err := u.opts.S3.CreateMultipartUploadWithContext(u.ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -480,7 +502,7 @@ func (u *multiuploader) readChunk(ch chan chunk) {
 // send performs an UploadPart request and keeps track of the completed
 // part information.
 func (u *multiuploader) send(c chunk) error {
-	resp, err := u.opts.S3.UploadPart(&s3.UploadPartInput{
+	resp, err := u.opts.S3.UploadPartWithContext(u.ctx, &s3.UploadPartInput{
 		Bucket:     u.in.Bucket,
 		Key:        u.in.Key,
 		Body:       c.buf,
@@ -524,7 +546,7 @@ func (u *multiuploader) fail() {
 		return
 	}
 
-	u.opts.S3.AbortMultipartUpload(&s3.AbortMultipartUploadInput{
+	u.opts.S3.AbortMultipartUploadWithContext(u.ctx, &s3.AbortMultipartUploadInput{
 		Bucket:   u.in.Bucket,
 		Key:      u.in.Key,
 		UploadID: &u.uploadID,
@@ -541,7 +563,7 @@ func (u *multiuploader) complete() *s3.CompleteMultipartUploadOutput {
 	// Parts must be sorted in PartNumber order.
 	sort.Sort(u.parts)
 
-	resp, err := u.opts.S3.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
+	resp, err := u.opts.S3.CompleteMultipartUploadWithContext(u.ctx, &s3.CompleteMultipartUploadInput{
 		Bucket:          u.in.Bucket,
 		Key:             u.in.Key,
 		UploadID:        &u.uploadID,
@@ -556,6 +578,10 @@ func (u *multiuploader) complete() *s3.CompleteMultipartUploadOutput {
 }
 
 func (uploader *Uploader) UploadDir(rootDir string, bucket, prefix string) error {
+	return uploader.UploadDirWithContext(aws.BackgroundContext(), rootDir, bucket, prefix)
+}
+
+func (uploader *Uploader) UploadDirWithContext(ctx aws.Context, rootDir string, bucket, prefix string) error {
 
 	if !strings.HasSuffix(prefix, "/") && len(prefix) > 0 {
 		prefix = prefix + "/"
@@ -574,7 +600,7 @@ func (uploader *Uploader) UploadDir(rootDir string, bucket, prefix string) error
 			defer consumerWgc.Done()
 			for file := range chFiles {
 				fileCounter.addTotalNum(1)
-				uploader.upload(file, &fileCounter)
+				uploader.upload(ctx, file, &fileCounter)
 			}
 		}()
 	}
@@ -620,7 +646,7 @@ func (uploader *Uploader) toAbs(rootDir string) (string, error) {
 	return rootDir, nil
 }
 
-func (uploader *Uploader) uploadFile(fileIfo fileInfoType, call func(success bool)) {
+func (uploader *Uploader) uploadFile(ctx aws.Context, fileIfo fileInfoType, call func(success bool)) {
 
 	file, err := os.Open(fileIfo.filePath)
 	if err != nil {
@@ -628,7 +654,7 @@ func (uploader *Uploader) uploadFile(fileIfo fileInfoType, call func(success boo
 	}
 	defer file.Close()
 	if uploader.opts.SkipAlreadyFile {
-		resp, err := uploader.opts.S3.HeadObject(&s3.HeadObjectInput{
+		resp, err := uploader.opts.S3.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
 			Bucket: aws.String(fileIfo.bucket),
 			Key:    aws.String(fileIfo.objectKey),
 		})
@@ -637,7 +663,7 @@ func (uploader *Uploader) uploadFile(fileIfo fileInfoType, call func(success boo
 			return
 		}
 	}
-	_, err = uploader.Upload(&UploadInput{
+	_, err = uploader.UploadWithContext(ctx, &UploadInput{
 		Body:   file,
 		Bucket: aws.String(fileIfo.bucket),
 		Key:    aws.String(fileIfo.objectKey),
@@ -653,8 +679,8 @@ func makeObjectName(RootDir, Prefix, filePath string) string {
 	return objectName
 }
 
-func (uploader *Uploader) upload(file fileInfoType, fileCounter *FileCounter) {
-	uploader.uploadFile(file, func(success bool) {
+func (uploader *Uploader) upload(ctx aws.Context, file fileInfoType, fileCounter *FileCounter) {
+	uploader.uploadFile(ctx, file, func(success bool) {
 		if success {
 			fileCounter.addSuccessNum(1)
 			fmt.Println(fmt.Sprintf("%s successfully uploaded ", file.objectKey))

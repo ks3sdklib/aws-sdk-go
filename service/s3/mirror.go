@@ -4,7 +4,7 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 )
 
-//--------镜像回源-------
+// --------镜像回源-------
 type BucketMirror struct {
 	Version          *string            `json:"version" type:"string" locationName:"version"`
 	UseDefaultRobots *bool              `json:"use_default_robots" locationName:"use_default_robots"`
@@ -129,6 +129,13 @@ func (c *S3) PutBucketMirror(input *PutBucketMirrorInput) (*PutBucketMirrorOutpu
 	return out, err
 }
 
+func (c *S3) PutBucketMirrorWithContext(ctx aws.Context, input *PutBucketMirrorInput) (*PutBucketMirrorOutput, error) {
+	req, out := c.PutBucketMirrorRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 func (c *S3) GetBucketMirrorRequest(input *GetBucketMirrorInput) (req *aws.Request, output *GetBucketMirrorOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
@@ -156,6 +163,13 @@ func (c *S3) GetBucketMirror(input *GetBucketMirrorInput) (*GetBucketMirrorOutpu
 	return out, err
 }
 
+func (c *S3) GetBucketMirrorWithContext(ctx aws.Context, input *GetBucketMirrorInput) (*GetBucketMirrorOutput, error) {
+	req, out := c.GetBucketMirrorRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
 func (c *S3) DeleteBucketMirrorRequest(input *DeleteBucketMirrorInput) (req *aws.Request, output *DeleteBucketMirrorOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
@@ -177,6 +191,12 @@ func (c *S3) DeleteBucketMirrorRequest(input *DeleteBucketMirrorInput) (req *aws
 
 func (c *S3) DeleteBucketMirror(input *DeleteBucketMirrorInput) (*DeleteBucketMirrorOutput, error) {
 	req, out := c.DeleteBucketMirrorRequest(input)
+	err := req.Send()
+	return out, err
+}
+func (c *S3) DeleteBucketMirrorWithContext(ctx aws.Context, input *DeleteBucketMirrorInput) (*DeleteBucketMirrorOutput, error) {
+	req, out := c.DeleteBucketMirrorRequest(input)
+	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
 }
