@@ -2031,6 +2031,8 @@ type GeneratePresignedUrlInput struct {
 	// A standard MIME type describing the format of the object data.
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	ContentMd5 *string `location:"header" locationName:"Content-Md5" type:"string"`
+
 	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
 
 	// A map of metadata to store with the object in S3.

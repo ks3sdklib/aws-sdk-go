@@ -6,11 +6,14 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util/utilfile"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3manager"
 	. "gopkg.in/check.v1"
+	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -199,6 +202,36 @@ func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 		panic(err)
 	}
 	fmt.Println("Result:\n", url)
+}
+
+// 根据外链PUT上传
+func (s *Ks3utilCommandSuite) TestGeneratePUTPresignedUrl(c *C) {
+	text := "test content"
+	md5 := utilfile.GetStrMD5(text)
+	url, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
+		Bucket:      aws.String(bucket),       // 设置 bucket 名称
+		Key:         aws.String(key),          // 设置 object key
+		ContentType: aws.String("text/plain"), //如果是PUT方法，需要设置content-type
+		ContentMd5:  aws.String(md5),          // 文件的MD5
+		Expires:     3600,                     // 过期时间
+		HTTPMethod:  s3.PUT,                   //可选值有 PUT, GET, DELETE, HEAD
+	})
+	c.Assert(err, IsNil)
+	// 通过外链上传
+	httpReq, err := http.NewRequest("PUT", url, strings.NewReader(text))
+	if err != nil {
+		panic(err)
+	}
+	// 生成外链时传入的请求头参数需要与此处保持一致
+	httpReq.Header.Add("Content-Type", "text/plain")
+	httpReq.Header.Add("Content-MD5", md5)
+	_, err = http.DefaultClient.Do(httpReq)
+	c.Assert(err, IsNil)
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	c.Assert(err, IsNil)
 }
 
 // 获取对象Acl
