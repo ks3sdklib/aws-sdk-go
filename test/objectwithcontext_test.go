@@ -1401,3 +1401,20 @@ func (s *Ks3utilCommandSuite) TestDeleteObjectTaggingWithContext(c *C) {
 	c.Assert(err, IsNil)
 	os.Remove(object)
 }
+
+// Append Object
+func (s *Ks3utilCommandSuite) TestAppendObjectWithContext(c *C) {
+	object := randLowStr(10)
+	createFile(object, 1024*1024*10)
+	fd, _ := os.Open(object)
+	// 追加上传对象，不通过context取消
+	_, err := client.AppendObjectWithContext(context.Background(), &s3.AppendObjectInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(object),
+		Position: aws.Long(0),
+		ACL:      aws.String("public-read"),
+		Body:     fd,
+	})
+	c.Assert(err, IsNil)
+	os.Remove(object)
+}

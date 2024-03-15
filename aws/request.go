@@ -3,8 +3,9 @@ package aws
 import (
 	"bytes"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
+	"github.com/ks3sdklib/aws-sdk-go/internal/crc"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -132,7 +133,9 @@ func (r *Request) SetStringBody(s string) {
 
 // SetReaderBody will set the request's body reader.
 func (r *Request) SetReaderBody(reader io.ReadSeeker) {
-	r.HTTPRequest.Body = ioutil.NopCloser(reader)
+	crc := crc.NewCRC(crc.CrcTable(), 0)
+	teeReader := util.TeeReader(reader, crc)
+	r.HTTPRequest.Body = teeReader
 	r.Body = reader
 }
 
