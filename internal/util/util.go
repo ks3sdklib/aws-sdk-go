@@ -1,4 +1,4 @@
-package utilfile
+package util
 
 import (
 	"crypto/md5"
@@ -6,7 +6,16 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
+	"regexp"
+	"sort"
+	"strings"
 )
+
+var reTrim = regexp.MustCompile(`\s{2,}`)
+
+func Trim(s string) string {
+	return strings.TrimSpace(reTrim.ReplaceAllString(s, " "))
+}
 
 func GetFileMD5(filePath string) (string, error) {
 	file, err := os.Open(filePath)
@@ -36,4 +45,15 @@ func GetStrMD5(str string) string {
 	base64Str := base64.StdEncoding.EncodeToString(md5Hash)
 
 	return base64Str
+}
+
+// SortedKeys returns a sorted slice of keys of a map.
+func SortedKeys(m map[string]interface{}) []string {
+	i, sorted := 0, make([]string, len(m))
+	for k := range m {
+		sorted[i] = k
+		i++
+	}
+	sort.Strings(sorted)
+	return sorted
 }

@@ -2,14 +2,13 @@ package aws
 
 import (
 	"context"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 )
 
 type Context = context.Context
 
 // SetContext adds a Context to the current request that can be used to cancel
-func (r *Request) SetContext(ctx aws.Context) {
+func (r *Request) SetContext(ctx Context) {
 	if ctx == nil {
 		r.Error = apierr.New("InvalidParameter", "context cannot be nil", nil)
 	}

@@ -2,7 +2,6 @@ package aws
 
 import (
 	"bytes"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"io"
 	"io/ioutil"
@@ -33,7 +32,7 @@ type Request struct {
 	RetryDelay   time.Duration
 
 	built   bool
-	context aws.Context
+	context Context
 }
 
 // An Operation is the service API operation to be made.

@@ -2,8 +2,8 @@ package lib
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
+	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	. "gopkg.in/check.v1"
 )
