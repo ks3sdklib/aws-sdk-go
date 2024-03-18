@@ -50,20 +50,18 @@ func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 	fmt.Printf("set up Ks3utilCommandSuite\n")
 	var cre = credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "") //online
 	client = s3.New(&aws.Config{
-		//Region 可参考 https://docs.ksyun.com/documents/6761
-		Region:      region,
-		Credentials: cre,
-		//Endpoint 可参考 https://docs.ksyun.com/documents/6761
-		Endpoint:         endpoint,
-		DisableSSL:       true, //是否禁用https
-		LogLevel:         0,    //是否开启日志,0为关闭日志，1为开启日志
-		LogHTTPBody:      true, //是否把HTTP请求body打入日志
-		S3ForcePathStyle: false,
-		Logger:           nil,   //打日志的位置
-		DomainMode:       false, //是否开启自定义bucket绑定域名，当开启时 S3ForcePathStyle 参数不生效。
-		//可选值有 ： V2 OR V4 OR V4_UNSIGNED_PAYLOAD_SIGNER
-		SignerVersion: "V2",
-		MaxRetries:    1,
+		Credentials:      cre,      // 访问凭证
+		Region:           region,   // 填写您的Region
+		Endpoint:         endpoint, // 填写您的Endpoint
+		DisableSSL:       false,    // 是否禁用HTTPS，默认值为false
+		LogLevel:         0,        // 是否开启日志,0为关闭日志，1为开启日志，默认值为0
+		LogHTTPBody:      false,    // 是否把HTTP请求body打入日志，默认值为false
+		Logger:           nil,      // 日志输出位置，可设置指定文件
+		S3ForcePathStyle: false,    // 是否使用二级域名，默认值为false
+		DomainMode:       false,    // 是否开启自定义Bucket绑定域名，当开启时S3ForcePathStyle参数不生效，默认值为false
+		SignerVersion:    "V2",     // 签名方式可选值有：V2 OR V4 OR V4_UNSIGNED_PAYLOAD_SIGNER，默认值为V2
+		MaxRetries:       1,        // 请求失败时最大重试次数，默认请求失败时不重试
+		IsEnableCRC64:    true,     // 是否开启CRC64校验，默认值为false
 	})
 
 	//创建测试文件

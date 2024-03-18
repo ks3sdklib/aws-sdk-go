@@ -11,6 +11,8 @@ import (
 type S3API interface {
 	AbortMultipartUpload(*s3.AbortMultipartUploadInput) (*s3.AbortMultipartUploadOutput, error)
 
+	AppendObject(input *s3.AppendObjectInput) (*s3.AppendObjectOutput, error)
+
 	CompleteMultipartUpload(*s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error)
 
 	CopyObject(*s3.CopyObjectInput) (*s3.CopyObjectOutput, error)

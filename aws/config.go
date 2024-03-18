@@ -59,6 +59,7 @@ type Config struct {
 	S3ForcePathStyle        bool
 	DomainMode              bool
 	SignerVersion           string
+	IsEnableCRC64           bool
 }
 
 // Copy will return a shallow copy of the Config object.
@@ -79,6 +80,7 @@ func (c Config) Copy() Config {
 	dst.S3ForcePathStyle = c.S3ForcePathStyle
 	dst.DomainMode = c.DomainMode
 	dst.SignerVersion = c.SignerVersion
+	dst.IsEnableCRC64 = c.IsEnableCRC64
 	return dst
 }
 
@@ -182,6 +184,11 @@ func (c Config) Merge(newcfg *Config) *Config {
 		cfg.SignerVersion = newcfg.SignerVersion
 	} else {
 		cfg.SignerVersion = c.SignerVersion
+	}
+	if newcfg.IsEnableCRC64 {
+		cfg.IsEnableCRC64 = newcfg.IsEnableCRC64
+	} else {
+		cfg.IsEnableCRC64 = c.IsEnableCRC64
 	}
 	return &cfg
 }

@@ -1,6 +1,8 @@
 package util
 
-import "io"
+import (
+	"io"
+)
 
 type teeReader struct {
 	reader io.Reader

@@ -358,11 +358,11 @@ func (s *Ks3utilCommandSuite) TestGetObjectToFileWithContext(c *C) {
 	})
 	c.Assert(err, IsNil)
 	// head
-	_, err = client.GetObjectWithContext(context.Background(), &s3.GetObjectInput{
+	resp, err := client.HeadObjectWithContext(context.Background(), &s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
 	})
-	c.Assert(err, IsNil)
+	c.Assert(*resp.StatusCode, Equals, int64(200))
 	os.Remove(object)
 	tempFilePath := object
 	// 下载文件，不通过context取消
@@ -1408,7 +1408,7 @@ func (s *Ks3utilCommandSuite) TestAppendObjectWithContext(c *C) {
 	createFile(object, 1024*1024*10)
 	fd, _ := os.Open(object)
 	// 追加上传对象，不通过context取消
-	_, err := client.AppendObjectWithContext(context.Background(), &s3.AppendObjectInput{
+	resp, err := client.AppendObjectWithContext(context.Background(), &s3.AppendObjectInput{
 		Bucket:   aws.String(bucket),
 		Key:      aws.String(object),
 		Position: aws.Long(0),
@@ -1416,5 +1416,54 @@ func (s *Ks3utilCommandSuite) TestAppendObjectWithContext(c *C) {
 		Body:     fd,
 	})
 	c.Assert(err, IsNil)
+	position := *resp.NextAppendPosition
+	object2 := randLowStr(10)
+	createFile(object2, 1024*1024*10)
+	fd2, _ := os.Open(object2)
+	// 再次追加
+	_, err = client.AppendObjectWithContext(context.Background(), &s3.AppendObjectInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(object),
+		Position: aws.Long(position),
+		Body:     fd2,
+	})
+	c.Assert(err, IsNil)
+	// head
+	headResp, err := client.HeadObjectWithContext(context.Background(), &s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(*headResp.StatusCode, Equals, int64(200))
+	contentLength, err := strconv.ParseInt(*headResp.Metadata["Content-Length"], 10, 64)
+	c.Assert(err, IsNil)
+	c.Assert(contentLength, Equals, int64(1024*1024*10*2))
+	// delete
+	_, err = client.DeleteObjectWithContext(context.Background(), &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	os.Remove(object)
+	os.Remove(object2)
+	object = randLowStr(10)
+	createFile(object, 1024*1024*10)
+	fd, _ = os.Open(object)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), timeout)
+	defer cancelFunc()
+	// 追加上传对象，通过context取消
+	resp, err = client.AppendObjectWithContext(ctx, &s3.AppendObjectInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(object),
+		Position: aws.Long(0),
+		ACL:      aws.String("public-read"),
+		Body:     fd,
+	})
+	c.Assert(err, NotNil)
+	// head
+	headResp, err = client.HeadObjectWithContext(context.Background(), &s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(*headResp.StatusCode, Equals, int64(404))
 	os.Remove(object)
 }

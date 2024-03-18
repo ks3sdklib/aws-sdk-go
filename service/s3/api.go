@@ -12,6 +12,8 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
+	"github.com/ks3sdklib/aws-sdk-go/internal/crc"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util"
 	"hash"
 	"io"
 	"net/http"
@@ -1133,58 +1135,53 @@ func (c *S3) GetObjectWithContext(ctx aws.Context, input *GetObjectInput) (*GetO
 }
 
 func (c *S3) GetObjectToFile(bucket, objectKey, filePath, Range string) error {
-	tempFilePath := filePath + TempFileSuffix
-
 	getInput := &GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(objectKey),
 		Range:  aws.String(Range),
 	}
 	// Calls the API to actually download the object. Returns the result instance.
-	req, err := c.GetObject(getInput)
+	res, err := c.GetObject(getInput)
 	if err != nil {
 		return err
 	}
-	// If the local file does not exist, create a new one. If it exists, overwrite it.
-	fd, err := os.OpenFile(tempFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(0664))
-	if err != nil {
-		return err
-	}
-
-	// Copy the data to the local file path.
-	_, err = io.Copy(fd, req.Body)
-	fd.Close()
-	if err != nil {
-		return err
-	}
-
-	return os.Rename(tempFilePath, filePath)
+	return c.SaveObjectToFile(filePath, res)
 }
 
 func (c *S3) GetObjectToFileWithContext(ctx aws.Context, bucket, objectKey, filePath, Range string) error {
-	tempFilePath := filePath + TempFileSuffix
-
 	getInput := &GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(objectKey),
 		Range:  aws.String(Range),
 	}
 	// Calls the API to actually download the object. Returns the result instance.
-	req, err := c.GetObjectWithContext(ctx, getInput)
+	res, err := c.GetObjectWithContext(ctx, getInput)
 	if err != nil {
 		return err
 	}
+	return c.SaveObjectToFile(filePath, res)
+}
+
+func (c *S3) SaveObjectToFile(filePath string, res *GetObjectOutput) error {
+	tempFilePath := filePath + TempFileSuffix
 	// If the local file does not exist, create a new one. If it exists, overwrite it.
 	fd, err := os.OpenFile(tempFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(0664))
 	if err != nil {
 		return err
 	}
 
+	crc := crc.NewCRC(crc.CrcTable(), 0)
+	res.Body = util.TeeReader(res.Body, crc)
+
 	// Copy the data to the local file path.
-	_, err = io.Copy(fd, req.Body)
+	_, err = io.Copy(fd, res.Body)
 	fd.Close()
 	if err != nil {
 		return err
+	}
+
+	if c.Config.IsEnableCRC64 {
+		CheckDownloadCrc64(c, res, crc)
 	}
 
 	return os.Rename(tempFilePath, filePath)
@@ -2085,6 +2082,9 @@ func (c *S3) PutObjectRequest(input *PutObjectInput) (req *aws.Request, output *
 	}
 
 	req = c.newRequest(opPutObject, input, output)
+	if c.Config.IsEnableCRC64 {
+		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
+	}
 	output = &PutObjectOutput{}
 	req.Data = output
 	return
@@ -2140,12 +2140,12 @@ func (c *S3) PutReaderWithContext(ctx aws.Context, input *PutReaderRequest) (*Pu
 	return out, err
 }
 
-// func (c *S3) PutObjectMD5Check(input *PutObjectInput) (*PutObjectOutput, error) {
+//func (c *S3) PutObjectMD5Check(input *PutObjectInput) (*PutObjectOutput, error) {
 //	req, out := c.PutObjectRequest(input)
 //	req.Handlers.Build.PushBack(contentMD5)
 //	err := req.Send()
 //	return out, err
-// }
+//}
 
 // 生成链接
 func (c *S3) GeneratePresignedUrl(input *GeneratePresignedUrlInput) (url string, err error) {
@@ -2302,6 +2302,9 @@ func (c *S3) UploadPartRequest(input *UploadPartInput) (req *aws.Request, output
 	}
 
 	req = c.newRequest(opUploadPart, input, output)
+	if c.Config.IsEnableCRC64 {
+		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
+	}
 	output = &UploadPartOutput{}
 	req.Data = output
 	return

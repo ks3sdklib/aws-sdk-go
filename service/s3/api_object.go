@@ -3,6 +3,7 @@ package s3
 import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"io"
+	"time"
 )
 
 var opAppendObject *aws.Operation
@@ -24,8 +25,63 @@ type AppendObjectInput struct {
 	// The canned ACL to apply to the object.
 	ACL *string `location:"header" locationName:"x-amz-acl" type:"string"`
 
+	// Specifies caching behavior along the request/reply chain.
+	CacheControl *string `location:"header" locationName:"Cache-Control" type:"string"`
+
+	// Specifies presentational information for the object.
+	ContentDisposition *string `location:"header" locationName:"Content-Disposition" type:"string"`
+
+	// Specifies what content encodings have been applied to the object and thus
+	// what decoding mechanisms must be applied to obtain the media-type referenced
+	// by the Content-Type header field.
+	ContentEncoding *string `location:"header" locationName:"Content-Encoding" type:"string"`
+
+	// Size of the body in bytes. This parameter is useful when the size of the
+	// body cannot be determined automatically.
+	ContentLength *int64 `location:"header" locationName:"Content-Length" type:"integer"`
+
+	// Calculate MD5 value for message content (excluding header)
+	ContentMD5 *string `location:"header" locationName:"Content-MD5" type:"string"`
+
+	// A standard MIME type describing the format of the object data.
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// When using Expect: 100-continue, the client will only send the request body after receiving confirmation from the server.
+	// If the information in the request header is rejected, the client will not send the request body.
+	Expect *string `location:"header" locationName:"Expect" type:"string"`
+
+	// The date and time at which the object is no longer cacheable.
+	Expires *time.Time `location:"header" locationName:"Expires" type:"timestamp" timestampFormat:"rfc822"`
+
+	// A map of metadata to store with the object in S3.
+	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
+
 	// The type of storage to use for the object. Defaults to 'STANDARD'.
 	StorageClass *string `location:"header" locationName:"x-amz-storage-class" type:"string"`
+
+	// Set the maximum allowed size for a single addition of content
+	ContentMaxLength *int64 `location:"header" locationName:"x-amz-content-maxlength" type:"integer"`
+
+	// Object labels, multiple labels can be set simultaneously
+	XAmzTagging *string `location:"header" locationName:"X-Amz-Tagging" type:"string"`
+
+	// Allows grantee to read the object data and its metadata.
+	GrantRead *string `location:"header" locationName:"x-amz-grant-read" type:"string"`
+
+	// Gives the grantee READ, READ_ACP, and WRITE_ACP permissions on the object.
+	GrantFullControl *string `location:"header" locationName:"x-amz-grant-full-control" type:"string"`
+
+	// The Server-side encryption algorithm used when storing this object in KS3, eg: AES256.
+	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
+
+	// Specifies the algorithm to use to when encrypting the object, eg: AES256.
+	SSECustomerAlgorithm *string `location:"header" locationName:"x-amz-server-side-encryption-customer-algorithm" type:"string"`
+
+	// Specifies the customer-provided encryption key for KS3 to use in encrypting data.
+	SSECustomerKey *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key" type:"string"`
+
+	// Specifies the 128-bit MD5 digest of the encryption key according to RFC 1321.
+	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
 
 	metadataAppendObjectInput `json:"-" xml:"-"`
 }
@@ -38,17 +94,17 @@ type AppendObjectOutput struct {
 	// Entity tag for the uploaded object.
 	ETag *string `location:"header" locationName:"ETag" type:"string"`
 
-	// If the object expiration is configured, this will contain the expiration
-	// date (expiry-date) and rule ID (rule-id). The value of rule-id is URL encoded.
-	Expiration *string `location:"header" locationName:"x-amz-expiration" type:"string"`
+	// The position that should be provided for the next request, which is the size of the current object.
+	NextAppendPosition *int64 `location:"header" locationName:"x-amz-next-append-position" type:"integer"`
 
-	// If present, indicates that the requester was successfully charged for the
-	// request.
-	RequestCharged *string `location:"header" locationName:"x-amz-request-charged" type:"string"`
+	// The type of Object.
+	ObjectType *string `location:"header" locationName:"x-amz-object-type" type:"string"`
+
+	// The Server-side encryption algorithm used when storing this object in KS3, eg: AES256.
+	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
 
 	// If server-side encryption with a customer-provided encryption key was requested,
-	// the response will include this header confirming the encryption algorithm
-	// used.
+	// the response will include this header confirming the encryption algorithm used.
 	SSECustomerAlgorithm *string `location:"header" locationName:"x-amz-server-side-encryption-customer-algorithm" type:"string"`
 
 	// If server-side encryption with a customer-provided encryption key was requested,
@@ -56,32 +112,23 @@ type AppendObjectOutput struct {
 	// verification of the customer-provided encryption key.
 	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
 
-	// If present, specifies the ID of the AWS Key Management Service (KMS) master
-	// encryption key that was used for the object.
-	SSEKMSKeyID *string `location:"header" locationName:"x-amz-server-side-encryption-aws-kms-key-id" type:"string"`
-
-	// The Server-side encryption algorithm used when storing this object in S3
-	// (e.g., AES256, aws:kms).
-	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
-
-	// Version of the object.
-	VersionID *string `location:"header" locationName:"x-amz-version-id" type:"string"`
-
-	NewFileName *string `location:"header" locationName:"newfilename" type:"string"`
-
-	metadataPutObjectOutput `json:"-" xml:"-"`
-
 	Metadata map[string]*string `location:"headers"  type:"map"`
 
 	StatusCode *int64 `location:"statusCode" type:"integer"`
+
+	metadataAppendObjectOutput `json:"-" xml:"-"`
+}
+
+type metadataAppendObjectOutput struct {
+	SDKShapeTraits bool `type:"structure"`
 }
 
 func (c *S3) AppendObjectRequest(input *AppendObjectInput) (req *aws.Request, output *AppendObjectOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
 
-	if opPutObject == nil {
-		opPutObject = &aws.Operation{
+	if opAppendObject == nil {
+		opAppendObject = &aws.Operation{
 			Name:       "AppendObject",
 			HTTPMethod: "POST",
 			HTTPPath:   "/{Bucket}/{Key+}?append",
@@ -92,7 +139,7 @@ func (c *S3) AppendObjectRequest(input *AppendObjectInput) (req *aws.Request, ou
 		input = &AppendObjectInput{}
 	}
 
-	req = c.newRequest(opPutObject, input, output)
+	req = c.newRequest(opAppendObject, input, output)
 	output = &AppendObjectOutput{}
 	req.Data = output
 	return
