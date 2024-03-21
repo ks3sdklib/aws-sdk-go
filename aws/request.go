@@ -224,15 +224,6 @@ func (r *Request) Send() error {
 		}
 
 		r.Handlers.Unmarshal.Run(r)
-		if r.Error != nil {
-			r.Handlers.Retry.Run(r)
-			r.Handlers.AfterRetry.Run(r)
-			if r.Error != nil {
-				return r.Error
-			}
-			continue
-		}
-
 		r.Handlers.CheckCrc64.Run(r)
 		if r.Error != nil {
 			r.Handlers.Retry.Run(r)

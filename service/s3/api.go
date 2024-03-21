@@ -551,8 +551,6 @@ func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsO
 	var errors []*Error
 	var okList []*DeletedObject
 
-	marker := aws.String("")
-	prefix := input.Prefix
 	var output = &DeleteObjectsOutput{
 		Deleted: okList,
 		Errors:  errors,
@@ -560,12 +558,17 @@ func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsO
 	if input == nil {
 		input = &DeleteBucketPrefixInput{}
 	}
+	marker := aws.String("")
+	maxKeys := aws.Long(200)
+	if input.MaxKeys != nil {
+		maxKeys = input.MaxKeys
+	}
 	for {
 		resp, err := c.ListObjects(&ListObjectsInput{
 			Bucket:  input.Bucket,
-			Prefix:  prefix,
+			Prefix:  input.Prefix,
 			Marker:  marker,
-			MaxKeys: aws.Long(1000),
+			MaxKeys: maxKeys,
 		})
 		if err == nil {
 			for _, t := range resp.Contents {
@@ -584,7 +587,7 @@ func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsO
 			if *resp.IsTruncated == false {
 				break
 			}
-			marker = resp.Contents[999].Key
+			marker = resp.Contents[*maxKeys-1].Key
 		} else {
 			return output, err
 		}
@@ -597,8 +600,6 @@ func (c *S3) DeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketP
 	var errors []*Error
 	var okList []*DeletedObject
 
-	marker := aws.String("")
-	prefix := input.Prefix
 	var output = &DeleteObjectsOutput{
 		Deleted: okList,
 		Errors:  errors,
@@ -606,12 +607,17 @@ func (c *S3) DeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketP
 	if input == nil {
 		input = &DeleteBucketPrefixInput{}
 	}
+	marker := aws.String("")
+	maxKeys := aws.Long(200)
+	if input.MaxKeys != nil {
+		maxKeys = input.MaxKeys
+	}
 	for {
 		resp, err := c.ListObjectsWithContext(ctx, &ListObjectsInput{
 			Bucket:  input.Bucket,
-			Prefix:  prefix,
+			Prefix:  input.Prefix,
 			Marker:  marker,
-			MaxKeys: aws.Long(1000),
+			MaxKeys: maxKeys,
 		})
 		if err == nil {
 			for _, t := range resp.Contents {
@@ -630,7 +636,7 @@ func (c *S3) DeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketP
 			if *resp.IsTruncated == false {
 				break
 			}
-			marker = resp.Contents[999].Key
+			marker = resp.Contents[*maxKeys-1].Key
 		} else {
 			return output, err
 		}
@@ -3163,9 +3169,14 @@ type DeleteObjectInput struct {
 }
 
 type DeleteBucketPrefixInput struct {
-	Bucket          *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-	Prefix          *string `type:"string"  required:"true"`
-	IsReTurnResults *bool   `type:"boolean" required:"true"`
+	// The name of the bucket.
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+	// Prefix of the object.
+	Prefix *string `type:"string"  required:"true"`
+	// The max number of each list.
+	MaxKeys *int64 `type:"integer" required:"true"`
+	// Is return the deletion result.
+	IsReTurnResults *bool `type:"boolean" required:"true"`
 }
 
 type metadataDeleteObjectInput struct {

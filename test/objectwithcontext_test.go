@@ -3,6 +3,7 @@ package lib
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
@@ -192,11 +193,22 @@ func (s *Ks3utilCommandSuite) TestDeleteObjectWithContext(c *C) {
 
 // PUT Fetch Object
 func (s *Ks3utilCommandSuite) TestFetchObjectWithContext(c *C) {
+	sourceObject := randLowStr(10)
+	createFile(sourceObject, 1024*1024*1)
+	fd, _ := os.Open(sourceObject)
+	// put
+	_, err := client.PutObjectWithContext(context.Background(), &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(sourceObject),
+		ACL:    aws.String(s3.ACLPublicRead),
+		Body:   fd,
+	})
+	c.Assert(err, IsNil)
 	object := randLowStr(10)
-	sourceUrl := "https://img0.pconline.com.cn/pconline/1111/04/2483449_20061139501.jpg"
+	sourceUrl := fmt.Sprintf("https://%s.%s/%s", bucket, endpoint, sourceObject)
 	encodedUrl := url.QueryEscape(sourceUrl)
 	// put fetch，不通过context取消
-	_, err := client.FetchObjectWithContext(context.Background(), &s3.FetchObjectInput{
+	_, err = client.FetchObjectWithContext(context.Background(), &s3.FetchObjectInput{
 		Bucket:    aws.String(bucket),
 		Key:       aws.String(object),
 		SourceUrl: aws.String(encodedUrl),
@@ -232,6 +244,13 @@ func (s *Ks3utilCommandSuite) TestFetchObjectWithContext(c *C) {
 		Key:    aws.String(object),
 	})
 	c.Assert(*resp.StatusCode, Equals, int64(404))
+	// delete
+	_, err = client.DeleteObjectWithContext(context.Background(), &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(sourceObject),
+	})
+	c.Assert(err, IsNil)
+	os.Remove(sourceObject)
 }
 
 // PUT Object Copy
@@ -384,8 +403,20 @@ func (s *Ks3utilCommandSuite) TestGetObjectToFileWithContext(c *C) {
 
 // s3manager Upload
 func (s *Ks3utilCommandSuite) TestUploadWithContext(c *C) {
+	sourceObject := randLowStr(10)
+	createFile(sourceObject, 1024*1024*20)
+	fd, _ := os.Open(sourceObject)
+	// put
+	_, err := client.PutObjectWithContext(context.Background(), &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(sourceObject),
+		ACL:    aws.String(s3.ACLPublicRead),
+		Body:   fd,
+	})
+	c.Assert(err, IsNil)
 	object := randLowStr(10)
-	result, err := http.Get("https://dl.google.com/go/go1.21.4.darwin-amd64.pkg")
+	sourceUrl := fmt.Sprintf("https://%s.%s/%s", bucket, endpoint, sourceObject)
+	result, err := http.Get(sourceUrl)
 	c.Assert(err, IsNil)
 	// 初始化配置
 	uploader := s3manager.NewUploader(&s3manager.UploadOptions{
@@ -411,7 +442,7 @@ func (s *Ks3utilCommandSuite) TestUploadWithContext(c *C) {
 	})
 	c.Assert(err, IsNil)
 	// 上传网络流，通过context取消
-	result, err = http.Get("https://dl.google.com/go/go1.21.4.darwin-amd64.pkg")
+	result, err = http.Get(sourceUrl)
 	c.Assert(err, IsNil)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), timeout)
 	defer cancelFunc()
@@ -427,6 +458,13 @@ func (s *Ks3utilCommandSuite) TestUploadWithContext(c *C) {
 		Key:    aws.String(object),
 	})
 	c.Assert(*resp.StatusCode, Equals, int64(404))
+	// delete
+	_, err = client.DeleteObjectWithContext(context.Background(), &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(sourceObject),
+	})
+	c.Assert(err, IsNil)
+	os.Remove(sourceObject)
 }
 
 // s3manager Upload Dir
@@ -524,12 +562,13 @@ func (s *Ks3utilCommandSuite) TestDeleteObjectsWithContext(c *C) {
 // DELETE Bucket Prefix
 func (s *Ks3utilCommandSuite) TestDeleteBucketPrefixWithContext(c *C) {
 	object := randLowStr(10)
+	prefix := randLowStr(6) + "/"
 	createFile(object, 1024*1024*1)
 	fd, _ := os.Open(object)
 	// put
 	_, err := client.PutObjectWithContext(context.Background(), &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String("123/" + object),
+		Key:    aws.String(prefix + object),
 		Body:   fd,
 	})
 	c.Assert(err, IsNil)
@@ -538,16 +577,20 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketPrefixWithContext(c *C) {
 	defer cancelFunc()
 	_, err = client.DeleteBucketPrefixWithContext(ctx, &s3.DeleteBucketPrefixInput{
 		Bucket:          aws.String(bucket),
-		Prefix:          aws.String("123/"),
+		Prefix:          aws.String(prefix),
+		MaxKeys:         aws.Long(20),
 		IsReTurnResults: aws.Boolean(true),
 	})
 	c.Assert(err, NotNil)
 	// delete，不通过context取消
 	resp, err := client.DeleteBucketPrefixWithContext(context.Background(), &s3.DeleteBucketPrefixInput{
 		Bucket:          aws.String(bucket),
-		Prefix:          aws.String("123/"),
+		Prefix:          aws.String(prefix),
+		MaxKeys:         aws.Long(20),
 		IsReTurnResults: aws.Boolean(true),
 	})
+	fmt.Println(awsutil.StringValue(resp), err)
+	c.Assert(err, IsNil)
 	c.Assert(len(resp.Deleted), Equals, 1)
 	os.Remove(object)
 }
@@ -555,12 +598,13 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketPrefixWithContext(c *C) {
 // DELETE Bucket Prefix Try 3
 func (s *Ks3utilCommandSuite) TestTryDeleteBucketPrefixWithContext(c *C) {
 	object := randLowStr(10)
+	prefix := randLowStr(6) + "/"
 	createFile(object, 1024*1024*1)
 	fd, _ := os.Open(object)
 	// put
 	_, err := client.PutObjectWithContext(context.Background(), &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String("123/" + object),
+		Key:    aws.String(prefix + object),
 		Body:   fd,
 	})
 	c.Assert(err, IsNil)
@@ -569,14 +613,16 @@ func (s *Ks3utilCommandSuite) TestTryDeleteBucketPrefixWithContext(c *C) {
 	defer cancelFunc()
 	_, err = client.TryDeleteBucketPrefixWithContext(ctx, &s3.DeleteBucketPrefixInput{
 		Bucket:          aws.String(bucket),
-		Prefix:          aws.String("123/"),
+		Prefix:          aws.String(prefix),
+		MaxKeys:         aws.Long(20),
 		IsReTurnResults: aws.Boolean(true),
 	})
 	c.Assert(err, NotNil)
 	// delete，不通过context取消
 	resp, err := client.TryDeleteBucketPrefixWithContext(context.Background(), &s3.DeleteBucketPrefixInput{
 		Bucket:          aws.String(bucket),
-		Prefix:          aws.String("123/"),
+		Prefix:          aws.String(prefix),
+		MaxKeys:         aws.Long(20),
 		IsReTurnResults: aws.Boolean(true),
 	})
 	c.Assert(len(resp.Deleted), Equals, 1)
@@ -1409,11 +1455,12 @@ func (s *Ks3utilCommandSuite) TestAppendObjectWithContext(c *C) {
 	fd, _ := os.Open(object)
 	// 追加上传对象，不通过context取消
 	resp, err := client.AppendObjectWithContext(context.Background(), &s3.AppendObjectInput{
-		Bucket:   aws.String(bucket),
-		Key:      aws.String(object),
-		Position: aws.Long(0),
-		ACL:      aws.String("public-read"),
-		Body:     fd,
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(object),
+		Position:     aws.Long(0),
+		Body:         fd,
+		ACL:          aws.String(s3.ACLPublicRead),
+		StorageClass: aws.String(s3.StorageClassDeepIA),
 	})
 	c.Assert(err, IsNil)
 	position := *resp.NextAppendPosition
@@ -1455,7 +1502,7 @@ func (s *Ks3utilCommandSuite) TestAppendObjectWithContext(c *C) {
 		Bucket:   aws.String(bucket),
 		Key:      aws.String(object),
 		Position: aws.Long(0),
-		ACL:      aws.String("public-read"),
+		ACL:      aws.String(s3.ACLPublicRead),
 		Body:     fd,
 	})
 	c.Assert(err, NotNil)
