@@ -5,6 +5,7 @@ package s3
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
@@ -496,30 +497,8 @@ func (c *S3) DeleteObjectsRequest(input *DeleteObjectsInput) (req *aws.Request, 
 	return
 }
 
-// This operation enables you to delete multiple objects from a bucket using
-// a single HTTP request. You may specify up to 1000 keys.
 func (c *S3) DeleteObjects(input *DeleteObjectsInput) (*DeleteObjectsOutput, error) {
-	var errors []*Error
-	var okList []*DeletedObject
-	if input == nil {
-		input = &DeleteObjectsInput{}
-	}
-	for _, t := range input.Delete.Objects {
-		_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-		if input.IsReTurnResults != nil && *input.IsReTurnResults == true {
-			if err != nil {
-				aerr, _ := err.(awserr.Error)
-				errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
-			} else {
-				okList = append(okList, &DeletedObject{Key: t.Key})
-			}
-		}
-	}
-	output := &DeleteObjectsOutput{
-		Deleted: okList,
-		Errors:  errors,
-	}
-	return output, nil
+	return c.DeleteObjectsWithContext(context.Background(), input)
 }
 
 func (c *S3) DeleteObjectsWithContext(ctx aws.Context, input *DeleteObjectsInput) (*DeleteObjectsOutput, error) {
@@ -547,56 +526,10 @@ func (c *S3) DeleteObjectsWithContext(ctx aws.Context, input *DeleteObjectsInput
 }
 
 func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
-
-	var errors []*Error
-	var okList []*DeletedObject
-
-	var output = &DeleteObjectsOutput{
-		Deleted: okList,
-		Errors:  errors,
-	}
-	if input == nil {
-		input = &DeleteBucketPrefixInput{}
-	}
-	marker := aws.String("")
-	maxKeys := aws.Long(200)
-	if input.MaxKeys != nil {
-		maxKeys = input.MaxKeys
-	}
-	for {
-		resp, err := c.ListObjects(&ListObjectsInput{
-			Bucket:  input.Bucket,
-			Prefix:  input.Prefix,
-			Marker:  marker,
-			MaxKeys: maxKeys,
-		})
-		if err == nil {
-			for _, t := range resp.Contents {
-				_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-				if input.IsReTurnResults != nil && *input.IsReTurnResults == true {
-					if err != nil {
-						aerr, _ := err.(awserr.Error)
-						errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
-						output.Errors = errors
-					} else {
-						okList = append(okList, &DeletedObject{Key: t.Key})
-						output.Deleted = okList
-					}
-				}
-			}
-			if *resp.IsTruncated == false {
-				break
-			}
-			marker = resp.Contents[*maxKeys-1].Key
-		} else {
-			return output, err
-		}
-	}
-	return output, nil
+	return c.DeleteBucketPrefixWithContext(context.Background(), input)
 }
 
 func (c *S3) DeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
-
 	var errors []*Error
 	var okList []*DeletedObject
 
@@ -649,19 +582,10 @@ func (c *S3) DeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketP
 重试删除前缀
 */
 func (c *S3) TryDeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
-
-	params := input
-	var output *DeleteObjectsOutput
-	err := Do(func(attempt int) (bool, error) {
-		var err error
-		output, err = c.DeleteBucketPrefix(params)
-		return attempt < 3, err // 重试3次
-	})
-	return output, err
+	return c.TryDeleteBucketPrefixWithContext(context.Background(), input)
 }
 
 func (c *S3) TryDeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
-
 	params := input
 	var output *DeleteObjectsOutput
 	err := Do(func(attempt int) (bool, error) {
@@ -1187,7 +1111,10 @@ func (c *S3) SaveObjectToFile(filePath string, res *GetObjectOutput) error {
 	}
 
 	if c.Config.IsEnableCRC64 {
-		CheckDownloadCrc64(c, res, crc)
+		err = CheckDownloadCrc64(c, res, crc)
+		if err != nil {
+			return err
+		}
 	}
 
 	return os.Rename(tempFilePath, filePath)
@@ -2567,6 +2494,9 @@ type CompletedPart struct {
 
 	// Part number that identifies the part.
 	PartNumber *int64 `type:"integer"`
+
+	// CRC64 value of a single part
+	ChecksumCRC64ECMA *string `type:"string"`
 
 	metadataCompletedPart `json:"-" xml:"-"`
 }
@@ -5733,6 +5663,9 @@ type metadataUploadPartInput struct {
 type UploadPartOutput struct {
 	// Entity tag for the uploaded object.
 	ETag *string `location:"header" locationName:"ETag" type:"string"`
+
+	// CRC64 value of a single part.
+	ChecksumCRC64ECMA *string `location:"header" locationName:"x-amz-checksum-crc64ecma" type:"string"`
 
 	// If present, indicates that the requester was successfully charged for the
 	// request.

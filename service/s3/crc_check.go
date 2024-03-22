@@ -26,17 +26,22 @@ func CheckUploadCrc64(r *aws.Request) {
 	}
 }
 
-func CheckDownloadCrc64(c *S3, res *GetObjectOutput, crc hash.Hash64) error {
+func CheckDownloadCrc64(s3 *S3, res *GetObjectOutput, crc hash.Hash64) error {
 	var err error
 	clientCrc := crc.Sum64()
-	serverCrc, _ := strconv.ParseUint(*res.Metadata["X-Amz-Checksum-Crc64ecma"], 10, 64)
+	var serverCrc uint64
+	if res.Metadata["X-Amz-Checksum-Crc64ecma"] == nil {
+		serverCrc = 0
+	} else {
+		serverCrc, _ = strconv.ParseUint(*res.Metadata["X-Amz-Checksum-Crc64ecma"], 10, 64)
+	}
 
-	if *res.Metadata["X-Amz-Checksum-Crc64ecma"] != "" && clientCrc != serverCrc {
+	if serverCrc != 0 && clientCrc != serverCrc {
 		err = apierr.New("CRCCheckError", "client crc and server crc do not match", nil)
 	}
 
-	if c.Config.LogLevel > 0 {
-		out := c.Config.Logger
+	if s3.Config.LogLevel > 0 {
+		out := s3.Config.Logger
 		fmt.Fprintln(out, "---[ CHECK CRC64 ]--------------------------------")
 		fmt.Fprintln(out, "client crc:", clientCrc, "server crc:", serverCrc)
 		if err != nil {

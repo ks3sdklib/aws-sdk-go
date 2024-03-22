@@ -6,6 +6,8 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
+	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
+	"github.com/ks3sdklib/aws-sdk-go/internal/crc"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	"io"
 	"log"
@@ -13,6 +15,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -280,7 +283,7 @@ func (u *uploader) upload() (*UploadOutput, error) {
 	}
 
 	// Do one read to determine if we have more than one part
-	buf, err := u.nextReader()
+	buf, trunkSize, err := u.nextReader()
 	if err == io.EOF || err == io.ErrUnexpectedEOF { // single part
 		return u.singlePart(buf)
 	} else if err != nil {
@@ -288,7 +291,7 @@ func (u *uploader) upload() (*UploadOutput, error) {
 	}
 
 	mu := multiuploader{uploader: u}
-	return mu.upload(buf)
+	return mu.upload(buf, trunkSize)
 }
 
 // init will initialize all default options.
@@ -334,7 +337,7 @@ func (u *uploader) initSize() {
 // This operation increases the shared u.readerPos counter, but note that it
 // does not need to be wrapped in a mutex because nextReader is only called
 // from the main thread.
-func (u *uploader) nextReader() (io.ReadSeeker, error) {
+func (u *uploader) nextReader() (io.ReadSeeker, int64, error) {
 	switch r := u.in.Body.(type) {
 	case io.ReaderAt:
 		var err error
@@ -355,14 +358,14 @@ func (u *uploader) nextReader() (io.ReadSeeker, error) {
 		buf := io.NewSectionReader(r, u.readerPos, n)
 		u.readerPos += n
 
-		return buf, err
+		return buf, n, err
 
 	default:
 		packet := make([]byte, u.opts.PartSize)
 		n, err := io.ReadFull(u.in.Body, packet)
 		u.readerPos += int64(n)
 
-		return bytes.NewReader(packet[0:n]), err
+		return bytes.NewReader(packet[0:n]), int64(n), err
 	}
 }
 
@@ -391,26 +394,29 @@ type multiuploader struct {
 	m        sync.Mutex
 	err      error
 	uploadID string
-	parts    completedParts
+	parts    CompleteUploadParts
 }
 
 // keeps track of a single chunk of data being sent to S3.
 type chunk struct {
-	buf io.ReadSeeker
-	num int64
+	buf       io.ReadSeeker
+	num       int64
+	trunkSize int64
 }
 
 // completedParts is a wrapper to make parts sortable by their part number,
 // since S3 required this list to be sent in sorted order.
-type completedParts []*s3.CompletedPart
+type CompleteUploadParts []*CompleteUploadPart
 
-func (a completedParts) Len() int           { return len(a) }
-func (a completedParts) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a completedParts) Less(i, j int) bool { return *a[i].PartNumber < *a[j].PartNumber }
+func (a CompleteUploadParts) Len() int      { return len(a) }
+func (a CompleteUploadParts) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a CompleteUploadParts) Less(i, j int) bool {
+	return *a[i].Part.PartNumber < *a[j].Part.PartNumber
+}
 
 // upload will perform a multipart upload using the firstBuf buffer containing
 // the first chunk of data.
-func (u *multiuploader) upload(firstBuf io.ReadSeeker) (*UploadOutput, error) {
+func (u *multiuploader) upload(firstBuf io.ReadSeeker, firstTrunkSize int64) (*UploadOutput, error) {
 	params := &s3.CreateMultipartUploadInput{}
 	awsutil.Copy(params, u.in)
 
@@ -430,7 +436,7 @@ func (u *multiuploader) upload(firstBuf io.ReadSeeker) (*UploadOutput, error) {
 
 	// Send part 1 to the workers
 	var num int64 = 1
-	ch <- chunk{buf: firstBuf, num: num}
+	ch <- chunk{buf: firstBuf, num: num, trunkSize: firstTrunkSize}
 
 	// Read and queue the rest of the parts
 	for u.geterr() == nil {
@@ -444,12 +450,12 @@ func (u *multiuploader) upload(firstBuf io.ReadSeeker) (*UploadOutput, error) {
 
 		num++
 
-		buf, err := u.nextReader()
+		buf, trunkSize, err := u.nextReader()
 		if err == io.EOF {
 			break
 		}
 
-		ch <- chunk{buf: buf, num: num}
+		ch <- chunk{buf: buf, num: num, trunkSize: trunkSize}
 
 		if err != nil && err != io.ErrUnexpectedEOF {
 			u.seterr(awserr.New(
@@ -499,6 +505,11 @@ func (u *multiuploader) readChunk(ch chan chunk) {
 	}
 }
 
+type CompleteUploadPart struct {
+	Part      *s3.CompletedPart
+	TrunkSize int64
+}
+
 // send performs an UploadPart request and keeps track of the completed
 // part information.
 func (u *multiuploader) send(c chunk) error {
@@ -515,10 +526,12 @@ func (u *multiuploader) send(c chunk) error {
 	}
 
 	n := c.num
-	completed := &s3.CompletedPart{ETag: resp.ETag, PartNumber: &n}
+	completed := &s3.CompletedPart{ETag: resp.ETag, ChecksumCRC64ECMA: resp.ChecksumCRC64ECMA, PartNumber: &n}
+
+	completeUploadPart := &CompleteUploadPart{Part: completed, TrunkSize: c.trunkSize}
 
 	u.m.Lock()
-	u.parts = append(u.parts, completed)
+	u.parts = append(u.parts, completeUploadPart)
 	u.m.Unlock()
 
 	return nil
@@ -553,6 +566,49 @@ func (u *multiuploader) fail() {
 	})
 }
 
+func (u *multiuploader) allParts() []*s3.CompletedPart {
+	ps := []*s3.CompletedPart{}
+	for _, part := range u.parts {
+		ps = append(ps, part.Part)
+	}
+	return ps
+}
+
+func (u *multiuploader) combineCRCInUploadParts(parts []*CompleteUploadPart) uint64 {
+	if parts == nil || len(parts) == 0 {
+		return 0
+	}
+
+	crcTemp, _ := strconv.ParseUint(*parts[0].Part.ChecksumCRC64ECMA, 10, 64)
+	for i := 1; i < len(parts); i++ {
+		crc2, _ := strconv.ParseUint(*parts[i].Part.ChecksumCRC64ECMA, 10, 64)
+		crcTemp = crc.CRC64Combine(crcTemp, crc2, (uint64)(parts[i].TrunkSize))
+	}
+
+	return crcTemp
+}
+
+func (u *multiuploader) checkMultipartUploadCrc64(clientCrc uint64, res *s3.CompleteMultipartUploadOutput) error {
+	var err error
+	serverCrc, _ := strconv.ParseUint(*res.Metadata["X-Amz-Checksum-Crc64ecma"], 10, 64)
+
+	if *res.Metadata["X-Amz-Checksum-Crc64ecma"] != "" && clientCrc != serverCrc {
+		err = apierr.New("CRCCheckError", "client crc and server crc do not match", nil)
+	}
+
+	if u.opts.S3.Config.LogLevel > 0 {
+		out := u.opts.S3.Config.Logger
+		fmt.Fprintln(out, "---[ CHECK CRC64 ]--------------------------------")
+		fmt.Fprintln(out, "client crc:", clientCrc, "server crc:", serverCrc)
+		if err != nil {
+			fmt.Fprintln(out, err.Error())
+		}
+		fmt.Fprintln(out, "-----------------------------------------------------")
+	}
+
+	return err
+}
+
 // complete successfully completes a multipart upload and returns the response.
 func (u *multiuploader) complete() *s3.CompleteMultipartUploadOutput {
 	if u.geterr() != nil {
@@ -567,9 +623,16 @@ func (u *multiuploader) complete() *s3.CompleteMultipartUploadOutput {
 		Bucket:          u.in.Bucket,
 		Key:             u.in.Key,
 		UploadID:        &u.uploadID,
-		MultipartUpload: &s3.CompletedMultipartUpload{Parts: u.parts},
+		MultipartUpload: &s3.CompletedMultipartUpload{Parts: u.allParts()},
 	})
 	if err != nil {
+		u.seterr(err)
+		u.fail()
+	}
+
+	if u.opts.S3.Config.IsEnableCRC64 {
+		clientCrc := u.combineCRCInUploadParts(u.parts)
+		err = u.checkMultipartUploadCrc64(clientCrc, resp)
 		u.seterr(err)
 		u.fail()
 	}
@@ -577,16 +640,34 @@ func (u *multiuploader) complete() *s3.CompleteMultipartUploadOutput {
 	return resp
 }
 
-func (uploader *Uploader) UploadDir(rootDir string, bucket, prefix string) error {
-	return uploader.UploadDirWithContext(aws.BackgroundContext(), rootDir, bucket, prefix)
+type UploadDirInput struct {
+	// The path to the folder to be uploaded.
+	RootDir string
+	// The name of the bucket.
+	Bucket string
+	// Prefix of the object.
+	Prefix string
+	// The ACL of the object.
+	ACL string
+	// The StorageClass of the object.
+	StorageClass string
 }
 
-func (uploader *Uploader) UploadDirWithContext(ctx aws.Context, rootDir string, bucket, prefix string) error {
+func (uploader *Uploader) UploadDir(input *UploadDirInput) error {
+	return uploader.UploadDirWithContext(aws.BackgroundContext(), input)
+}
 
-	if !strings.HasSuffix(prefix, "/") && len(prefix) > 0 {
-		prefix = prefix + "/"
+func (uploader *Uploader) UploadDirWithContext(ctx aws.Context, input *UploadDirInput) error {
+	if input.RootDir == "" {
+		return apierr.New("InvalidParameter", "RootDir is required", nil)
 	}
-	rootDir, err := uploader.toAbs(rootDir)
+	if input.Bucket == "" {
+		return apierr.New("InvalidParameter", "Bucket is required", nil)
+	}
+	if !strings.HasSuffix(input.Prefix, "/") && len(input.Prefix) > 0 {
+		input.Prefix = input.Prefix + "/"
+	}
+	rootDir, err := uploader.toAbs(input.RootDir)
 	if err != nil {
 		return err
 	}
@@ -608,12 +689,14 @@ func (uploader *Uploader) UploadDirWithContext(ctx aws.Context, rootDir string, 
 		if !file.IsDir() {
 			if !awsutil.IsHidden(path) || uploader.opts.UploadHidden {
 				chFiles <- fileInfoType{
-					filePath:  path,
-					name:      file.Name(),
-					bucket:    bucket,
-					size:      file.Size(),
-					dir:       rootDir,
-					objectKey: makeObjectName(rootDir, prefix, path),
+					filePath:     path,
+					name:         file.Name(),
+					bucket:       input.Bucket,
+					size:         file.Size(),
+					dir:          rootDir,
+					objectKey:    makeObjectName(rootDir, input.Prefix, path),
+					acl:          input.ACL,
+					storageClass: input.StorageClass,
 				}
 			}
 		}
@@ -664,10 +747,11 @@ func (uploader *Uploader) uploadFile(ctx aws.Context, fileIfo fileInfoType, call
 		}
 	}
 	_, err = uploader.UploadWithContext(ctx, &UploadInput{
-		Body:   file,
-		Bucket: aws.String(fileIfo.bucket),
-		Key:    aws.String(fileIfo.objectKey),
-		Size:   fileIfo.size,
+		Body:         file,
+		Bucket:       aws.String(fileIfo.bucket),
+		Key:          aws.String(fileIfo.objectKey),
+		ACL:          aws.String(fileIfo.acl),
+		StorageClass: aws.String(fileIfo.storageClass),
 	})
 	call(err == nil)
 

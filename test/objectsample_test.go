@@ -145,13 +145,11 @@ func (s *Ks3utilCommandSuite) TestGetObjectByLimit(c *C) {
 下载示例
 */
 func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
-
-	fd, _ := os.Open(content)
 	input := s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 		ACL:    aws.String("public-read"),
-		Body:   fd,
+		Body:   strings.NewReader(content),
 	}
 	resp, err := client.PutObject(&input)
 	if err != nil {
@@ -676,7 +674,11 @@ func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
 	//dir 要上传的目录
 	//bucket 上传的目标桶
 	//prefix 桶下的路径
-	uploader.UploadDir(dir, bucket, "sns/")
+	uploader.UploadDir(&s3manager.UploadDirInput{
+		RootDir: dir,
+		Bucket:  bucket,
+		Prefix:  "sns/",
+	})
 
 }
 

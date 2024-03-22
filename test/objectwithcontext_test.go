@@ -22,7 +22,7 @@ var timeout = time.Second * 2
 // PUT Object
 func (s *Ks3utilCommandSuite) TestPutObjectWithContext(c *C) {
 	object := randLowStr(10)
-	createFile(object, 1024*1024*20)
+	createFile(object, 1024*1024*10)
 	fd, _ := os.Open(object)
 	// 上传对象，不通过context取消
 	_, err := client.PutObjectWithContext(context.Background(), &s3.PutObjectInput{
@@ -68,7 +68,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithContext(c *C) {
 // GET Object
 func (s *Ks3utilCommandSuite) TestGetObjectWithContext(c *C) {
 	object := randLowStr(10)
-	createFile(object, 1024*1024*20)
+	createFile(object, 1024*1024*10)
 	fd, _ := os.Open(object)
 	// put
 	_, err := client.PutObjectWithContext(context.Background(), &s3.PutObjectInput{
@@ -367,7 +367,7 @@ func (s *Ks3utilCommandSuite) TestRestoreObjectWithContext(c *C) {
 // GET Object To File
 func (s *Ks3utilCommandSuite) TestGetObjectToFileWithContext(c *C) {
 	object := randLowStr(10)
-	createFile(object, 1024*1024*20)
+	createFile(object, 1024*1024*10)
 	fd, _ := os.Open(object)
 	// put
 	_, err := client.PutObjectWithContext(context.Background(), &s3.PutObjectInput{
@@ -383,16 +383,21 @@ func (s *Ks3utilCommandSuite) TestGetObjectToFileWithContext(c *C) {
 	})
 	c.Assert(*resp.StatusCode, Equals, int64(200))
 	os.Remove(object)
-	tempFilePath := object
+	filePath := object
 	// 下载文件，不通过context取消
-	err = client.GetObjectToFileWithContext(context.Background(), bucket, object, tempFilePath, "")
-	os.Remove(object)
+	err = client.GetObjectToFileWithContext(context.Background(), bucket, object, filePath, "")
+	c.Assert(err, IsNil)
+	os.Remove(filePath)
+	// Range下载
+	err = client.GetObjectToFileWithContext(context.Background(), bucket, object, filePath, "bytes=0-100000")
+	c.Assert(err, IsNil)
+	os.Remove(filePath)
 	// 下载文件，通过context取消
 	ctx, cancelFunc := context.WithTimeout(context.Background(), timeout)
 	defer cancelFunc()
-	err = client.GetObjectToFileWithContext(ctx, bucket, object, tempFilePath, "")
+	err = client.GetObjectToFileWithContext(ctx, bucket, object, filePath, "")
 	c.Assert(err, NotNil)
-	os.Remove(object + ".temp")
+	os.Remove(filePath + ".temp")
 	// delete
 	_, err = client.DeleteObjectWithContext(context.Background(), &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
@@ -404,7 +409,7 @@ func (s *Ks3utilCommandSuite) TestGetObjectToFileWithContext(c *C) {
 // s3manager Upload
 func (s *Ks3utilCommandSuite) TestUploadWithContext(c *C) {
 	sourceObject := randLowStr(10)
-	createFile(sourceObject, 1024*1024*20)
+	createFile(sourceObject, 1024*1024*10)
 	fd, _ := os.Open(sourceObject)
 	// put
 	_, err := client.PutObjectWithContext(context.Background(), &s3.PutObjectInput{
@@ -472,48 +477,61 @@ func (s *Ks3utilCommandSuite) TestUploadDirWithContext(c *C) {
 	path, err := os.Getwd()
 	os.Mkdir("testDir", 0777)
 	dir := path + "/testDir/"
+	prefix := randLowStr(6) + "/"
 	os.Chmod(dir, 0777)
 	c.Assert(err, IsNil)
 	object1 := randLowStr(10)
-	err = createFile(dir+object1, 1024*1024*20)
+	err = createFile(dir+object1, 1024*1024*1)
 	object2 := randLowStr(10)
-	createFile(dir+object2, 1024*1024*20)
+	createFile(dir+object2, 1024*1024*12)
 	// 初始化配置
 	uploader := s3manager.NewUploader(&s3manager.UploadOptions{
 		S3: client, // S3Client实例，必填
 	})
 	// upload dir，通过context取消
-	ctx, cancelFunc := context.WithTimeout(context.Background(), timeout)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Millisecond*1)
 	defer cancelFunc()
-	err = uploader.UploadDirWithContext(ctx, dir, bucket, "testDir/")
+	err = uploader.UploadDirWithContext(ctx, &s3manager.UploadDirInput{
+		RootDir:      dir,
+		Bucket:       bucket,
+		Prefix:       prefix,
+		ACL:          s3.ACLPublicRead,
+		StorageClass: s3.StorageClassIA,
+	})
 	c.Assert(err, IsNil)
 	// list
 	resp, err := client.ListObjectsWithContext(context.Background(), &s3.ListObjectsInput{
 		Bucket: aws.String(bucket),
-		Prefix: aws.String("testDir/"),
+		Prefix: aws.String(prefix),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(len(resp.Contents), Equals, 0)
 	// upload dir，不通过context取消
-	err = uploader.UploadDirWithContext(context.Background(), dir, bucket, "testDir/")
+	err = uploader.UploadDirWithContext(context.Background(), &s3manager.UploadDirInput{
+		RootDir:      dir,
+		Bucket:       bucket,
+		Prefix:       prefix,
+		ACL:          s3.ACLPublicRead,
+		StorageClass: s3.StorageClassIA,
+	})
 	c.Assert(err, IsNil)
 	// list
 	resp, err = client.ListObjectsWithContext(context.Background(), &s3.ListObjectsInput{
 		Bucket: aws.String(bucket),
-		Prefix: aws.String("testDir/"),
+		Prefix: aws.String(prefix),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(len(resp.Contents), Equals, 2)
 	// delete objects
 	_, err = client.DeleteBucketPrefixWithContext(context.Background(), &s3.DeleteBucketPrefixInput{
 		Bucket: aws.String(bucket),
-		Prefix: aws.String("testDir/"),
+		Prefix: aws.String(prefix),
 	})
 	c.Assert(err, IsNil)
 	// list
 	resp, err = client.ListObjectsWithContext(context.Background(), &s3.ListObjectsInput{
 		Bucket: aws.String(bucket),
-		Prefix: aws.String("testDir/"),
+		Prefix: aws.String(prefix),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(len(resp.Contents), Equals, 0)
@@ -589,7 +607,6 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketPrefixWithContext(c *C) {
 		MaxKeys:         aws.Long(20),
 		IsReTurnResults: aws.Boolean(true),
 	})
-	fmt.Println(awsutil.StringValue(resp), err)
 	c.Assert(err, IsNil)
 	c.Assert(len(resp.Deleted), Equals, 1)
 	os.Remove(object)
