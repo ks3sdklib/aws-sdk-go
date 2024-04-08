@@ -62,6 +62,7 @@ func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 		SignerVersion:    "V2",     // 签名方式可选值有：V2 OR V4 OR V4_UNSIGNED_PAYLOAD_SIGNER，默认值为V2
 		MaxRetries:       1,        // 请求失败时最大重试次数，默认请求失败时不重试
 		IsEnableCRC64:    true,     // 是否开启CRC64校验，默认值为false
+		HTTPClient:       nil,      // HTTP请求的Client对象，若为空则使用默认值
 	})
 
 	//创建测试文件

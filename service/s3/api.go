@@ -541,7 +541,7 @@ func (c *S3) DeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketP
 		input = &DeleteBucketPrefixInput{}
 	}
 	marker := aws.String("")
-	maxKeys := aws.Long(200)
+	maxKeys := aws.Long(100)
 	if input.MaxKeys != nil {
 		maxKeys = input.MaxKeys
 	}
@@ -1975,6 +1975,24 @@ type GeneratePresignedUrlInput struct {
 	// The date and time at which the object is no longer cacheable.
 	Expires int64 `locationName:"Expires" type:"integer" required:"true"`
 
+	// Sets the Cache-Control header of the response.
+	ResponseCacheControl *string `location:"querystring" locationName:"response-cache-control" type:"string"`
+
+	// Sets the Content-Disposition header of the response
+	ResponseContentDisposition *string `location:"querystring" locationName:"response-content-disposition" type:"string"`
+
+	// Sets the Content-Encoding header of the response.
+	ResponseContentEncoding *string `location:"querystring" locationName:"response-content-encoding" type:"string"`
+
+	// Sets the Content-Language header of the response.
+	ResponseContentLanguage *string `location:"querystring" locationName:"response-content-language" type:"string"`
+
+	// Sets the Content-Type header of the response.
+	ResponseContentType *string `location:"querystring" locationName:"response-content-type" type:"string"`
+
+	// Sets the Expires header of the response.
+	ResponseExpires *time.Time `location:"querystring" locationName:"response-expires" type:"timestamp" timestampFormat:"iso8601"`
+
 	metadataGeneratePresignedUrlInput `json:"-" xml:"-"`
 }
 type GeneratePresignedUrlOutput struct {
@@ -2910,6 +2928,8 @@ type CreateMultipartUploadOutput struct {
 
 	// ID for the initiated multipart upload.
 	UploadID *string `locationName:"UploadId" type:"string"`
+
+	Metadata map[string]*string `location:"headers"  type:"map"`
 
 	metadataCreateMultipartUploadOutput `json:"-" xml:"-"`
 }

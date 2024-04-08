@@ -1,7 +1,6 @@
 package s3
 
 import (
-	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 	"hash"
@@ -12,17 +11,11 @@ func CheckUploadCrc64(r *aws.Request) {
 	clientCrc := r.Crc64.Sum64()
 	serverCrc, _ := strconv.ParseUint(r.HTTPResponse.Header.Get("X-Amz-Checksum-Crc64ecma"), 10, 64)
 
+	r.Config.WriteLog(aws.LogOn, "client crc:%d, server crc:%d\n", clientCrc, serverCrc)
+
 	if r.HTTPResponse.Header.Get("X-Amz-Checksum-Crc64ecma") != "" && clientCrc != serverCrc {
 		r.Error = apierr.New("CRCCheckError", "client crc and server crc do not match", nil)
-	}
-	if r.Config.LogLevel > 0 {
-		out := r.Config.Logger
-		fmt.Fprintln(out, "---[ CHECK CRC64 ]--------------------------------")
-		fmt.Fprintln(out, "client crc:", clientCrc, "server crc:", serverCrc)
-		if r.Error != nil {
-			fmt.Fprintln(out, r.Error.Error())
-		}
-		fmt.Fprintln(out, "-----------------------------------------------------")
+		r.Config.WriteLog(aws.LogOn, "error:%s\n", r.Error.Error())
 	}
 }
 
@@ -36,18 +29,11 @@ func CheckDownloadCrc64(s3 *S3, res *GetObjectOutput, crc hash.Hash64) error {
 		serverCrc, _ = strconv.ParseUint(*res.Metadata["X-Amz-Checksum-Crc64ecma"], 10, 64)
 	}
 
+	s3.Config.WriteLog(aws.LogOn, "client crc:%d, server crc:%d\n", clientCrc, serverCrc)
+
 	if serverCrc != 0 && clientCrc != serverCrc {
 		err = apierr.New("CRCCheckError", "client crc and server crc do not match", nil)
-	}
-
-	if s3.Config.LogLevel > 0 {
-		out := s3.Config.Logger
-		fmt.Fprintln(out, "---[ CHECK CRC64 ]--------------------------------")
-		fmt.Fprintln(out, "client crc:", clientCrc, "server crc:", serverCrc)
-		if err != nil {
-			fmt.Fprintln(out, err.Error())
-		}
-		fmt.Fprintln(out, "-----------------------------------------------------")
+		s3.Config.WriteLog(aws.LogOn, "error:%s\n", err.Error())
 	}
 
 	return err

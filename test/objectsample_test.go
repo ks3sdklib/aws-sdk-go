@@ -196,7 +196,6 @@ func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 	}
 	url, err := client.GeneratePresignedUrl(params)
 	if err != nil {
-		fmt.Println(err)
 		panic(err)
 	}
 	fmt.Println("Result:\n", url)

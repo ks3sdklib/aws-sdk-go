@@ -525,8 +525,8 @@ func (u *multiuploader) send(c chunk) error {
 		return err
 	}
 
-	n := c.num
-	completed := &s3.CompletedPart{ETag: resp.ETag, ChecksumCRC64ECMA: resp.ChecksumCRC64ECMA, PartNumber: &n}
+	partNumber := c.num
+	completed := &s3.CompletedPart{ETag: resp.ETag, ChecksumCRC64ECMA: resp.ChecksumCRC64ECMA, PartNumber: &partNumber}
 
 	completeUploadPart := &CompleteUploadPart{Part: completed, TrunkSize: c.trunkSize}
 
@@ -592,18 +592,11 @@ func (u *multiuploader) checkMultipartUploadCrc64(clientCrc uint64, res *s3.Comp
 	var err error
 	serverCrc, _ := strconv.ParseUint(*res.Metadata["X-Amz-Checksum-Crc64ecma"], 10, 64)
 
+	u.opts.S3.Config.WriteLog(aws.LogOn, "client crc:%d, server crc:%d\n", clientCrc, serverCrc)
+
 	if *res.Metadata["X-Amz-Checksum-Crc64ecma"] != "" && clientCrc != serverCrc {
 		err = apierr.New("CRCCheckError", "client crc and server crc do not match", nil)
-	}
-
-	if u.opts.S3.Config.LogLevel > 0 {
-		out := u.opts.S3.Config.Logger
-		fmt.Fprintln(out, "---[ CHECK CRC64 ]--------------------------------")
-		fmt.Fprintln(out, "client crc:", clientCrc, "server crc:", serverCrc)
-		if err != nil {
-			fmt.Fprintln(out, err.Error())
-		}
-		fmt.Fprintln(out, "-----------------------------------------------------")
+		u.opts.S3.Config.WriteLog(aws.LogOn, "error:%s\n", err.Error())
 	}
 
 	return err
@@ -633,8 +626,10 @@ func (u *multiuploader) complete() *s3.CompleteMultipartUploadOutput {
 	if u.opts.S3.Config.IsEnableCRC64 {
 		clientCrc := u.combineCRCInUploadParts(u.parts)
 		err = u.checkMultipartUploadCrc64(clientCrc, resp)
-		u.seterr(err)
-		u.fail()
+		if err != nil {
+			u.seterr(err)
+			u.fail()
+		}
 	}
 
 	return resp

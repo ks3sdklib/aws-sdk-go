@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -191,4 +192,16 @@ func (c Config) Merge(newcfg *Config) *Config {
 		cfg.IsEnableCRC64 = c.IsEnableCRC64
 	}
 	return &cfg
+}
+
+const (
+	LogOff = iota
+	LogOn
+)
+
+func (c Config) WriteLog(LogLevel uint, format string, a ...interface{}) {
+	if c.LogLevel < LogLevel {
+		return
+	}
+	fmt.Fprintf(c.Logger, format, a...)
 }
