@@ -6,9 +6,9 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
-	"github.com/ks3sdklib/aws-sdk-go/internal/util"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3manager"
+	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3util"
 	. "gopkg.in/check.v1"
 	"net/http"
 	"net/url"
@@ -204,7 +204,7 @@ func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 // 根据外链PUT上传
 func (s *Ks3utilCommandSuite) TestGeneratePUTPresignedUrl(c *C) {
 	text := "test content"
-	md5 := util.GetStrMD5(text)
+	md5 := s3util.GetStrMD5(text)
 	url, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
 		Bucket:      aws.String(bucket),       // 设置 bucket 名称
 		Key:         aws.String(key),          // 设置 object key

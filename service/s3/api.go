@@ -2478,9 +2478,17 @@ type CompleteMultipartUploadOutput struct {
 	// encryption key that was used for the object.
 	SSEKMSKeyID *string `location:"header" locationName:"x-amz-server-side-encryption-aws-kms-key-id" type:"string"`
 
-	// The Server-side encryption algorithm used when storing this object in S3
-	// (e.g., AES256, aws:kms).
+	// The Server-side encryption algorithm used when storing this object in KS3, eg: AES256.
 	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
+
+	// If server-side encryption with a customer-provided encryption key was requested,
+	// the response will include this header confirming the encryption algorithm used.
+	SSECustomerAlgorithm *string `location:"header" locationName:"x-amz-server-side-encryption-customer-algorithm" type:"string"`
+
+	// If server-side encryption with a customer-provided encryption key was requested,
+	// the response will include this header to provide round trip message integrity
+	// verification of the customer-provided encryption key.
+	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
 
 	// Version of the object.
 	VersionID *string `location:"header" locationName:"x-amz-version-id" type:"string"`
