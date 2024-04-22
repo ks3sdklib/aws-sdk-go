@@ -27,7 +27,6 @@ func CheckDownloadCrc64(s3 *S3, res *GetObjectOutput, crc hash.Hash64) error {
 	var err error
 	clientCrc := crc.Sum64()
 	serverCrc := uint64(0)
-
 	if res.Metadata["X-Amz-Checksum-Crc64ecma"] != nil {
 		serverCrc, _ = strconv.ParseUint(*res.Metadata["X-Amz-Checksum-Crc64ecma"], 10, 64)
 	}

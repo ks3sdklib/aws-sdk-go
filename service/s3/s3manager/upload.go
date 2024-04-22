@@ -590,12 +590,15 @@ func (u *multiuploader) combineCRCInUploadParts(parts []*CompleteUploadPart) uin
 
 func (u *multiuploader) checkMultipartUploadCrc64(clientCrc uint64, res *s3.CompleteMultipartUploadOutput) error {
 	var err error
-	serverCrc, _ := strconv.ParseUint(*res.Metadata["X-Amz-Checksum-Crc64ecma"], 10, 64)
+	serverCrc := uint64(0)
+	if res.Metadata["X-Amz-Checksum-Crc64ecma"] != nil {
+		serverCrc, _ = strconv.ParseUint(*res.Metadata["X-Amz-Checksum-Crc64ecma"], 10, 64)
+	}
 
 	u.opts.S3.Config.WriteLog(aws.LogOn, "client crc:%d, server crc:%d\n", clientCrc, serverCrc)
 
-	if *res.Metadata["X-Amz-Checksum-Crc64ecma"] != "" && clientCrc != serverCrc {
-		err = apierr.New("CRCCheckError", "client crc and server crc do not match", nil)
+	if serverCrc != 0 && clientCrc != serverCrc {
+		err = apierr.New("CRCCheckError", fmt.Sprintf("client crc and server crc do not match, request id:[%s]", *res.Metadata["X-Kss-Request-Id"]), nil)
 		u.opts.S3.Config.WriteLog(aws.LogOn, "error:%s\n", err.Error())
 	}
 
