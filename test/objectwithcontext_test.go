@@ -411,8 +411,12 @@ func (s *Ks3utilCommandSuite) TestUploadWithContext(c *C) {
 	sourceObject := randLowStr(10)
 	createFile(sourceObject, 1024*1024*10)
 	fd, _ := os.Open(sourceObject)
-	// put
-	_, err := client.PutObjectWithContext(context.Background(), &s3.PutObjectInput{
+	// 初始化配置
+	uploader := s3manager.NewUploader(&s3manager.UploadOptions{
+		S3: client, // S3Client实例，必填
+	})
+	// s3manager Upload 上传
+	_, err := uploader.UploadWithContext(context.Background(), &s3manager.UploadInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(sourceObject),
 		ACL:    aws.String(s3.ACLPublicRead),
@@ -423,10 +427,6 @@ func (s *Ks3utilCommandSuite) TestUploadWithContext(c *C) {
 	sourceUrl := fmt.Sprintf("https://%s.%s/%s", bucket, endpoint, sourceObject)
 	result, err := http.Get(sourceUrl)
 	c.Assert(err, IsNil)
-	// 初始化配置
-	uploader := s3manager.NewUploader(&s3manager.UploadOptions{
-		S3: client, // S3Client实例，必填
-	})
 	// 上传网络流，不通过context取消
 	_, err = uploader.UploadWithContext(context.Background(), &s3manager.UploadInput{
 		Bucket: aws.String(bucket), // 存储空间名称，必填
@@ -481,9 +481,13 @@ func (s *Ks3utilCommandSuite) TestUploadDirWithContext(c *C) {
 	os.Chmod(dir, 0777)
 	c.Assert(err, IsNil)
 	object1 := randLowStr(10)
-	err = createFile(dir+object1, 1024*1024*1)
+	createFile(dir+object1, 1024*1024*1)
 	object2 := randLowStr(10)
 	createFile(dir+object2, 1024*1024*12)
+	object3 := randLowStr(10)
+	createFile(dir+object3, 1024*1024*20)
+	object4 := randLowStr(10)
+	createFile(dir+object4, 0)
 	// 初始化配置
 	uploader := s3manager.NewUploader(&s3manager.UploadOptions{
 		S3: client, // S3Client实例，必填
@@ -521,7 +525,7 @@ func (s *Ks3utilCommandSuite) TestUploadDirWithContext(c *C) {
 		Prefix: aws.String(prefix),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(len(resp.Contents), Equals, 2)
+	c.Assert(len(resp.Contents), Equals, 4)
 	// delete objects
 	_, err = client.DeleteBucketPrefixWithContext(context.Background(), &s3.DeleteBucketPrefixInput{
 		Bucket: aws.String(bucket),
