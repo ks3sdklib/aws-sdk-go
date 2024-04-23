@@ -1110,7 +1110,7 @@ func (c *S3) SaveObjectToFile(filePath string, res *GetObjectOutput) error {
 		return err
 	}
 
-	if c.Config.IsEnableCRC64 {
+	if c.Config.CrcCheckEnabled {
 		err = CheckDownloadCrc64(c, res, crc)
 		if err != nil {
 			return err
@@ -2033,7 +2033,7 @@ func (c *S3) PutObjectRequest(input *PutObjectInput) (req *aws.Request, output *
 	}
 
 	req = c.newRequest(opPutObject, input, output)
-	if c.Config.IsEnableCRC64 {
+	if c.Config.CrcCheckEnabled {
 		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
 	}
 	output = &PutObjectOutput{}
@@ -2253,7 +2253,7 @@ func (c *S3) UploadPartRequest(input *UploadPartInput) (req *aws.Request, output
 	}
 
 	req = c.newRequest(opUploadPart, input, output)
-	if c.Config.IsEnableCRC64 {
+	if c.Config.CrcCheckEnabled {
 		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
 	}
 	output = &UploadPartOutput{}

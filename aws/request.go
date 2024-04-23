@@ -134,7 +134,7 @@ func (r *Request) SetStringBody(s string) {
 
 // SetReaderBody will set the request's body reader.
 func (r *Request) SetReaderBody(reader io.ReadSeeker) {
-	if r.Config.IsEnableCRC64 {
+	if r.Config.CrcCheckEnabled {
 		crc := crc.NewCRC(crc.CrcTable(), 0)
 		teeReader := util.TeeReader(reader, crc)
 		r.HTTPRequest.Body = teeReader

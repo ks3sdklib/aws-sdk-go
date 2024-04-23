@@ -626,7 +626,7 @@ func (u *multiuploader) complete() *s3.CompleteMultipartUploadOutput {
 		u.fail()
 	}
 
-	if u.opts.S3.Config.IsEnableCRC64 {
+	if u.opts.S3.Config.CrcCheckEnabled {
 		clientCrc := u.combineCRCInUploadParts(u.parts)
 		err = u.checkMultipartUploadCrc64(clientCrc, resp)
 		if err != nil {
