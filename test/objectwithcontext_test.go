@@ -467,12 +467,9 @@ func (s *Ks3utilCommandSuite) TestUploadWithContext(c *C) {
 
 // s3manager Upload Dir
 func (s *Ks3utilCommandSuite) TestUploadDirWithContext(c *C) {
-	path, err := os.Getwd()
-	os.Mkdir("testDir", 0777)
-	dir := path + "/testDir/"
+	dir := randLowStr(8) + "/"
+	os.Mkdir(dir, 0777)
 	prefix := randLowStr(6) + "/"
-	os.Chmod(dir, 0777)
-	c.Assert(err, IsNil)
 	object1 := randLowStr(10)
 	createFile(dir+object1, 1024*1024*1)
 	object2 := randLowStr(10)
@@ -488,7 +485,7 @@ func (s *Ks3utilCommandSuite) TestUploadDirWithContext(c *C) {
 	// upload dir，通过context取消
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Millisecond*1)
 	defer cancelFunc()
-	err = uploader.UploadDirWithContext(ctx, &s3manager.UploadDirInput{
+	err := uploader.UploadDirWithContext(ctx, &s3manager.UploadDirInput{
 		RootDir:      dir,
 		Bucket:       bucket,
 		Prefix:       prefix,
