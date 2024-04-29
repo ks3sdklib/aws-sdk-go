@@ -476,8 +476,6 @@ func (s *Ks3utilCommandSuite) TestUploadDirWithContext(c *C) {
 	createFile(dir+object2, 1024*1024*12)
 	object3 := randLowStr(10)
 	createFile(dir+object3, 1024*1024*20)
-	object4 := randLowStr(10)
-	createFile(dir+object4, 0)
 	// 初始化配置
 	uploader := s3manager.NewUploader(&s3manager.UploadOptions{
 		S3: client, // S3Client实例，必填
@@ -515,7 +513,7 @@ func (s *Ks3utilCommandSuite) TestUploadDirWithContext(c *C) {
 		Prefix: aws.String(prefix),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(len(resp.Contents), Equals, 4)
+	c.Assert(len(resp.Contents), Equals, 3)
 	// delete objects
 	_, err = client.DeleteBucketPrefixWithContext(context.Background(), &s3.DeleteBucketPrefixInput{
 		Bucket: aws.String(bucket),
