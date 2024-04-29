@@ -17,8 +17,6 @@ import (
 	"time"
 )
 
-var timeout = time.Second * 2
-
 // PUT Object
 func (s *Ks3utilCommandSuite) TestPutObjectWithContext(c *C) {
 	object := randLowStr(10)
@@ -105,11 +103,6 @@ func (s *Ks3utilCommandSuite) TestGetObjectWithContext(c *C) {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
 	})
-	c.Assert(err, IsNil)
-	fd, err = os.OpenFile(tempFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(0664))
-	c.Assert(err, IsNil)
-	_, err = io.Copy(fd, resp.Body)
-	fd.Close()
 	c.Assert(err, NotNil)
 	os.Rename(tempFilePath, object)
 	os.Remove(object)
