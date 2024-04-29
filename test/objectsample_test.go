@@ -49,7 +49,7 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 	object := randLowStr(10)
 	createFile(object, 1024*1024*1)
 	fd, _ := os.Open(object)
-	md5, _ := s3util.GetFileMD5(content)
+	md5, _ := s3util.GetBase64FileMD5Str(object)
 	_, err := client.PutObject(&s3.PutObjectInput{
 		Bucket:      aws.String(bucket),
 		Key:         aws.String(object),
@@ -166,7 +166,7 @@ func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 // 根据外链PUT上传
 func (s *Ks3utilCommandSuite) TestGeneratePUTPresignedUrl(c *C) {
 	text := "test content"
-	md5 := s3util.GetStrMD5(text)
+	md5 := s3util.GetBase64MD5Str(text)
 	url, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
 		Bucket:      aws.String(bucket),       // 设置 bucket 名称
 		Key:         aws.String(key),          // 设置 object key
@@ -371,7 +371,7 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 			//块的数量可以是1到10,000中的任意一个（包含1和10,000）。块序号用于标识一个块以及其在对象创建时的位置。如果你上传一个新的块，使用之前已经使用的序列号，那么之前的那个块将会被覆盖。当所有块总大小大于5M时，除了最后一个块没有大小限制外，其余的块的大小均要求在5MB以上。当所有块总大小小于5M时，除了最后一个块没有大小限制外，其余的块的大小均要求在100K以上。如果不符合上述要求，会返回413状态码。
 			//为了保证数据在传输过程中没有损坏，请使用 Content-MD5 头部。当使用此头部时，KS3会自动计算出MD5，并根据用户提供的MD5进行校验，如果不匹配，将会返回错误信息。
 			//计算sc[:nr]的md5值
-			md5 := s3util.GetStrMD5(string(sc[0:nr]))
+			md5 := s3util.GetBase64MD5Str(string(sc[0:nr]))
 			resp, err := client.UploadPart(&s3.UploadPartInput{
 				Bucket:        aws.String(bucket),
 				Key:           aws.String(key),
@@ -413,9 +413,9 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithSSEC(c *C) {
 	_, err := client.PutObject(&s3.PutObjectInput{
 		Bucket:               aws.String(bucket),
 		Key:                  aws.String(key),
-		SSECustomerAlgorithm: aws.String("AES256"),                            //加密类型
-		SSECustomerKey:       aws.String(s3util.GetStrBase64(SSECustomerKey)), // 客户端提供的加密密钥
-		SSECustomerKeyMD5:    aws.String(s3util.GetStrMD5(SSECustomerKey)),    // 客户端提供的通过BASE64编码的通过128位MD5加密的密钥的MD5值
+		SSECustomerAlgorithm: aws.String("AES256"),                               //加密类型
+		SSECustomerKey:       aws.String(s3util.GetBase64Str(SSECustomerKey)),    // 客户端提供的加密密钥
+		SSECustomerKeyMD5:    aws.String(s3util.GetBase64MD5Str(SSECustomerKey)), // 客户端提供的通过BASE64编码的通过128位MD5加密的密钥的MD5值
 	})
 	c.Assert(err, IsNil)
 }
