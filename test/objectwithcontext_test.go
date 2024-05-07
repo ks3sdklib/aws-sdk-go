@@ -207,8 +207,8 @@ func (s *Ks3utilCommandSuite) TestFetchObjectWithContext(c *C) {
 		SourceUrl: aws.String(encodedUrl),
 	})
 	c.Assert(err, IsNil)
-	// put fetch 异步操作，等待5秒 head
-	time.Sleep(time.Second * 5)
+	// put fetch 异步操作，等待10秒 head
+	time.Sleep(time.Second * 10)
 	// head
 	resp, err := client.HeadObjectWithContext(context.Background(), &s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
