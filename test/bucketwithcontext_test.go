@@ -779,7 +779,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketACLWithContext(c *C) {
 
 // PUT Bucket
 func (s *Ks3utilCommandSuite) TestCreateBucketWithContext(c *C) {
-	tempBucket := bucket + "test-1"
+	tempBucket := commonNamePrefix + randLowStr(10)
 	// put,通过context取消
 	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
 	defer cancelFunc()

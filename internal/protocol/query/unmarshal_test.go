@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
-	"github.com/aws/aws-sdk-go/private/util"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util"
 	"io"
 	"io/ioutil"
 	"net/http"

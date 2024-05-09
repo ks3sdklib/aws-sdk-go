@@ -9,12 +9,14 @@ import (
 )
 
 type fileInfoType struct {
-	filePath  string
-	name      string
-	bucket    string
-	objectKey string
-	size      int64
-	dir       string
+	filePath     string
+	name         string
+	bucket       string
+	objectKey    string
+	size         int64
+	dir          string
+	acl          string
+	storageClass string
 }
 
 // CloudURL describes ks3 url

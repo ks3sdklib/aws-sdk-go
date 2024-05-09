@@ -13,6 +13,7 @@ type Handlers struct {
 	UnmarshalError   HandlerList
 	Retry            HandlerList
 	AfterRetry       HandlerList
+	CheckCrc64       HandlerList
 }
 
 // copy returns of this handler's lists.
@@ -28,6 +29,7 @@ func (h *Handlers) copy() Handlers {
 		UnmarshalMeta:    h.UnmarshalMeta.copy(),
 		Retry:            h.Retry.copy(),
 		AfterRetry:       h.AfterRetry.copy(),
+		CheckCrc64:       h.CheckCrc64.copy(),
 	}
 }
 
@@ -43,6 +45,7 @@ func (h *Handlers) Clear() {
 	h.ValidateResponse.Clear()
 	h.Retry.Clear()
 	h.AfterRetry.Clear()
+	h.CheckCrc64.Clear()
 }
 
 // A HandlerList manages zero or more handlers in a list.

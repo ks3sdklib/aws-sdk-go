@@ -5,6 +5,7 @@ package s3
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
@@ -12,6 +13,8 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
+	"github.com/ks3sdklib/aws-sdk-go/internal/crc"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util"
 	"hash"
 	"io"
 	"net/http"
@@ -494,30 +497,8 @@ func (c *S3) DeleteObjectsRequest(input *DeleteObjectsInput) (req *aws.Request, 
 	return
 }
 
-// This operation enables you to delete multiple objects from a bucket using
-// a single HTTP request. You may specify up to 1000 keys.
 func (c *S3) DeleteObjects(input *DeleteObjectsInput) (*DeleteObjectsOutput, error) {
-	var errors []*Error
-	var okList []*DeletedObject
-	if input == nil {
-		input = &DeleteObjectsInput{}
-	}
-	for _, t := range input.Delete.Objects {
-		_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-		if input.IsReTurnResults != nil && *input.IsReTurnResults == true {
-			if err != nil {
-				aerr, _ := err.(awserr.Error)
-				errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
-			} else {
-				okList = append(okList, &DeletedObject{Key: t.Key})
-			}
-		}
-	}
-	output := &DeleteObjectsOutput{
-		Deleted: okList,
-		Errors:  errors,
-	}
-	return output, nil
+	return c.DeleteObjectsWithContext(context.Background(), input)
 }
 
 func (c *S3) DeleteObjectsWithContext(ctx aws.Context, input *DeleteObjectsInput) (*DeleteObjectsOutput, error) {
@@ -545,71 +526,31 @@ func (c *S3) DeleteObjectsWithContext(ctx aws.Context, input *DeleteObjectsInput
 }
 
 func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
-
-	var errors []*Error
-	var okList []*DeletedObject
-
-	marker := aws.String("")
-	prefix := input.Prefix
-	var output = &DeleteObjectsOutput{
-		Deleted: okList,
-		Errors:  errors,
-	}
-	if input == nil {
-		input = &DeleteBucketPrefixInput{}
-	}
-	for {
-		resp, err := c.ListObjects(&ListObjectsInput{
-			Bucket:  input.Bucket,
-			Prefix:  prefix,
-			Marker:  marker,
-			MaxKeys: aws.Long(1000),
-		})
-		if err == nil {
-			for _, t := range resp.Contents {
-				_, err := c.DeleteObject(&DeleteObjectInput{Bucket: input.Bucket, Key: t.Key})
-				if input.IsReTurnResults != nil && *input.IsReTurnResults == true {
-					if err != nil {
-						aerr, _ := err.(awserr.Error)
-						errors = append(errors, &Error{Key: t.Key, Code: aws.String(aerr.Code()), Message: aws.String(aerr.Message())})
-						output.Errors = errors
-					} else {
-						okList = append(okList, &DeletedObject{Key: t.Key})
-						output.Deleted = okList
-					}
-				}
-			}
-			if *resp.IsTruncated == false {
-				break
-			}
-			marker = resp.Contents[999].Key
-		} else {
-			return output, err
-		}
-	}
-	return output, nil
+	return c.DeleteBucketPrefixWithContext(context.Background(), input)
 }
 
 func (c *S3) DeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
-
 	var errors []*Error
 	var okList []*DeletedObject
 
-	marker := aws.String("")
-	prefix := input.Prefix
 	var output = &DeleteObjectsOutput{
 		Deleted: okList,
 		Errors:  errors,
 	}
 	if input == nil {
 		input = &DeleteBucketPrefixInput{}
+	}
+	marker := aws.String("")
+	maxKeys := aws.Long(100)
+	if input.MaxKeys != nil {
+		maxKeys = input.MaxKeys
 	}
 	for {
 		resp, err := c.ListObjectsWithContext(ctx, &ListObjectsInput{
 			Bucket:  input.Bucket,
-			Prefix:  prefix,
+			Prefix:  input.Prefix,
 			Marker:  marker,
-			MaxKeys: aws.Long(1000),
+			MaxKeys: maxKeys,
 		})
 		if err == nil {
 			for _, t := range resp.Contents {
@@ -628,7 +569,7 @@ func (c *S3) DeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketP
 			if *resp.IsTruncated == false {
 				break
 			}
-			marker = resp.Contents[999].Key
+			marker = resp.Contents[*maxKeys-1].Key
 		} else {
 			return output, err
 		}
@@ -641,19 +582,10 @@ func (c *S3) DeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketP
 重试删除前缀
 */
 func (c *S3) TryDeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
-
-	params := input
-	var output *DeleteObjectsOutput
-	err := Do(func(attempt int) (bool, error) {
-		var err error
-		output, err = c.DeleteBucketPrefix(params)
-		return attempt < 3, err // 重试3次
-	})
-	return output, err
+	return c.TryDeleteBucketPrefixWithContext(context.Background(), input)
 }
 
 func (c *S3) TryDeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
-
 	params := input
 	var output *DeleteObjectsOutput
 	err := Do(func(attempt int) (bool, error) {
@@ -1133,58 +1065,56 @@ func (c *S3) GetObjectWithContext(ctx aws.Context, input *GetObjectInput) (*GetO
 }
 
 func (c *S3) GetObjectToFile(bucket, objectKey, filePath, Range string) error {
-	tempFilePath := filePath + TempFileSuffix
-
 	getInput := &GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(objectKey),
 		Range:  aws.String(Range),
 	}
 	// Calls the API to actually download the object. Returns the result instance.
-	req, err := c.GetObject(getInput)
+	res, err := c.GetObject(getInput)
 	if err != nil {
 		return err
 	}
-	// If the local file does not exist, create a new one. If it exists, overwrite it.
-	fd, err := os.OpenFile(tempFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(0664))
-	if err != nil {
-		return err
-	}
-
-	// Copy the data to the local file path.
-	_, err = io.Copy(fd, req.Body)
-	fd.Close()
-	if err != nil {
-		return err
-	}
-
-	return os.Rename(tempFilePath, filePath)
+	return c.SaveObjectToFile(filePath, res)
 }
 
 func (c *S3) GetObjectToFileWithContext(ctx aws.Context, bucket, objectKey, filePath, Range string) error {
-	tempFilePath := filePath + TempFileSuffix
-
 	getInput := &GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(objectKey),
 		Range:  aws.String(Range),
 	}
 	// Calls the API to actually download the object. Returns the result instance.
-	req, err := c.GetObjectWithContext(ctx, getInput)
+	res, err := c.GetObjectWithContext(ctx, getInput)
 	if err != nil {
 		return err
 	}
+	return c.SaveObjectToFile(filePath, res)
+}
+
+func (c *S3) SaveObjectToFile(filePath string, res *GetObjectOutput) error {
+	tempFilePath := filePath + TempFileSuffix
 	// If the local file does not exist, create a new one. If it exists, overwrite it.
 	fd, err := os.OpenFile(tempFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(0664))
 	if err != nil {
 		return err
 	}
 
+	crc := crc.NewCRC(crc.CrcTable(), 0)
+	res.Body = util.TeeReader(res.Body, crc)
+
 	// Copy the data to the local file path.
-	_, err = io.Copy(fd, req.Body)
+	_, err = io.Copy(fd, res.Body)
 	fd.Close()
 	if err != nil {
 		return err
+	}
+
+	if c.Config.CrcCheckEnabled {
+		err = CheckDownloadCrc64(c, res, crc)
+		if err != nil {
+			return err
+		}
 	}
 
 	return os.Rename(tempFilePath, filePath)
@@ -2031,6 +1961,8 @@ type GeneratePresignedUrlInput struct {
 	// A standard MIME type describing the format of the object data.
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	ContentMd5 *string `location:"header" locationName:"Content-Md5" type:"string"`
+
 	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
 
 	// A map of metadata to store with the object in S3.
@@ -2042,6 +1974,24 @@ type GeneratePresignedUrlInput struct {
 
 	// The date and time at which the object is no longer cacheable.
 	Expires int64 `locationName:"Expires" type:"integer" required:"true"`
+
+	// Sets the Cache-Control header of the response.
+	ResponseCacheControl *string `location:"querystring" locationName:"response-cache-control" type:"string"`
+
+	// Sets the Content-Disposition header of the response
+	ResponseContentDisposition *string `location:"querystring" locationName:"response-content-disposition" type:"string"`
+
+	// Sets the Content-Encoding header of the response.
+	ResponseContentEncoding *string `location:"querystring" locationName:"response-content-encoding" type:"string"`
+
+	// Sets the Content-Language header of the response.
+	ResponseContentLanguage *string `location:"querystring" locationName:"response-content-language" type:"string"`
+
+	// Sets the Content-Type header of the response.
+	ResponseContentType *string `location:"querystring" locationName:"response-content-type" type:"string"`
+
+	// Sets the Expires header of the response.
+	ResponseExpires *time.Time `location:"querystring" locationName:"response-expires" type:"timestamp" timestampFormat:"iso8601"`
 
 	metadataGeneratePresignedUrlInput `json:"-" xml:"-"`
 }
@@ -2083,6 +2033,9 @@ func (c *S3) PutObjectRequest(input *PutObjectInput) (req *aws.Request, output *
 	}
 
 	req = c.newRequest(opPutObject, input, output)
+	if c.Config.CrcCheckEnabled {
+		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
+	}
 	output = &PutObjectOutput{}
 	req.Data = output
 	return
@@ -2138,12 +2091,12 @@ func (c *S3) PutReaderWithContext(ctx aws.Context, input *PutReaderRequest) (*Pu
 	return out, err
 }
 
-// func (c *S3) PutObjectMD5Check(input *PutObjectInput) (*PutObjectOutput, error) {
+//func (c *S3) PutObjectMD5Check(input *PutObjectInput) (*PutObjectOutput, error) {
 //	req, out := c.PutObjectRequest(input)
 //	req.Handlers.Build.PushBack(contentMD5)
 //	err := req.Send()
 //	return out, err
-// }
+//}
 
 // 生成链接
 func (c *S3) GeneratePresignedUrl(input *GeneratePresignedUrlInput) (url string, err error) {
@@ -2300,6 +2253,9 @@ func (c *S3) UploadPartRequest(input *UploadPartInput) (req *aws.Request, output
 	}
 
 	req = c.newRequest(opUploadPart, input, output)
+	if c.Config.CrcCheckEnabled {
+		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
+	}
 	output = &UploadPartOutput{}
 	req.Data = output
 	return
@@ -2522,9 +2478,17 @@ type CompleteMultipartUploadOutput struct {
 	// encryption key that was used for the object.
 	SSEKMSKeyID *string `location:"header" locationName:"x-amz-server-side-encryption-aws-kms-key-id" type:"string"`
 
-	// The Server-side encryption algorithm used when storing this object in S3
-	// (e.g., AES256, aws:kms).
+	// The Server-side encryption algorithm used when storing this object in KS3, eg: AES256.
 	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
+
+	// If server-side encryption with a customer-provided encryption key was requested,
+	// the response will include this header confirming the encryption algorithm used.
+	SSECustomerAlgorithm *string `location:"header" locationName:"x-amz-server-side-encryption-customer-algorithm" type:"string"`
+
+	// If server-side encryption with a customer-provided encryption key was requested,
+	// the response will include this header to provide round trip message integrity
+	// verification of the customer-provided encryption key.
+	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
 
 	// Version of the object.
 	VersionID *string `location:"header" locationName:"x-amz-version-id" type:"string"`
@@ -2556,6 +2520,9 @@ type CompletedPart struct {
 
 	// Part number that identifies the part.
 	PartNumber *int64 `type:"integer"`
+
+	// CRC64 value of a single part
+	ChecksumCRC64ECMA *string `type:"string"`
 
 	metadataCompletedPart `json:"-" xml:"-"`
 }
@@ -2970,6 +2937,8 @@ type CreateMultipartUploadOutput struct {
 	// ID for the initiated multipart upload.
 	UploadID *string `locationName:"UploadId" type:"string"`
 
+	Metadata map[string]*string `location:"headers"  type:"map"`
+
 	metadataCreateMultipartUploadOutput `json:"-" xml:"-"`
 }
 
@@ -3158,9 +3127,14 @@ type DeleteObjectInput struct {
 }
 
 type DeleteBucketPrefixInput struct {
-	Bucket          *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-	Prefix          *string `type:"string"  required:"true"`
-	IsReTurnResults *bool   `type:"boolean" required:"true"`
+	// The name of the bucket.
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+	// Prefix of the object.
+	Prefix *string `type:"string"  required:"true"`
+	// The max number of each list.
+	MaxKeys *int64 `type:"integer" required:"true"`
+	// Is return the deletion result.
+	IsReTurnResults *bool `type:"boolean" required:"true"`
 }
 
 type metadataDeleteObjectInput struct {
@@ -5717,6 +5691,9 @@ type metadataUploadPartInput struct {
 type UploadPartOutput struct {
 	// Entity tag for the uploaded object.
 	ETag *string `location:"header" locationName:"ETag" type:"string"`
+
+	// CRC64 value of a single part.
+	ChecksumCRC64ECMA *string `location:"header" locationName:"x-amz-checksum-crc64ecma" type:"string"`
 
 	// If present, indicates that the requester was successfully charged for the
 	// request.

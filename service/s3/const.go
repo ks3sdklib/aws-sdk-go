@@ -21,3 +21,33 @@ const (
 	MinPartSize5MB     = 5*1024*1024 + 100 // part size, 5MB
 	MinPartSize        = 100 * 1024        // Min part size, 100KB
 )
+
+// ACL
+const (
+	ACLPrivate         string = "private"
+	ACLPublicRead      string = "public-read"
+	ACLPublicReadWrite string = "public-read-write"
+)
+
+// StorageClass
+const (
+	StorageClassExtremePL3      string = "EXTREME_PL3"
+	StorageClassExtremePL2      string = "EXTREME_PL2"
+	StorageClassExtremePL1      string = "EXTREME_PL1"
+	StorageClassStandard        string = "STANDARD"
+	StorageClassIA              string = "STANDARD_IA"
+	StorageClassDeepIA          string = "DEEP_IA"
+	StorageClassArchive         string = "ARCHIVE"
+	StorageClassDeepColdArchive string = "DEEP_COLD_ARCHIVE"
+)
+
+// BucketType
+const (
+	BucketTypeExtremePL3 string = "EXTREME_PL3"
+	BucketTypeExtremePL2 string = "EXTREME_PL2"
+	BucketTypeExtremePL1 string = "EXTREME_PL1"
+	BucketTypeNormal     string = "NORMAL"
+	BucketTypeIA         string = "IA"
+	BucketTypeDeepIA     string = "DEEP_IA"
+	BucketTypeArchive    string = "ARCHIVE"
+)

@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -59,6 +60,7 @@ type Config struct {
 	S3ForcePathStyle        bool
 	DomainMode              bool
 	SignerVersion           string
+	CrcCheckEnabled         bool
 }
 
 // Copy will return a shallow copy of the Config object.
@@ -79,6 +81,7 @@ func (c Config) Copy() Config {
 	dst.S3ForcePathStyle = c.S3ForcePathStyle
 	dst.DomainMode = c.DomainMode
 	dst.SignerVersion = c.SignerVersion
+	dst.CrcCheckEnabled = c.CrcCheckEnabled
 	return dst
 }
 
@@ -183,5 +186,22 @@ func (c Config) Merge(newcfg *Config) *Config {
 	} else {
 		cfg.SignerVersion = c.SignerVersion
 	}
+	if newcfg.CrcCheckEnabled {
+		cfg.CrcCheckEnabled = newcfg.CrcCheckEnabled
+	} else {
+		cfg.CrcCheckEnabled = c.CrcCheckEnabled
+	}
 	return &cfg
+}
+
+const (
+	LogOff = iota
+	LogOn
+)
+
+func (c Config) WriteLog(LogLevel uint, format string, a ...interface{}) {
+	if c.LogLevel < LogLevel {
+		return
+	}
+	fmt.Fprintf(c.Logger, format, a...)
 }

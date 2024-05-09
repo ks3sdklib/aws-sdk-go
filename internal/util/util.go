@@ -1,7 +1,16 @@
-// Package utilsort provides sorting utility methods.
-package utilsort
+package util
 
-import "sort"
+import (
+	"regexp"
+	"sort"
+	"strings"
+)
+
+var reTrim = regexp.MustCompile(`\s{2,}`)
+
+func Trim(s string) string {
+	return strings.TrimSpace(reTrim.ReplaceAllString(s, " "))
+}
 
 // SortedKeys returns a sorted slice of keys of a map.
 func SortedKeys(m map[string]interface{}) []string {

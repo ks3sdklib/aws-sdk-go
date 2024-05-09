@@ -2,10 +2,11 @@ package aws
 
 import (
 	"bytes"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
+	"github.com/ks3sdklib/aws-sdk-go/internal/crc"
+	"github.com/ks3sdklib/aws-sdk-go/internal/util"
+	"hash"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -31,9 +32,9 @@ type Request struct {
 	RetryCount   uint
 	Retryable    SettableBool
 	RetryDelay   time.Duration
-
-	built   bool
-	context aws.Context
+	built        bool
+	context      Context
+	Crc64        hash.Hash64
 }
 
 // An Operation is the service API operation to be made.
@@ -133,7 +134,14 @@ func (r *Request) SetStringBody(s string) {
 
 // SetReaderBody will set the request's body reader.
 func (r *Request) SetReaderBody(reader io.ReadSeeker) {
-	r.HTTPRequest.Body = ioutil.NopCloser(reader)
+	if r.Config.CrcCheckEnabled {
+		crc := crc.NewCRC(crc.CrcTable(), 0)
+		teeReader := util.TeeReader(reader, crc)
+		r.HTTPRequest.Body = teeReader
+		r.Crc64 = crc
+	} else {
+		r.HTTPRequest.Body = io.NopCloser(reader)
+	}
 	r.Body = reader
 }
 
@@ -216,6 +224,7 @@ func (r *Request) Send() error {
 		}
 
 		r.Handlers.Unmarshal.Run(r)
+		r.Handlers.CheckCrc64.Run(r)
 		if r.Error != nil {
 			r.Handlers.Retry.Run(r)
 			r.Handlers.AfterRetry.Run(r)

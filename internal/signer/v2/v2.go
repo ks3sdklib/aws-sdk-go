@@ -57,6 +57,8 @@ var signQuerys = map[string]bool{
 	"copy":                         true,
 	"mirror":                       true,
 	"restore":                      true,
+	"append":                       true,
+	"position":                     true,
 }
 
 type signer struct {
