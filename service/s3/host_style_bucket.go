@@ -12,7 +12,7 @@ var reDomain = regexp.MustCompile(`^[a-z0-9][a-z0-9\.\-]{1,61}[a-z0-9]$`)
 var reIPAddress = regexp.MustCompile(`^(\d+\.){3}\d+$`)
 
 // dnsCompatibleBucketName returns true if the bucket name is DNS compatible.
-// Buckets created outside of the classic region MUST be DNS compatible.
+// Buckets created outside the classic region MUST be DNS compatible.
 func dnsCompatibleBucketName(bucket string) bool {
 	return reDomain.MatchString(bucket) &&
 		!reIPAddress.MatchString(bucket) &&

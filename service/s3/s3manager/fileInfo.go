@@ -54,24 +54,23 @@ func (fu *FileURL) Init(urlStr string) error {
 }
 
 // IsCloudURL simulate inheritance, and polymorphism
-func (fu FileURL) IsCloudURL() bool {
+func (fu *FileURL) IsCloudURL() bool {
 	return false
 }
 
 // IsFileURL simulate inheritance, and polymorphism
-func (fu FileURL) IsFileURL() bool {
+func (fu *FileURL) IsFileURL() bool {
 	return true
 }
 
 // ToString simulate inheritance, and polymorphism
-func (fu FileURL) ToString() string {
+func (fu *FileURL) ToString() string {
 	return fu.urlStr
 }
 
 // StorageURLFromString analysis input url type and build a storage url from the url
 func StorageURLFromString(urlStr string) (StorageURLer, error) {
-
-	var fileURL FileURL
+	var fileURL *FileURL
 	if err := fileURL.Init(urlStr); err != nil {
 		return nil, err
 	}

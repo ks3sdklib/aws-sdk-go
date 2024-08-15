@@ -21,19 +21,17 @@ import (
 	"time"
 )
 
-// The maximum allowed number of parts in a multi-part upload on Amazon S3.
-var MaxUploadParts = 10000
+var MaxUploadParts = 10000 // max number of parts in a multipart upload
 
-// The minimum allowed part size when uploading a part to Amazon S3.
-var MinUploadPartSize int64 = 1024 * 1024 * 5
+var MaxUploadPartSize int64 = 1024 * 1024 * 1024 * 5 // Max part size, 5GB
 
-// The default part size to buffer chunks of a payload into.
-var DefaultUploadPartSize = MinUploadPartSize
+var MinUploadPartSize int64 = 1024 * 100 // Min part size, 100KB
 
-// The default number of goroutines to spin up when using Upload().
-var DefaultUploadConcurrency = 5
+var DefaultUploadPartSize int64 = 1024 * 1024 * 5 // Default part size, 5MB
 
-// The default set of options used when opts is nil in Upload().
+var DefaultUploadConcurrency = 5 // Default number of goroutines
+
+// DefaultUploadOptions The default set of options used when opts is nil in Upload().
 var DefaultUploadOptions = &UploadOptions{
 	PartSize:          DefaultUploadPartSize,
 	Parallel:          DefaultUploadConcurrency,
@@ -45,7 +43,7 @@ var DefaultUploadOptions = &UploadOptions{
 type MultiUploadFailure interface {
 	awserr.Error
 
-	// Returns the upload id for the S3 multipart upload that failed.
+	// UploadID Returns the upload id for the S3 multipart upload that failed.
 	UploadID() string
 }
 
@@ -57,7 +55,7 @@ type awsError awserr.Error
 // Composed of BaseError for code, message, and original error
 //
 // Should be used for an error that occurred failing a S3 multipart upload,
-// and a upload ID is available. If an uploadID is not available a more relevant
+// and an upload ID is available. If an uploadID is not available a more relevant
 type multiUploadError struct {
 	awsError
 
@@ -143,7 +141,7 @@ type UploadInput struct {
 	SSECustomerAlgorithm *string `location:"header" locationName:"x-amz-server-side-encryption-customer-algorithm" type:"string"`
 
 	// Specifies the customer-provided encryption key for Amazon S3 to use in encrypting
-	// data. This value is used to store the object and then it is discarded; Amazon
+	// data. This value is used to store the object, and then it is discarded; Amazon
 	// does not store the encryption key. The key must be appropriate for use with
 	// the algorithm specified in the x-amz-server-side​-encryption​-customer-algorithm
 	// header.
@@ -253,7 +251,7 @@ func (u *Uploader) Upload(input *UploadInput) (*UploadOutput, error) {
 	return u.UploadWithContext(aws.BackgroundContext(), input)
 }
 
-func (u Uploader) UploadWithContext(ctx aws.Context, input *UploadInput) (*UploadOutput, error) {
+func (u *Uploader) UploadWithContext(ctx aws.Context, input *UploadInput) (*UploadOutput, error) {
 	i := uploader{in: input, opts: *u.opts, ctx: ctx}
 	return i.upload()
 }
@@ -279,6 +277,11 @@ func (u *uploader) upload() (*UploadOutput, error) {
 
 	if u.opts.PartSize < MinUploadPartSize {
 		msg := fmt.Sprintf("part size must be at least %d bytes", MinUploadPartSize)
+		return nil, awserr.New("ConfigError", msg, nil)
+	}
+
+	if u.opts.PartSize > MaxUploadPartSize {
+		msg := fmt.Sprintf("part size must be at most %d bytes", MaxUploadPartSize)
 		return nil, awserr.New("ConfigError", msg, nil)
 	}
 
@@ -404,8 +407,8 @@ type chunk struct {
 	trunkSize int64
 }
 
-// completedParts is a wrapper to make parts sortable by their part number,
-// since S3 required this list to be sent in sorted order.
+// CompleteUploadParts completedParts is a wrapper to make parts sortable by their part number,
+// since KS3 required this list to be sent in sorted order.
 type CompleteUploadParts []*CompleteUploadPart
 
 func (a CompleteUploadParts) Len() int      { return len(a) }
@@ -567,7 +570,7 @@ func (u *multiuploader) fail() {
 }
 
 func (u *multiuploader) allParts() []*s3.CompletedPart {
-	ps := []*s3.CompletedPart{}
+	var ps []*s3.CompletedPart
 	for _, part := range u.parts {
 		ps = append(ps, part.Part)
 	}
@@ -651,11 +654,11 @@ type UploadDirInput struct {
 	StorageClass string
 }
 
-func (uploader *Uploader) UploadDir(input *UploadDirInput) error {
-	return uploader.UploadDirWithContext(aws.BackgroundContext(), input)
+func (u *Uploader) UploadDir(input *UploadDirInput) error {
+	return u.UploadDirWithContext(aws.BackgroundContext(), input)
 }
 
-func (uploader *Uploader) UploadDirWithContext(ctx aws.Context, input *UploadDirInput) error {
+func (u *Uploader) UploadDirWithContext(ctx aws.Context, input *UploadDirInput) error {
 	if input.RootDir == "" {
 		return apierr.New("InvalidParameter", "RootDir is required", nil)
 	}
@@ -665,7 +668,7 @@ func (uploader *Uploader) UploadDirWithContext(ctx aws.Context, input *UploadDir
 	if !strings.HasSuffix(input.Prefix, "/") && len(input.Prefix) > 0 {
 		input.Prefix = input.Prefix + "/"
 	}
-	rootDir, err := uploader.toAbs(input.RootDir)
+	rootDir, err := u.toAbs(input.RootDir)
 	if err != nil {
 		return err
 	}
@@ -673,19 +676,19 @@ func (uploader *Uploader) UploadDirWithContext(ctx aws.Context, input *UploadDir
 	chFiles := make(chan fileInfoType)
 	var consumerWgc sync.WaitGroup
 	var fileCounter FileCounter
-	for i := 0; i < uploader.opts.Jobs; i++ {
+	for i := 0; i < u.opts.Jobs; i++ {
 		consumerWgc.Add(1)
 		go func() {
 			defer consumerWgc.Done()
 			for file := range chFiles {
 				fileCounter.addTotalNum(1)
-				uploader.upload(ctx, file, &fileCounter)
+				u.upload(ctx, file, &fileCounter)
 			}
 		}()
 	}
 	filepath.Walk(rootDir, func(path string, file os.FileInfo, _ error) (err error) {
 		if !file.IsDir() {
-			if !awsutil.IsHidden(path) || uploader.opts.UploadHidden {
+			if !awsutil.IsHidden(path) || u.opts.UploadHidden {
 				chFiles <- fileInfoType{
 					filePath:     path,
 					name:         file.Name(),
@@ -706,7 +709,7 @@ func (uploader *Uploader) UploadDirWithContext(ctx aws.Context, input *UploadDir
 	return nil
 }
 
-func (uploader *Uploader) toAbs(rootDir string) (string, error) {
+func (u *Uploader) toAbs(rootDir string) (string, error) {
 	if rootDir == "~" || strings.HasPrefix(rootDir, "~/") {
 		currentUser, err := user.Current()
 		if err != nil {
@@ -727,15 +730,14 @@ func (uploader *Uploader) toAbs(rootDir string) (string, error) {
 	return rootDir, nil
 }
 
-func (uploader *Uploader) uploadFile(ctx aws.Context, fileIfo fileInfoType, call func(success bool)) {
-
+func (u *Uploader) uploadFile(ctx aws.Context, fileIfo fileInfoType, call func(success bool)) {
 	file, err := os.Open(fileIfo.filePath)
 	if err != nil {
 		log.Print(err)
 	}
 	defer file.Close()
-	if uploader.opts.SkipAlreadyFile {
-		resp, err := uploader.opts.S3.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
+	if u.opts.SkipAlreadyFile {
+		resp, err := u.opts.S3.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
 			Bucket: aws.String(fileIfo.bucket),
 			Key:    aws.String(fileIfo.objectKey),
 		})
@@ -744,7 +746,7 @@ func (uploader *Uploader) uploadFile(ctx aws.Context, fileIfo fileInfoType, call
 			return
 		}
 	}
-	_, err = uploader.UploadWithContext(ctx, &UploadInput{
+	_, err = u.UploadWithContext(ctx, &UploadInput{
 		Body:         file,
 		Bucket:       aws.String(fileIfo.bucket),
 		Key:          aws.String(fileIfo.objectKey),
@@ -755,14 +757,13 @@ func (uploader *Uploader) uploadFile(ctx aws.Context, fileIfo fileInfoType, call
 
 }
 func makeObjectName(RootDir, Prefix, filePath string) string {
-
 	resDir := strings.Replace(filePath, RootDir, "", 1)
 	objectName := Prefix + resDir
 	return objectName
 }
 
-func (uploader *Uploader) upload(ctx aws.Context, file fileInfoType, fileCounter *FileCounter) {
-	uploader.uploadFile(ctx, file, func(success bool) {
+func (u *Uploader) upload(ctx aws.Context, file fileInfoType, fileCounter *FileCounter) {
+	u.uploadFile(ctx, file, func(success bool) {
 		if success {
 			fileCounter.addSuccessNum(1)
 			fmt.Println(fmt.Sprintf("%s successfully uploaded ", file.objectKey))

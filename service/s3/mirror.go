@@ -4,7 +4,6 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 )
 
-// --------镜像回源-------
 type BucketMirror struct {
 	Version          *string            `json:"version" type:"string" locationName:"version"`
 	UseDefaultRobots *bool              `json:"use_default_robots" locationName:"use_default_robots"`
@@ -194,6 +193,7 @@ func (c *S3) DeleteBucketMirror(input *DeleteBucketMirrorInput) (*DeleteBucketMi
 	err := req.Send()
 	return out, err
 }
+
 func (c *S3) DeleteBucketMirrorWithContext(ctx aws.Context, input *DeleteBucketMirrorInput) (*DeleteBucketMirrorOutput, error) {
 	req, out := c.DeleteBucketMirrorRequest(input)
 	req.SetContext(ctx)

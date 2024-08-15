@@ -123,6 +123,7 @@ type metadataAppendObjectOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// AppendObjectRequest generates a request for the AppendObject operation.
 func (c *S3) AppendObjectRequest(input *AppendObjectInput) (req *aws.Request, output *AppendObjectOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
@@ -145,6 +146,7 @@ func (c *S3) AppendObjectRequest(input *AppendObjectInput) (req *aws.Request, ou
 	return
 }
 
+// AppendObject is used to append data to an Appendable object.
 func (c *S3) AppendObject(input *AppendObjectInput) (*AppendObjectOutput, error) {
 	req, out := c.AppendObjectRequest(input)
 	err := req.Send()

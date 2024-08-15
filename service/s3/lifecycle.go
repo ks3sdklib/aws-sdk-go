@@ -32,10 +32,22 @@ type metadataLifecycleExpiration struct {
 }
 
 type LifecycleRule struct {
-	Expiration *LifecycleExpiration `type:"structure"`
-
 	// Unique identifier for the rule. The value cannot be longer than 255 characters.
 	ID *string `type:"string"`
+
+	// If 'Enabled', the rule is currently being applied. If 'Disabled', the rule
+	// is not currently being applied.
+	Status *string `type:"string" required:"true"`
+
+	// Specifies the prefix, each Rule can only have one Filter, and the prefixes of different
+	// Rules cannot conflict.
+	Filter *LifecycleFilter `type:"structure"`
+
+	// Specifies the time when the object is deleted
+	Expiration *LifecycleExpiration `type:"structure"`
+
+	// Specifies when an object transitions to a specified storage class.
+	Transitions []*Transition `locationName:"Transition" type:"list" flattened:"true"`
 
 	// Specifies when noncurrent object versions expire. Upon expiration, Amazon
 	// S3 permanently deletes the noncurrent object versions. You set this lifecycle
@@ -51,16 +63,60 @@ type LifecycleRule struct {
 	// a specific period in the object's lifetime.
 	NoncurrentVersionTransition *NoncurrentVersionTransition `type:"structure"`
 
-	// Prefix identifying one or more objects to which the rule applies.
-	Filter *LifecycleFilter `type:"structure"`
-
-	// If 'Enabled', the rule is currently being applied. If 'Disabled', the rule
-	// is not currently being applied.
-	Status *string `type:"string" required:"true"`
-
-	Transitions []*Transition `locationName:"Transition" type:"list" flattened:"true"`
+	// Specifies the expiration time for multipart uploads.
+	AbortIncompleteMultipartUpload *AbortIncompleteMultipartUpload `type:"structure"`
 
 	metadataLifecycleRule `json:"-" xml:"-"`
+}
+
+// NoncurrentVersionExpiration Specifies when noncurrent object versions expire. Upon expiration, Amazon
+// S3 permanently deletes the noncurrent object versions. You set this lifecycle
+// configuration action on a bucket that has versioning enabled (or suspended)
+// to request that Amazon S3 delete noncurrent object versions at a specific
+// period in the object's lifetime.
+type NoncurrentVersionExpiration struct {
+	// Specifies the number of days an object is noncurrent before Amazon S3 can
+	// perform the associated action. For information about the noncurrent days
+	// calculations, see How Amazon S3 Calculates When an Object Became Noncurrent
+	// (/AmazonS3/latest/dev/s3-access-control.html) in the Amazon Simple Storage
+	// Service Developer Guide.
+	NoncurrentDays *int64 `type:"integer"`
+
+	metadataNoncurrentVersionExpiration `json:"-" xml:"-"`
+}
+
+type metadataNoncurrentVersionExpiration struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// NoncurrentVersionTransition Container for the transition rule that describes when noncurrent objects
+// transition to the GLACIER storage class. If your bucket is versioning-enabled
+// (or versioning is suspended), you can set this action to request that Amazon
+// S3 transition noncurrent object versions to the GLACIER storage class at
+// a specific period in the object's lifetime.
+type NoncurrentVersionTransition struct {
+	// Specifies the number of days an object is noncurrent before Amazon S3 can
+	// perform the associated action. For information about the noncurrent days
+	// calculations, see How Amazon S3 Calculates When an Object Became Noncurrent
+	// (/AmazonS3/latest/dev/s3-access-control.html) in the Amazon Simple Storage
+	// Service Developer Guide.
+	NoncurrentDays *int64 `type:"integer"`
+
+	// The class of storage used to store the object.
+	StorageClass *string `type:"string"`
+
+	metadataNoncurrentVersionTransition `json:"-" xml:"-"`
+}
+
+type AbortIncompleteMultipartUpload struct {
+	// Relative expiration time: The expiration time in days after the last modified time
+	DaysAfterInitiation *int64 `type:"integer"`
+	// objects created before the date will be expired
+	Date *string `type:"string"`
+}
+
+type metadataNoncurrentVersionTransition struct {
+	SDKShapeTraits bool `type:"structure"`
 }
 
 type PutBucketLifecycleInput struct {
@@ -128,14 +184,15 @@ type metadataLifecycleRule struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 type LifecycleFilter struct {
-	And                     *And `locationName:"And" type :"structure"`
+	Prefix                  *string `type:"string"`
+	And                     *And    `locationName:"And" type:"structure"`
 	metadataLifecycleFilter `json:"-" xml:"-"`
 }
 type metadataLifecycleFilter struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 type And struct {
-	Prefix      *string `type:"string" required:"true"`
+	Prefix      *string `type:"string"`
 	Tag         []*Tag  `locationNameList:"Tag" type:"list" flattened:"true"`
 	metadataAnd `json:"-" xml:"-"`
 }
@@ -180,7 +237,7 @@ func (c *S3) DeleteBucketLifecycleRequest(input *DeleteBucketLifecycleInput) (re
 	return
 }
 
-// Deletes the lifecycle configuration from the bucket.
+// DeleteBucketLifecycle Deletes the lifecycle configuration from the bucket.
 func (c *S3) DeleteBucketLifecycle(input *DeleteBucketLifecycleInput) (*DeleteBucketLifecycleOutput, error) {
 	req, out := c.DeleteBucketLifecycleRequest(input)
 	err := req.Send()
@@ -219,7 +276,7 @@ func (c *S3) GetBucketLifecycleRequest(input *GetBucketLifecycleInput) (req *aws
 	return
 }
 
-// Returns the lifecycle configuration information set on the bucket.
+// GetBucketLifecycle Returns the lifecycle configuration information set on the bucket.
 func (c *S3) GetBucketLifecycle(input *GetBucketLifecycleInput) (*GetBucketLifecycleOutput, error) {
 	req, out := c.GetBucketLifecycleRequest(input)
 	err := req.Send()
@@ -258,7 +315,7 @@ func (c *S3) PutBucketLifecycleRequest(input *PutBucketLifecycleInput) (req *aws
 	return
 }
 
-// Sets lifecycle configuration for your bucket. If a lifecycle configuration
+// PutBucketLifecycle Sets lifecycle configuration for your bucket. If a lifecycle configuration
 // exists, it replaces it.
 func (c *S3) PutBucketLifecycle(input *PutBucketLifecycleInput) (*PutBucketLifecycleOutput, error) {
 	req, out := c.PutBucketLifecycleRequest(input)

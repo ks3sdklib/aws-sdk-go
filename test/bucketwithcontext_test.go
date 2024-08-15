@@ -443,10 +443,22 @@ func (s *Ks3utilCommandSuite) TestPutBucketLifecycleWithContext(c *C) {
 	lifecycleConfiguration := &s3.LifecycleConfiguration{
 		Rules: []*s3.LifecycleRule{
 			{
-				ID:     aws.String("rule1"),
+				ID: aws.String("rule1"),
+				Filter: &s3.LifecycleFilter{
+					Prefix: aws.String("prefix1"),
+				},
 				Status: aws.String("Enabled"),
 				Expiration: &s3.LifecycleExpiration{
-					Days: aws.Long(30),
+					Days: aws.Long(90),
+				},
+				Transitions: []*s3.Transition{
+					{
+						StorageClass: aws.String(s3.StorageClassIA),
+						Days:         aws.Long(30),
+					},
+				},
+				AbortIncompleteMultipartUpload: &s3.AbortIncompleteMultipartUpload{
+					DaysAfterInitiation: aws.Long(60),
 				},
 			},
 		},
@@ -490,10 +502,22 @@ func (s *Ks3utilCommandSuite) TestGetBucketLifecycleWithContext(c *C) {
 	lifecycleConfiguration := &s3.LifecycleConfiguration{
 		Rules: []*s3.LifecycleRule{
 			{
-				ID:     aws.String("rule1"),
+				ID: aws.String("rule1"),
+				Filter: &s3.LifecycleFilter{
+					Prefix: aws.String("prefix1"),
+				},
 				Status: aws.String("Enabled"),
 				Expiration: &s3.LifecycleExpiration{
-					Days: aws.Long(30),
+					Days: aws.Long(90),
+				},
+				Transitions: []*s3.Transition{
+					{
+						StorageClass: aws.String(s3.StorageClassIA),
+						Days:         aws.Long(30),
+					},
+				},
+				AbortIncompleteMultipartUpload: &s3.AbortIncompleteMultipartUpload{
+					DaysAfterInitiation: aws.Long(60),
 				},
 			},
 		},
@@ -530,10 +554,22 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketLifecycleWithContext(c *C) {
 	lifecycleConfiguration := &s3.LifecycleConfiguration{
 		Rules: []*s3.LifecycleRule{
 			{
-				ID:     aws.String("rule1"),
+				ID: aws.String("rule1"),
+				Filter: &s3.LifecycleFilter{
+					Prefix: aws.String("prefix1"),
+				},
 				Status: aws.String("Enabled"),
 				Expiration: &s3.LifecycleExpiration{
-					Days: aws.Long(30),
+					Days: aws.Long(90),
+				},
+				Transitions: []*s3.Transition{
+					{
+						StorageClass: aws.String(s3.StorageClassIA),
+						Days:         aws.Long(30),
+					},
+				},
+				AbortIncompleteMultipartUpload: &s3.AbortIncompleteMultipartUpload{
+					DaysAfterInitiation: aws.Long(60),
 				},
 			},
 		},
