@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// Hook up gocheck into the "go test" runner.
+// Hook up go check into the "go test" runner.
 func Test(t *testing.T) {
 	TestingT(t)
 }
@@ -43,7 +43,7 @@ var (
 	timeout                 = 1 * time.Microsecond
 )
 
-// 在测试套件启动前执行一次
+// SetUpSuite 在测试套件启动前执行一次
 func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 	fmt.Printf("set up Ks3utilCommandSuite\n")
 	var cre = credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "") //online
@@ -68,7 +68,7 @@ func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 测试开始时，创建测试用bucket
+// SetUpBucketEnv 测试开始时，创建测试用bucket
 func (s *Ks3utilCommandSuite) SetUpBucketEnv(c *C) {
 	bucket = commonNamePrefix + randLowStr(10)
 	_, err := client.CreateBucket(&s3.CreateBucketInput{
@@ -78,7 +78,7 @@ func (s *Ks3utilCommandSuite) SetUpBucketEnv(c *C) {
 	fmt.Printf("create bucket:%s\n", bucket)
 }
 
-// 在测试套件用例都执行完成后执行一次
+// TearDownSuite 在测试套件用例都执行完成后执行一次
 func (s *Ks3utilCommandSuite) TearDownSuite(c *C) {
 	fmt.Printf("tear down Ks3utilCommandSuite\n")
 	// 删除测试bucket
@@ -87,7 +87,7 @@ func (s *Ks3utilCommandSuite) TearDownSuite(c *C) {
 	os.RemoveAll(testFileDir)
 }
 
-// 删除以prefix开头的bucket
+// RemoveBuckets 删除以prefix开头的bucket
 func RemoveBuckets(prefix string, c *C) {
 	resp, err := client.ListBuckets(&s3.ListBucketsInput{})
 	c.Assert(err, IsNil)
@@ -106,7 +106,7 @@ func RemoveBuckets(prefix string, c *C) {
 	}
 }
 
-// 删除bucket中的全部对象
+// RemoveObjects 删除bucket中的全部对象
 func RemoveObjects(bucketName string, c *C) {
 	resp, err := client.DeleteBucketPrefix(&s3.DeleteBucketPrefixInput{
 		Bucket:          aws.String(bucketName),
@@ -116,7 +116,7 @@ func RemoveObjects(bucketName string, c *C) {
 	c.Assert(len(resp.Errors), Equals, 0)
 }
 
-// 删除bucket中未完成的分块上传任务
+// RemoveMultipartUploads 删除bucket中未完成的分块上传任务
 func RemoveMultipartUploads(bucketName string, c *C) {
 	resp, err := client.ListMultipartUploads(&s3.ListMultipartUploadsInput{
 		Bucket: aws.String(bucketName),
@@ -132,7 +132,7 @@ func RemoveMultipartUploads(bucketName string, c *C) {
 	}
 }
 
-// 删除bucket
+// RemoveBucket 删除bucket
 func RemoveBucket(bucketName string, c *C) {
 	_, err := client.DeleteBucket(&s3.DeleteBucketInput{
 		Bucket: aws.String(bucketName),
@@ -140,7 +140,7 @@ func RemoveBucket(bucketName string, c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 在每个用例执行前执行一次
+// SetUpTest 在每个用例执行前执行一次
 func (s *Ks3utilCommandSuite) SetUpTest(c *C) {
 	fmt.Printf("set up test:%s\n", c.TestName())
 	s.startT = time.Now()
@@ -148,14 +148,14 @@ func (s *Ks3utilCommandSuite) SetUpTest(c *C) {
 
 var letters = []rune("0123456789abcdefghijklmnopqrstuvwxyz")
 
-// 在每个用例执行后执行一次
+// TearDownTest 在每个用例执行后执行一次
 func (s *Ks3utilCommandSuite) TearDownTest(c *C) {
 	endT := time.Now()
 	cost := endT.UnixNano()/1000/1000 - s.startT.UnixNano()/1000/1000
 	fmt.Printf("tear down test:%s,cost:%d(ms)\n", c.TestName(), cost)
 }
 
-// 生成随机字符串
+// randStr 生成随机字符串
 func randStr(n int) string {
 	b := make([]rune, n)
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -165,20 +165,12 @@ func randStr(n int) string {
 	return string(b)
 }
 
-// 生成随机小写字符串
+// randLowStr 生成随机小写字符串
 func randLowStr(n int) string {
 	return strings.ToLower(randStr(n))
 }
 
-func (s *Ks3utilCommandSuite) createFile(fileName, content string, c *C) {
-	fout, err := os.Create(fileName)
-	defer fout.Close()
-	c.Assert(err, IsNil)
-	_, err = fout.WriteString(content)
-	c.Assert(err, IsNil)
-}
-
-// 创建文件
+// createFile 创建文件
 func createFile(filePath string, size int64) error {
 	file, err := os.Create(filePath)
 	if err != nil {
@@ -194,4 +186,33 @@ func createFile(filePath string, size int64) error {
 
 	fmt.Printf("File created: %s (size: %d bytes)\n", filePath, size)
 	return nil
+}
+
+// PutObject 上传单个文件
+func (s *Ks3utilCommandSuite) PutObject(key string, c *C) {
+	_, err := client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   strings.NewReader(content),
+	})
+	c.Assert(err, IsNil)
+}
+
+// HeadObject 判断文件是否存在
+func (s *Ks3utilCommandSuite) HeadObject(key string, c *C) {
+	resp, err := client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.StatusCode, Equals, int64(200))
+}
+
+// DeleteObject 删除单个文件
+func (s *Ks3utilCommandSuite) DeleteObject(key string, c *C) {
+	_, err := client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	c.Assert(err, IsNil)
 }

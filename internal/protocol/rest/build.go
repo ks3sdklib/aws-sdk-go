@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"github.com/ks3sdklib/aws-sdk-go/aws"
+	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 	"io"
 	"net/url"
 	"path"
@@ -12,8 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"github.com/ks3sdklib/aws-sdk-go/aws"
-	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 )
 
 // RFC822 returns an RFC822 formatted timestamp for AWS protocols
@@ -157,7 +157,7 @@ func updatePath(url *url.URL, urlPath string) {
 
 	//path.Clean会去掉最后的斜杠，导致无法创建目录。所以添加以下逻辑
 	add := false
-	if urlPath[len(urlPath)-1] == '/'&&len(urlPath)>1{
+	if urlPath[len(urlPath)-1] == '/' && len(urlPath) > 1 {
 		add = true
 	}
 
@@ -168,7 +168,7 @@ func updatePath(url *url.URL, urlPath string) {
 
 	// clean up path
 	urlPath = path.Clean(urlPath)
-	if add{
+	if add {
 		urlPath += "/"
 	}
 
@@ -190,8 +190,7 @@ func EscapePath(path string, encodeSep bool) string {
 		if noEscape[c] || (c == '/' && !encodeSep) {
 			buf.WriteByte(c)
 		} else {
-			buf.WriteByte('%')
-			buf.WriteString(strings.ToUpper(strconv.FormatUint(uint64(c), 16)))
+			fmt.Fprintf(&buf, "%%%02X", c)
 		}
 	}
 	return buf.String()
