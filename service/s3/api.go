@@ -3647,7 +3647,7 @@ type GetObjectInput struct {
 	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"string"`
 
 	// Progress callback function
-	ProgressFn aws.ProgressFunc
+	ProgressFn aws.ProgressFunc `location:"function"`
 
 	metadataGetObjectInput `json:"-" xml:"-"`
 }
@@ -5032,7 +5032,7 @@ type PutObjectInput struct {
 	ContentMD5 *string `location:"header" locationName:"Content-MD5" type:"string"`
 
 	// Progress callback function
-	ProgressFn aws.ProgressFunc
+	ProgressFn aws.ProgressFunc `location:"function"`
 
 	metadataPutObjectInput `json:"-" xml:"-"`
 }
@@ -5648,7 +5648,7 @@ type UploadPartInput struct {
 	ContentMD5 *string `location:"header" locationName:"Content-MD5" type:"string"`
 
 	// Progress callback function
-	ProgressFn aws.ProgressFunc
+	ProgressFn aws.ProgressFunc `location:"function"`
 
 	metadataUploadPartInput `json:"-" xml:"-"`
 }

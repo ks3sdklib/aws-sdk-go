@@ -84,7 +84,7 @@ type AppendObjectInput struct {
 	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
 
 	// Progress callback function
-	ProgressFn aws.ProgressFunc
+	ProgressFn aws.ProgressFunc `location:"function"`
 
 	metadataAppendObjectInput `json:"-" xml:"-"`
 }
