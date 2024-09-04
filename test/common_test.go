@@ -25,13 +25,13 @@ type Ks3utilCommandSuite struct {
 var _ = Suite(&Ks3utilCommandSuite{})
 
 var (
-	endpoint        = os.Getenv("KS3_TEST_ENDPOINT")
-	accessKeyID     = os.Getenv("KS3_TEST_ACCESS_KEY_ID")
-	accessKeySecret = os.Getenv("KS3_TEST_ACCESS_KEY_SECRET")
-	bucket          = os.Getenv("KS3_TEST_BUCKET")
-	region          = os.Getenv("KS3_TEST_REGION")
-	bucketEndpoint  = os.Getenv("KS3_TEST_BUCKET_ENDPOINT")
-
+	endpoint                = os.Getenv("KS3_TEST_ENDPOINT")
+	accessKeyID             = os.Getenv("KS3_TEST_ACCESS_KEY_ID")
+	accessKeySecret         = os.Getenv("KS3_TEST_ACCESS_KEY_SECRET")
+	bucket                  = os.Getenv("KS3_TEST_BUCKET")
+	region                  = os.Getenv("KS3_TEST_REGION")
+	bucketEndpoint          = os.Getenv("KS3_TEST_BUCKET_ENDPOINT")
+	key                     = randLowStr(10)
 	logPath                 = "report/ks3go-sdk-test_" + time.Now().Format("20060102_150405") + ".log"
 	content                 = "abc"
 	client           *s3.S3 = nil
@@ -51,15 +51,15 @@ func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 		Credentials:      cre,      // 访问凭证
 		Region:           region,   // 填写您的Region
 		Endpoint:         endpoint, // 填写您的Endpoint
-		DisableSSL:       false,    // 是否禁用HTTPS，默认值为false
-		LogLevel:         0,        // 是否开启日志,0为关闭日志，1为开启日志，默认值为0
-		LogHTTPBody:      false,    // 是否把HTTP请求body打入日志，默认值为false
+		DisableSSL:       false,    // 禁用HTTPS，默认值为false
+		LogLevel:         aws.Off,  // 日志等级，默认关闭日志，可选值：Off, Error, Warn, Info, Debug
+		LogHTTPBody:      false,    // 把HTTP请求body打入日志，默认值为false
 		Logger:           nil,      // 日志输出位置，可设置指定文件
-		S3ForcePathStyle: false,    // 是否使用二级域名，默认值为false
-		DomainMode:       false,    // 是否开启自定义Bucket绑定域名，当开启时S3ForcePathStyle参数不生效，默认值为false
+		S3ForcePathStyle: false,    // 使用二级域名，默认值为false
+		DomainMode:       false,    // 开启自定义Bucket绑定域名，当开启时S3ForcePathStyle参数不生效，默认值为false
 		SignerVersion:    "V2",     // 签名方式可选值有：V2 OR V4 OR V4_UNSIGNED_PAYLOAD_SIGNER，默认值为V2
 		MaxRetries:       1,        // 请求失败时最大重试次数，默认请求失败时不重试
-		CrcCheckEnabled:  true,     // 是否开启CRC64校验，默认值为false
+		CrcCheckEnabled:  true,     // 开启CRC64校验，默认值为false
 		HTTPClient:       nil,      // HTTP请求的Client对象，若为空则使用默认值
 	})
 
@@ -194,6 +194,17 @@ func (s *Ks3utilCommandSuite) PutObject(key string, c *C) {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 		Body:   strings.NewReader(content),
+	})
+	c.Assert(err, IsNil)
+}
+
+// CopyObject 拷贝单个文件
+func (s *Ks3utilCommandSuite) CopyObject(srcKey string, dstKey string, c *C) {
+	_, err := client.CopyObject(&s3.CopyObjectInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(dstKey),
+		SourceBucket: aws.String(bucket),
+		SourceKey:    aws.String(srcKey),
 	})
 	c.Assert(err, IsNil)
 }

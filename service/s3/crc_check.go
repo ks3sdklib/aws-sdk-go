@@ -15,11 +15,11 @@ func CheckUploadCrc64(r *aws.Request) {
 		serverCrc, _ = strconv.ParseUint(r.HTTPResponse.Header.Get("X-Amz-Checksum-Crc64ecma"), 10, 64)
 	}
 
-	r.Config.WriteLog(aws.LogOn, "client crc:%d, server crc:%d\n", clientCrc, serverCrc)
+	r.Config.LogInfo("client crc:%d, server crc:%d", clientCrc, serverCrc)
 
 	if serverCrc != 0 && clientCrc != serverCrc {
 		r.Error = apierr.New("CRCCheckError", fmt.Sprintf("client crc and server crc do not match, request id:[%s]", r.HTTPResponse.Header.Get("X-Kss-Request-Id")), nil)
-		r.Config.WriteLog(aws.LogOn, "error:%s\n", r.Error.Error())
+		r.Config.LogError("%s", r.Error.Error())
 	}
 }
 
@@ -31,11 +31,11 @@ func CheckDownloadCrc64(s3 *S3, res *GetObjectOutput, crc hash.Hash64) error {
 		serverCrc, _ = strconv.ParseUint(*res.Metadata["X-Amz-Checksum-Crc64ecma"], 10, 64)
 	}
 
-	s3.Config.WriteLog(aws.LogOn, "client crc:%d, server crc:%d\n", clientCrc, serverCrc)
+	s3.Config.LogInfo("client crc:%d, server crc:%d", clientCrc, serverCrc)
 
 	if serverCrc != 0 && clientCrc != serverCrc {
 		err = apierr.New("CRCCheckError", fmt.Sprintf("client crc and server crc do not match, request id:[%s]", *res.Metadata["X-Kss-Request-Id"]), nil)
-		s3.Config.WriteLog(aws.LogOn, "error:%s\n", err.Error())
+		s3.Config.LogError("%s", err.Error())
 	}
 
 	return err

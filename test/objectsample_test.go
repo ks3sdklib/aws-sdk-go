@@ -16,12 +16,6 @@ import (
 	"time"
 )
 
-var (
-	randKey  = randLowStr(10)
-	key      = "123.txt"
-	key_copy = randLowStr(10)
-)
-
 // TestListObjects 列举bucket下对象
 func (s *Ks3utilCommandSuite) TestListObjects(c *C) {
 	_, err := client.ListObjects(&s3.ListObjectsInput{
@@ -280,13 +274,11 @@ func (s *Ks3utilCommandSuite) TestFetchObject(c *C) {
 	s.PutObject(key, c)
 	// 填写源站对象的url
 	sourceUrl := fmt.Sprintf("https://%s.%s/%s", bucket, endpoint, key)
-	// 对源站对象url进行编码
-	encodedUrl := url.QueryEscape(sourceUrl)
 	// 通过第三方URL拉取文件上传
 	_, err := client.FetchObject(&s3.FetchObjectInput{
 		Bucket:    aws.String(bucket),        // 存储空间名称，必填
 		Key:       aws.String(key),           // 对象的key，必填
-		SourceUrl: aws.String(encodedUrl),    // 编码后的源站url，必填
+		SourceUrl: aws.String(sourceUrl),     // 编码后的源站url，必填
 		ACL:       aws.String("public-read"), // 对象访问权限，非必填
 	})
 	c.Assert(err, IsNil)
@@ -620,7 +612,7 @@ func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
 
 // TestPutObjectCharacterSet 上传文件，测试字符集
 func (s *Ks3utilCommandSuite) TestPutObjectCharacterSet(c *C) {
-	characterList := []string{
+	strList := []string{
 		`①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⓪❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴㊀㊁㊂㊃㊄㊅㊆㊇㊈㊉㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩`,
 		`⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒈⒉⒊⒋⒌⒍⒎⒏⒐⒑⒒⒓⒔⒕⒖⒗⒘⒙⒚⒛ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⒶⒷⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵`,
 		`﹢﹣×÷±/=≌∽≦≧≒﹤﹥≈≡≠=≤≥<>≮≯∷∶∫∮∝∞∧∨∑∏∪∩∈∵∴⊥∥∠⌒⊙√∟⊿㏒㏑%`,
@@ -629,10 +621,124 @@ func (s *Ks3utilCommandSuite) TestPutObjectCharacterSet(c *C) {
 		`(), [], {}, "", ;, ?, :, \, #,  /* */, ￥, $`,
 		`测试中文 ** 特殊符号 && @@ ！@#￥%……&*（）——+{}|：“《》？【】、；‘’，。、`,
 		"\n\t\\",
-		`abc////////////////`,
+		`abc//////////////`,
 	}
-	for _, character := range characterList {
-		s.PutObject(character, c)
-		s.HeadObject(character, c)
+	for _, str := range strList {
+		srcKey := str
+		dstKey := str + "copy"
+		s.PutObject(srcKey, c)
+		s.CopyObject(srcKey, dstKey, c)
+		s.HeadObject(srcKey, c)
+		s.HeadObject(dstKey, c)
 	}
+}
+
+// TestCopyObjectSourceUrlEncoded 复制对象，源URL编码
+func (s *Ks3utilCommandSuite) TestCopyObjectSourceUrlEncoded(c *C) {
+	srcKey := "测试文件///"
+	dstKey := "测试文件_copy///"
+	s.PutObject(srcKey, c)
+	_, err := client.CopyObject(&s3.CopyObjectInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(dstKey),
+		SourceBucket: aws.String(bucket),
+		SourceKey:    aws.String(srcKey),
+	})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestPutObjectProgress(c *C) {
+	object := randLowStr(10)
+	createFile(object, 1024*1024*10)
+	fd, _ := os.Open(object)
+	_, err := client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		Body:   fd,
+		ProgressFn: func(increment, completed, total int64) {
+			fmt.Printf("percent: %.2f%%\n", float64(completed)/float64(total)*100)
+		},
+	})
+	c.Assert(err, IsNil)
+	os.Remove(object)
+}
+
+func (s *Ks3utilCommandSuite) TestGetObjectToFileProgress(c *C) {
+	object := randLowStr(10)
+	filePath := object + "_download"
+	createFile(object, 1024*1024*10)
+	fd, _ := os.Open(object)
+	_, err := client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		Body:   fd,
+	})
+	c.Assert(err, IsNil)
+	err = client.GetObjectToFile(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		ProgressFn: func(increment, completed, total int64) {
+			fmt.Printf("percent: %.2f%%\n", float64(completed)/float64(total)*100)
+		},
+	}, filePath)
+	c.Assert(err, IsNil)
+	os.Remove(object)
+	os.Remove(filePath)
+}
+
+func (s *Ks3utilCommandSuite) TestAppendObjectProgress(c *C) {
+	object := randLowStr(10)
+	createFile(object, 1024*1024*10)
+	fd, _ := os.Open(object)
+	_, err := client.AppendObject(&s3.AppendObjectInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(object),
+		Position: aws.Long(0),
+		Body:     fd,
+		ProgressFn: func(increment, completed, total int64) {
+			fmt.Printf("percent: %.2f%%\n", float64(completed)/float64(total)*100)
+		},
+	})
+	c.Assert(err, IsNil)
+	os.Remove(object)
+}
+
+func (s *Ks3utilCommandSuite) TestUploadPartProgress(c *C) {
+	object := randLowStr(10)
+	createFile(object, 1024*1024*10)
+	fd, _ := os.Open(object)
+
+	initResp, err := client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+
+	partResp, err := client.UploadPart(&s3.UploadPartInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		UploadID:   initResp.UploadID,
+		PartNumber: aws.Long(1),
+		Body:       fd,
+		ProgressFn: func(increment, completed, total int64) {
+			fmt.Printf("percent: %.2f%%\n", float64(completed)/float64(total)*100)
+		},
+	})
+	c.Assert(err, IsNil)
+
+	_, err = client.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(object),
+		UploadID: initResp.UploadID,
+		MultipartUpload: &s3.CompletedMultipartUpload{
+			Parts: []*s3.CompletedPart{
+				{
+					PartNumber: aws.Long(1),
+					ETag:       partResp.ETag,
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	os.Remove(object)
 }

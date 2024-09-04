@@ -9,9 +9,11 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 	"github.com/ks3sdklib/aws-sdk-go/internal/crc"
-	"github.com/ks3sdklib/aws-sdk-go/internal/util"
+	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3util"
+	"hash"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"sync"
 	"time"
@@ -119,6 +121,10 @@ func (c *S3) CopyObjectRequest(input *CopyObjectInput) (req *aws.Request, output
 		input = &CopyObjectInput{}
 	}
 
+	// URL encode the copy source
+	if input.CopySource == nil {
+		input.CopySource = aws.String(s3util.BuildCopySource(input.SourceBucket, input.SourceKey))
+	}
 	req = c.newRequest(opCopyObject, input, output)
 	output = &CopyObjectOutput{}
 	req.Data = output
@@ -1054,35 +1060,25 @@ func (c *S3) GetObjectWithContext(ctx aws.Context, input *GetObjectInput) (*GetO
 	return out, err
 }
 
-func (c *S3) GetObjectToFile(bucket, objectKey, filePath, Range string) error {
-	getInput := &GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(objectKey),
-		Range:  aws.String(Range),
-	}
+func (c *S3) GetObjectToFile(input *GetObjectInput, filePath string) error {
 	// Calls the API to actually download the object. Returns the result instance.
-	res, err := c.GetObject(getInput)
+	res, err := c.GetObject(input)
 	if err != nil {
 		return err
 	}
-	return c.SaveObjectToFile(filePath, res)
+	return c.SaveObjectToFile(filePath, input, res)
 }
 
-func (c *S3) GetObjectToFileWithContext(ctx aws.Context, bucket, objectKey, filePath, Range string) error {
-	getInput := &GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(objectKey),
-		Range:  aws.String(Range),
-	}
+func (c *S3) GetObjectToFileWithContext(ctx aws.Context, input *GetObjectInput, filePath string) error {
 	// Calls the API to actually download the object. Returns the result instance.
-	res, err := c.GetObjectWithContext(ctx, getInput)
+	res, err := c.GetObjectWithContext(ctx, input)
 	if err != nil {
 		return err
 	}
-	return c.SaveObjectToFile(filePath, res)
+	return c.SaveObjectToFile(filePath, input, res)
 }
 
-func (c *S3) SaveObjectToFile(filePath string, res *GetObjectOutput) error {
+func (c *S3) SaveObjectToFile(filePath string, input *GetObjectInput, res *GetObjectOutput) error {
 	tempFilePath := filePath + TempFileSuffix
 	// If the local file does not exist, create a new one. If it exists, overwrite it.
 	fd, err := os.OpenFile(tempFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(0664))
@@ -1090,8 +1086,18 @@ func (c *S3) SaveObjectToFile(filePath string, res *GetObjectOutput) error {
 		return err
 	}
 
-	crc := crc.NewCRC(crc.CrcTable(), 0)
-	res.Body = util.TeeReader(res.Body, crc)
+	var crc64 hash.Hash64
+	if c.Config.CrcCheckEnabled {
+		crc64 = crc.NewCRC(crc.CrcTable(), 0)
+	}
+
+	if c.Config.CrcCheckEnabled || input.ProgressFn != nil {
+		var contentLength int64
+		if res.ContentLength != nil {
+			contentLength = *res.ContentLength
+		}
+		res.Body = aws.TeeReader(res.Body, crc64, contentLength, input.ProgressFn)
+	}
 
 	// Copy the data to the local file path.
 	_, err = io.Copy(fd, res.Body)
@@ -1101,7 +1107,7 @@ func (c *S3) SaveObjectToFile(filePath string, res *GetObjectOutput) error {
 	}
 
 	if c.Config.CrcCheckEnabled {
-		err = CheckDownloadCrc64(c, res, crc)
+		err = CheckDownloadCrc64(c, res, crc64)
 		if err != nil {
 			return err
 		}
@@ -2024,6 +2030,9 @@ func (c *S3) PutObjectRequest(input *PutObjectInput) (req *aws.Request, output *
 	if c.Config.CrcCheckEnabled {
 		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
 	}
+	if input.ProgressFn != nil {
+		req.ProgressFn = input.ProgressFn
+	}
 	output = &PutObjectOutput{}
 	req.Data = output
 	return
@@ -2236,6 +2245,9 @@ func (c *S3) UploadPartRequest(input *UploadPartInput) (req *aws.Request, output
 	if c.Config.CrcCheckEnabled {
 		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
 	}
+	if input.ProgressFn != nil {
+		req.ProgressFn = input.ProgressFn
+	}
 	output = &UploadPartOutput{}
 	req.Data = output
 	return
@@ -2280,6 +2292,10 @@ func (c *S3) UploadPartCopyRequest(input *UploadPartCopyInput) (req *aws.Request
 		input = &UploadPartCopyInput{}
 	}
 
+	// URL encode the copy source
+	if input.CopySource == nil {
+		input.CopySource = aws.String(s3util.BuildCopySource(input.SourceBucket, input.SourceKey))
+	}
 	req = c.newRequest(opUploadPartCopy, input, output)
 	output = &UploadPartCopyOutput{}
 	req.Data = output
@@ -2540,6 +2556,12 @@ type CopyObjectInput struct {
 
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
+	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+
+	SourceBucket *string `location:"uri" locationName:"sourceBucket" type:"string"`
+
+	SourceKey *string `location:"uri" locationName:"sourceKey" type:"string"`
+
 	// Specifies caching behavior along the request/reply chain.
 	CacheControl *string `location:"header" locationName:"Cache-Control" type:"string"`
 
@@ -2567,8 +2589,7 @@ type CopyObjectInput struct {
 	// Copies the object if it has been modified since the specified time.
 	CopySourceIfModifiedSince *time.Time `location:"header" locationName:"x-amz-copy-source-if-modified-since" type:"timestamp" timestampFormat:"rfc822"`
 
-	// Copies the object if its entity tag (ETag) is different than the specified
-	// ETag.
+	// Copies the object if its entity tag (ETag) is different from the specified ETag.
 	CopySourceIfNoneMatch *string `location:"header" locationName:"x-amz-copy-source-if-none-match" type:"string"`
 
 	// Copies the object if it hasn't been modified since the specified time.
@@ -2601,8 +2622,6 @@ type CopyObjectInput struct {
 
 	// Allows grantee to write the ACL for the applicable object.
 	GrantWriteACP *string `location:"header" locationName:"x-amz-grant-write-acp" type:"string"`
-
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
 
 	// A map of metadata to store with the object in S3.
 	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
@@ -3626,6 +3645,9 @@ type GetObjectInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"string"`
+
+	// Progress callback function
+	ProgressFn aws.ProgressFunc
 
 	metadataGetObjectInput `json:"-" xml:"-"`
 }
@@ -5001,12 +5023,16 @@ type PutObjectInput struct {
 
 	ContentMaxLength *int64 `location:"header" locationName:"x-amz-content-maxlength" type:"integer"`
 
-	CallbackUrl  *string `location:"header" locationName:"x-kss-callbackurl" type:"string"`
+	CallbackUrl *string `location:"header" locationName:"x-kss-callbackurl" type:"string"`
+
 	CallbackBody *string `location:"header" locationName:"x-kss-callbackbody" type:"string"`
 
 	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"integer"`
 
 	ContentMD5 *string `location:"header" locationName:"Content-MD5" type:"string"`
+
+	// Progress callback function
+	ProgressFn aws.ProgressFunc
 
 	metadataPutObjectInput `json:"-" xml:"-"`
 }
@@ -5454,6 +5480,12 @@ type metadataTransition struct {
 type UploadPartCopyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
+	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+
+	SourceBucket *string `location:"uri" locationName:"sourceBucket" type:"string"`
+
+	SourceKey *string `location:"uri" locationName:"sourceKey" type:"string"`
+
 	// The name of the source bucket and key name of the source object, separated
 	// by a slash (/). Must be URL-encoded.
 	CopySource *string `location:"header" locationName:"x-amz-copy-source" type:"string" required:"true"`
@@ -5490,8 +5522,6 @@ type UploadPartCopyInput struct {
 	// Amazon S3 uses this header for a message integrity check to ensure the encryption
 	// key was transmitted without error.
 	CopySourceSSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-copy-source-server-side-encryption-customer-key-MD5" type:"string"`
-
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
 
 	// Part number of part being copied.
 	PartNumber *int64 `location:"querystring" locationName:"partNumber" type:"integer" required:"true"`
@@ -5616,6 +5646,9 @@ type UploadPartInput struct {
 	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"string"`
 
 	ContentMD5 *string `location:"header" locationName:"Content-MD5" type:"string"`
+
+	// Progress callback function
+	ProgressFn aws.ProgressFunc
 
 	metadataUploadPartInput `json:"-" xml:"-"`
 }
@@ -5958,6 +5991,9 @@ func (c *S3) FetchObjectRequest(input *FetchObjectInput) (req *aws.Request, outp
 		input = &FetchObjectInput{}
 	}
 
+	if input.SourceUrl != nil {
+		input.SourceUrl = aws.String(url.QueryEscape(*input.SourceUrl))
+	}
 	req = c.newRequest(opFetchObject, input, output)
 	output = &FetchObjectOutput{}
 	req.Data = output

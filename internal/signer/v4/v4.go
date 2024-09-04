@@ -5,7 +5,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -34,6 +33,7 @@ var ignoredHeaders = map[string]bool{
 }
 
 type signer struct {
+	Service     *aws.Service
 	Request     *http.Request
 	Time        time.Time
 	ExpireTime  int64
@@ -83,6 +83,7 @@ func Sign(req *aws.Request) {
 	}
 
 	s := signer{
+		Service:     req.Service,
 		Request:     req.HTTPRequest,
 		Time:        req.Time,
 		ExpireTime:  req.ExpireTime,
@@ -143,28 +144,25 @@ func (v4 *signer) sign() error {
 
 	v4.build()
 
-	if v4.Debug > 0 {
-		v4.logSigningInfo()
-	}
+	v4.logSigningInfo()
 
 	return nil
 }
 
 func (v4 *signer) logSigningInfo() {
-	out := v4.Logger
-	fmt.Fprintf(out, "---[ CANONICAL STRING  ]-----------------------------\n")
-	fmt.Fprintln(out, v4.canonicalString)
-	fmt.Fprintf(out, "---[ STRING TO SIGN ]--------------------------------\n")
-	fmt.Fprintln(out, v4.stringToSign)
+	cfg := v4.Service.Config
+	cfg.LogDebug("%s", "---[ CANONICAL STRING ]-----------------------------")
+	cfg.LogDebug("%s", v4.canonicalString)
+	cfg.LogDebug("%s", "---[ STRING TO SIGN ]--------------------------------")
+	cfg.LogDebug("%s", v4.stringToSign)
 	if v4.isPresign {
-		fmt.Fprintf(out, "---[ SIGNED URL ]--------------------------------\n")
-		fmt.Fprintln(out, v4.Request.URL)
+		cfg.LogDebug("---[ SIGNED URL ]--------------------------------")
+		cfg.LogDebug("%s", v4.Request.URL)
 	}
-	fmt.Fprintf(out, "-----------------------------------------------------\n")
+	cfg.LogDebug("-----------------------------------------------------")
 }
 
 func (v4 *signer) build() {
-
 	v4.buildTime()             // no depends
 	v4.buildCredentialString() // no depends
 	if v4.isPresign {
@@ -262,7 +260,7 @@ func (v4 *signer) buildCanonicalHeaders() {
 
 func (v4 *signer) buildCanonicalString() {
 	v4.Request.URL.RawQuery = strings.Replace(v4.Query.Encode(), "+", "%20", -1)
-	uri := v4.Request.URL.Opaque
+	uri := strings.Replace(v4.Request.URL.Opaque, "%2F", "/", -1)
 	if uri != "" {
 		uri = "/" + strings.Join(strings.Split(uri, "/")[3:], "/")
 	} else {

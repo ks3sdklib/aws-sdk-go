@@ -83,6 +83,9 @@ type AppendObjectInput struct {
 	// Specifies the 128-bit MD5 digest of the encryption key according to RFC 1321.
 	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
 
+	// Progress callback function
+	ProgressFn aws.ProgressFunc
+
 	metadataAppendObjectInput `json:"-" xml:"-"`
 }
 
@@ -141,6 +144,11 @@ func (c *S3) AppendObjectRequest(input *AppendObjectInput) (req *aws.Request, ou
 	}
 
 	req = c.newRequest(opAppendObject, input, output)
+
+	if input.ProgressFn != nil {
+		req.ProgressFn = input.ProgressFn
+	}
+
 	output = &AppendObjectOutput{}
 	req.Data = output
 	return

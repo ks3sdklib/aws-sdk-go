@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"io"
+	"net/url"
 	"os"
 )
 
@@ -46,4 +47,12 @@ func GetBase64FileMD5Str(filePath string) (string, error) {
 	base64Str := base64.StdEncoding.EncodeToString(md5Hash)
 
 	return base64Str, err
+}
+
+// BuildCopySource 构建拷贝源
+func BuildCopySource(bucket *string, key *string) string {
+	if bucket == nil || key == nil {
+		return ""
+	}
+	return "/" + *bucket + "/" + url.QueryEscape(*key)
 }

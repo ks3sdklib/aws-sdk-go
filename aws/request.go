@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/internal/crc"
-	"github.com/ks3sdklib/aws-sdk-go/internal/util"
 	"hash"
 	"io"
 	"net/http"
@@ -35,6 +34,7 @@ type Request struct {
 	built        bool
 	context      Context
 	Crc64        hash.Hash64
+	ProgressFn   ProgressFunc
 }
 
 // An Operation is the service API operation to be made.
@@ -135,17 +135,17 @@ func (r *Request) SetStringBody(s string) {
 // SetReaderBody will set the request's body reader.
 func (r *Request) SetReaderBody(reader io.ReadSeeker) {
 	if r.Config.CrcCheckEnabled {
-		crc := crc.NewCRC(crc.CrcTable(), 0)
-		teeReader := util.TeeReader(reader, crc)
-		r.HTTPRequest.Body = teeReader
-		r.Crc64 = crc
+		r.Crc64 = crc.NewCRC(crc.CrcTable(), 0)
+	}
+	if r.Config.CrcCheckEnabled || r.ProgressFn != nil {
+		r.HTTPRequest.Body = TeeReader(reader, r.Crc64, GetReaderLen(reader), r.ProgressFn)
 	} else {
 		r.HTTPRequest.Body = io.NopCloser(reader)
 	}
 	r.Body = reader
 }
 
-// Build will build the request's object so it can be signed and sent
+// Build will build the request's object, so it can be signed and sent
 // to the service. Build will also validate all the request's parameters.
 // Anny additional build Handlers set on this request will be run
 // in the order they were set.
