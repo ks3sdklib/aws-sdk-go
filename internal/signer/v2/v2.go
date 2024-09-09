@@ -58,6 +58,7 @@ var signQuerys = map[string]bool{
 	"restore":                      true,
 	"append":                       true,
 	"position":                     true,
+	"decompresspolicy":             true,
 }
 
 type signer struct {

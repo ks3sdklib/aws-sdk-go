@@ -117,6 +117,7 @@ func (c *S3) PutBucketMirrorRequest(input *PutBucketMirrorInput) (req *aws.Reque
 		input = &PutBucketMirrorInput{}
 	}
 	req = c.newRequest(opPutBucketMirror, input, output)
+	req.ContentType = "application/json"
 	output = &PutBucketMirrorOutput{}
 	req.Data = output
 	return
@@ -149,6 +150,7 @@ func (c *S3) GetBucketMirrorRequest(input *GetBucketMirrorInput) (req *aws.Reque
 		input = &GetBucketMirrorInput{}
 	}
 	req = c.newRequest(opGetBucketMirror, input, output)
+	req.ContentType = "application/json"
 	output = &GetBucketMirrorOutput{
 		BucketMirror: &BucketMirror{},
 	}

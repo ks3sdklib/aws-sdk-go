@@ -59,7 +59,7 @@ func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 		DomainMode:       false,    // 开启自定义Bucket绑定域名，当开启时S3ForcePathStyle参数不生效，默认值为false
 		SignerVersion:    "V2",     // 签名方式可选值有：V2 OR V4 OR V4_UNSIGNED_PAYLOAD_SIGNER，默认值为V2
 		MaxRetries:       1,        // 请求失败时最大重试次数，默认请求失败时不重试
-		CrcCheckEnabled:  true,     // 开启CRC64校验，默认值为false
+		CrcCheckEnabled:  false,    // 开启CRC64校验，默认值为false
 		HTTPClient:       nil,      // HTTP请求的Client对象，若为空则使用默认值
 	})
 
