@@ -100,7 +100,7 @@ type DecompressPolicyRule struct {
 	PathPrefixReplaced *int64 `json:"path_prefix_replaced,omitempty" type:"integer" locationName:"path_prefix_replaced"`
 
 	// Type of file decompression strategy.
-	// Fixed value: Decompress.
+	// Fixed value: decompress.
 	PolicyType *string `json:"policy_type,omitempty" type:"string" locationName:"policy_type" required:"true"`
 }
 
