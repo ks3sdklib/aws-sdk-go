@@ -56,18 +56,17 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 
 // TestPutObjectByLimit 上传示例 -限速
 func (s *Ks3utilCommandSuite) TestPutObjectByLimit(c *C) {
-	MIN_BANDWIDTH := 1024 * 100 * 8 // 100KB/s
+	minBandwidth := 1024 * 100 * 8 // 100KB/s
 	object := randLowStr(10)
 	createFile(object, 1024*1024*1) // 1MB大小的文件
 	fd, _ := os.Open(object)
 	// 记录开始时间
 	startTime := time.Now()
 	_, err := client.PutObject(&s3.PutObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(object),
-		Body:   fd,
-		//设置上传速度
-		TrafficLimit: aws.Long(int64(MIN_BANDWIDTH)),
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(object),
+		Body:         fd,
+		TrafficLimit: aws.Long(int64(minBandwidth)), //限制上传速度
 	})
 	c.Assert(err, IsNil)
 	// 计算上传耗时
@@ -79,7 +78,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectByLimit(c *C) {
 
 // TestGetObjectByLimit 下载限速示例
 func (s *Ks3utilCommandSuite) TestGetObjectByLimit(c *C) {
-	MIN_BANDWIDTH := 1024 * 100 * 8 // 100KB/s
+	minBandwidth := 1024 * 100 * 8 // 100KB/s
 	_, err := client.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
@@ -92,23 +91,15 @@ func (s *Ks3utilCommandSuite) TestGetObjectByLimit(c *C) {
 	_, err = client.GetObject(&s3.GetObjectInput{
 		Bucket:       aws.String(bucket),
 		Key:          aws.String(key),
-		TrafficLimit: aws.Long(int64(MIN_BANDWIDTH)),
+		TrafficLimit: aws.Long(int64(minBandwidth)), //限制下载速度
 	})
 	c.Assert(err, IsNil)
 }
 
 // TestGetObject 下载示例
 func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
-	_, err := client.PutObject(&s3.PutObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-		ACL:    aws.String("public-read"),
-		Body:   strings.NewReader(content),
-	})
-	c.Assert(err, IsNil)
-
-	//下载
-	_, err = client.GetObject(&s3.GetObjectInput{
+	s.PutObject(key, c)
+	_, err := client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
@@ -117,15 +108,8 @@ func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
 
 // TestDeleteObject 删除对象
 func (s *Ks3utilCommandSuite) TestDeleteObject(c *C) {
-	_, err := client.PutObject(&s3.PutObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-		ACL:    aws.String("public-read"),
-		Body:   strings.NewReader(content),
-	})
-	c.Assert(err, IsNil)
-
-	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+	s.PutObject(key, c)
+	_, err := client.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
@@ -233,7 +217,6 @@ func (s *Ks3utilCommandSuite) TestCopyObject(c *C) {
 // TestUploadPartCopy 分块拷贝用例
 func (s *Ks3utilCommandSuite) TestUploadPartCopy(c *C) {
 	s.PutObject(key, c)
-
 	dstKey := "xxx/copy/" + key
 	//初始化分块
 	initResp, err := client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
@@ -242,7 +225,7 @@ func (s *Ks3utilCommandSuite) TestUploadPartCopy(c *C) {
 	})
 	c.Assert(err, IsNil)
 
-	uploadPartCopyresp, err := client.UploadPartCopy(&s3.UploadPartCopyInput{
+	uploadPartCopyResp, err := client.UploadPartCopy(&s3.UploadPartCopyInput{
 		Bucket:          aws.String(bucket),
 		Key:             aws.String(dstKey),
 		CopySource:      aws.String("/" + bucket + "/" + key),
@@ -261,7 +244,7 @@ func (s *Ks3utilCommandSuite) TestUploadPartCopy(c *C) {
 			Parts: []*s3.CompletedPart{
 				{
 					PartNumber: aws.Long(1),
-					ETag:       uploadPartCopyresp.CopyPartResult.ETag,
+					ETag:       uploadPartCopyResp.CopyPartResult.ETag,
 				},
 			},
 		},
@@ -741,4 +724,31 @@ func (s *Ks3utilCommandSuite) TestUploadPartProgress(c *C) {
 	})
 	c.Assert(err, IsNil)
 	os.Remove(object)
+}
+
+// TestPutObject10GB 上传10GB文件，报413 Request Entity Too Large错误，错误类型为html
+func (s *Ks3utilCommandSuite) TestPutObject10GB(c *C) {
+	object := randLowStr(10)
+	createFile(object, 1024*1024*1)
+	fd, _ := os.Open(object)
+	_, err := client.PutObject(&s3.PutObjectInput{
+		Bucket:        aws.String(bucket),
+		Key:           aws.String(object),
+		Body:          fd,
+		ContentLength: aws.Long(1024 * 1024 * 1024 * 10),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(strings.Contains(err.Error(), "413 Request Entity Too Large"), Equals, true)
+	os.Remove(object)
+}
+
+// TestHeadNotExistsObject head不存在的对象，报404错误，request id不为空
+func (s *Ks3utilCommandSuite) TestHeadNotExistsObject(c *C) {
+	object := randLowStr(10)
+	_, err := client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(strings.Index(err.Error(), "[")+1 != strings.Index(err.Error(), "]"), Equals, true)
 }
