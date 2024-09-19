@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"math"
 	"net/http"
 	"net/http/httputil"
@@ -91,29 +90,27 @@ func (s *Service) buildEndpoint() {
 // AddDebugHandlers injects debug logging handlers into the service to log request
 // debug information.
 func (s *Service) AddDebugHandlers() {
-	out := s.Config.Logger
-	if s.Config.LogLevel == 0 {
+	if s.Config.LogLevel < Debug {
 		return
 	}
 
 	s.Handlers.Send.PushFront(func(r *Request) {
 		logBody := r.Config.LogHTTPBody
 		dumpedBody, _ := httputil.DumpRequestOut(r.HTTPRequest, logBody)
-
-		fmt.Fprintf(out, "---[ REQUEST POST-SIGN ]-----------------------------\n")
-		fmt.Fprintf(out, "%s\n", string(dumpedBody))
-		fmt.Fprintf(out, "-----------------------------------------------------\n")
+		r.Config.LogDebug("---[ REQUEST ]-----------------------------")
+		r.Config.LogDebug("%s", string(dumpedBody))
+		r.Config.LogDebug("-----------------------------------------------------")
 	})
 	s.Handlers.Send.PushBack(func(r *Request) {
-		fmt.Fprintf(out, "---[ RESPONSE ]--------------------------------------\n")
+		r.Config.LogDebug("---[ RESPONSE ]--------------------------------------")
 		if r.HTTPResponse != nil {
 			logBody := r.Config.LogHTTPBody
 			dumpedBody, _ := httputil.DumpResponse(r.HTTPResponse, logBody)
-			fmt.Fprintf(out, "%s\n", string(dumpedBody))
+			r.Config.LogDebug("%s", string(dumpedBody))
 		} else if r.Error != nil {
-			fmt.Fprintf(out, "%s\n", r.Error)
+			r.Config.LogDebug("%s", r.Error.Error())
 		}
-		fmt.Fprintf(out, "-----------------------------------------------------\n")
+		r.Config.LogDebug("-----------------------------------------------------")
 	})
 }
 

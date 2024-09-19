@@ -4,7 +4,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
-	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"io"
 	"net/http"
@@ -59,6 +58,7 @@ var signQuerys = map[string]bool{
 	"restore":                      true,
 	"append":                       true,
 	"position":                     true,
+	"decompresspolicy":             true,
 }
 
 type signer struct {
@@ -149,26 +149,23 @@ func (v2 *signer) sign() error {
 
 	v2.build()
 
-	if v2.Debug > 0 {
-		v2.logSigningInfo()
-	}
+	v2.logSigningInfo()
 
 	return nil
 }
 
 func (v2 *signer) logSigningInfo() {
-	out := v2.Logger
-	fmt.Fprintf(out, "---[ STRING TO SIGN ]--------------------------------\n")
-	fmt.Fprintln(out, v2.stringToSign)
+	cfg := v2.Service.Config
+	cfg.LogDebug("%s", "---[ STRING TO SIGN ]--------------------------------")
+	cfg.LogDebug("%s", v2.stringToSign)
 	if v2.isPresign {
-		fmt.Fprintf(out, "---[ SIGNED URL ]--------------------------------\n")
-		fmt.Fprintln(out, v2.Request.URL)
+		cfg.LogDebug("---[ SIGNED URL ]--------------------------------")
+		cfg.LogDebug("%s", v2.Request.URL)
 	}
-	fmt.Fprintf(out, "-----------------------------------------------------\n")
+	cfg.LogDebug("-----------------------------------------------------")
 }
 
 func (v2 *signer) build() {
-
 	v2.buildTime()              // no depends
 	v2.buildCanonicalHeaders()  // depends on cred string
 	v2.buildCanonicalResource() // depends on canon headers / signed headers

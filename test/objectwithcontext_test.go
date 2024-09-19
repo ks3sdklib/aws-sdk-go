@@ -11,7 +11,6 @@ import (
 	. "gopkg.in/check.v1"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -199,12 +198,11 @@ func (s *Ks3utilCommandSuite) TestFetchObjectWithContext(c *C) {
 	c.Assert(err, IsNil)
 	object := randLowStr(10)
 	sourceUrl := fmt.Sprintf("https://%s.%s/%s", bucket, endpoint, sourceObject)
-	encodedUrl := url.QueryEscape(sourceUrl)
 	// put fetch，不通过context取消
 	_, err = client.FetchObjectWithContext(context.Background(), &s3.FetchObjectInput{
 		Bucket:    aws.String(bucket),
 		Key:       aws.String(object),
-		SourceUrl: aws.String(encodedUrl),
+		SourceUrl: aws.String(sourceUrl),
 	})
 	c.Assert(err, IsNil)
 	// put fetch 异步操作，等待10秒 head
@@ -228,7 +226,7 @@ func (s *Ks3utilCommandSuite) TestFetchObjectWithContext(c *C) {
 	_, err = client.FetchObjectWithContext(ctx, &s3.FetchObjectInput{
 		Bucket:    aws.String(bucket),
 		Key:       aws.String(object),
-		SourceUrl: aws.String(encodedUrl),
+		SourceUrl: aws.String(sourceUrl),
 	})
 	c.Assert(err, NotNil)
 	// head
@@ -378,17 +376,27 @@ func (s *Ks3utilCommandSuite) TestGetObjectToFileWithContext(c *C) {
 	os.Remove(object)
 	filePath := object
 	// 下载文件，不通过context取消
-	err = client.GetObjectToFileWithContext(context.Background(), bucket, object, filePath, "")
+	err = client.GetObjectToFileWithContext(context.Background(), &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	}, filePath)
 	c.Assert(err, IsNil)
 	os.Remove(filePath)
 	// Range下载
-	err = client.GetObjectToFileWithContext(context.Background(), bucket, object, filePath, "bytes=0-100000")
+	err = client.GetObjectToFileWithContext(context.Background(), &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		Range:  aws.String("bytes=0-100000"),
+	}, filePath)
 	c.Assert(err, IsNil)
 	os.Remove(filePath)
 	// 下载文件，通过context取消
 	ctx, cancelFunc := context.WithTimeout(context.Background(), timeout)
 	defer cancelFunc()
-	err = client.GetObjectToFileWithContext(ctx, bucket, object, filePath, "")
+	err = client.GetObjectToFileWithContext(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	}, filePath)
 	c.Assert(err, NotNil)
 	os.Remove(filePath + ".temp")
 	// delete

@@ -25,7 +25,7 @@ func Build(r *aws.Request) {
 		var buf bytes.Buffer
 		err := xmlutil.BuildXML(r.Params, xml.NewEncoder(&buf))
 		if err != nil {
-			r.Error = apierr.New("Marshal", "failed to enode rest XML request", err)
+			r.Error = apierr.New("Marshal", "failed to encode rest XML request", err)
 			return
 		}
 		r.SetBufferBody(buf.Bytes())

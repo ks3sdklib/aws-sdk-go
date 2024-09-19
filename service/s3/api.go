@@ -4,23 +4,17 @@
 package s3
 
 import (
-	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/base64"
-	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 	"github.com/ks3sdklib/aws-sdk-go/internal/crc"
-	"github.com/ks3sdklib/aws-sdk-go/internal/util"
+	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3util"
 	"hash"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
-	"sort"
-	"strings"
 	"sync"
 	"time"
 )
@@ -51,7 +45,7 @@ func (c *S3) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) (req 
 	return
 }
 
-// Aborts a multipart upload.
+// AbortMultipartUpload Aborts a multipart upload.
 //
 // To verify that all parts have been removed, so you don't get charged for
 // the part storage, you should call the List Parts operation and ensure the
@@ -94,7 +88,7 @@ func (c *S3) CompleteMultipartUploadRequest(input *CompleteMultipartUploadInput)
 	return
 }
 
-// Completes a multipart upload by assembling previously uploaded parts.
+// CompleteMultipartUpload Completes a multipart upload by assembling previously uploaded parts.
 func (c *S3) CompleteMultipartUpload(input *CompleteMultipartUploadInput) (*CompleteMultipartUploadOutput, error) {
 	req, out := c.CompleteMultipartUploadRequest(input)
 	err := req.Send()
@@ -127,13 +121,17 @@ func (c *S3) CopyObjectRequest(input *CopyObjectInput) (req *aws.Request, output
 		input = &CopyObjectInput{}
 	}
 
+	// URL encode the copy source
+	if input.CopySource == nil {
+		input.CopySource = aws.String(s3util.BuildCopySource(input.SourceBucket, input.SourceKey))
+	}
 	req = c.newRequest(opCopyObject, input, output)
 	output = &CopyObjectOutput{}
 	req.Data = output
 	return
 }
 
-// Creates a copy of an object that is already stored in Amazon S3.
+// CopyObject Creates a copy of an object that is already stored in KS3.
 func (c *S3) CopyObject(input *CopyObjectInput) (*CopyObjectOutput, error) {
 	req, out := c.CopyObjectRequest(input)
 	err := req.Send()
@@ -179,7 +177,7 @@ func (c *S3) CreateBucketRequest(input *CreateBucketInput) (req *aws.Request, ou
 	return
 }
 
-// Creates a new bucket.
+// CreateBucket Creates a new bucket.
 func (c *S3) CreateBucket(input *CreateBucketInput) (*CreateBucketOutput, error) {
 	req, out := c.CreateBucketRequest(input)
 	err := req.Send()
@@ -216,7 +214,7 @@ func (c *S3) CreateMultipartUploadRequest(input *CreateMultipartUploadInput) (re
 	return
 }
 
-// Initiates a multipart upload and returns an upload ID.
+// CreateMultipartUpload Initiates a multipart upload and returns an upload ID.
 //
 // Note: After you initiate multipart upload and upload one or more parts,
 // you must either complete or abort multipart upload in order to stop getting
@@ -261,7 +259,7 @@ func (c *S3) DeleteBucketRequest(input *DeleteBucketInput) (req *aws.Request, ou
 	return
 }
 
-// Deletes the bucket. All objects (including all object versions and Delete
+// DeleteBucket Deletes the bucket. All objects (including all object versions and Delete
 // Markers) in the bucket must be deleted before the bucket itself can be deleted.
 func (c *S3) DeleteBucket(input *DeleteBucketInput) (*DeleteBucketOutput, error) {
 	req, out := c.DeleteBucketRequest(input)
@@ -301,7 +299,7 @@ func (c *S3) DeleteBucketPolicyRequest(input *DeleteBucketPolicyInput) (req *aws
 	return
 }
 
-// Deletes the policy from the bucket.
+// DeleteBucketPolicy Deletes the policy from the bucket.
 func (c *S3) DeleteBucketPolicy(input *DeleteBucketPolicyInput) (*DeleteBucketPolicyOutput, error) {
 	req, out := c.DeleteBucketPolicyRequest(input)
 	err := req.Send()
@@ -378,7 +376,7 @@ func (c *S3) DeleteBucketTaggingRequest(input *DeleteBucketTaggingInput) (req *a
 	return
 }
 
-// Deletes the tags from the bucket.
+// DeleteBucketTagging Deletes the tags from the bucket.
 func (c *S3) DeleteBucketTagging(input *DeleteBucketTaggingInput) (*DeleteBucketTaggingOutput, error) {
 	req, out := c.DeleteBucketTaggingRequest(input)
 	err := req.Send()
@@ -417,7 +415,7 @@ func (c *S3) DeleteBucketWebsiteRequest(input *DeleteBucketWebsiteInput) (req *a
 	return
 }
 
-// This operation removes the website configuration from the bucket.
+// DeleteBucketWebsite This operation removes the website configuration from the bucket.
 func (c *S3) DeleteBucketWebsite(input *DeleteBucketWebsiteInput) (*DeleteBucketWebsiteOutput, error) {
 	req, out := c.DeleteBucketWebsiteRequest(input)
 	err := req.Send()
@@ -456,7 +454,7 @@ func (c *S3) DeleteObjectRequest(input *DeleteObjectInput) (req *aws.Request, ou
 	return
 }
 
-// Removes the null version (if there is one) of an object and inserts a delete
+// DeleteObject Removes the null version (if there is one) of an object and inserts a delete
 // marker, which becomes the latest version of the object. If there isn't a
 // null version, Amazon S3 does not remove any objects.
 func (c *S3) DeleteObject(input *DeleteObjectInput) (*DeleteObjectOutput, error) {
@@ -525,6 +523,7 @@ func (c *S3) DeleteObjectsWithContext(ctx aws.Context, input *DeleteObjectsInput
 	return output, nil
 }
 
+// DeleteBucketPrefix deletes all objects with the specified prefix in the bucket.
 func (c *S3) DeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
 	return c.DeleteBucketPrefixWithContext(context.Background(), input)
 }
@@ -577,10 +576,7 @@ func (c *S3) DeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBucketP
 	return output, nil
 }
 
-/*
-*
-重试删除前缀
-*/
+// TryDeleteBucketPrefix deletes all objects with the specified prefix in the bucket, and retries at most 3 times.
 func (c *S3) TryDeleteBucketPrefix(input *DeleteBucketPrefixInput) (*DeleteObjectsOutput, error) {
 	return c.TryDeleteBucketPrefixWithContext(context.Background(), input)
 }
@@ -621,7 +617,7 @@ func (c *S3) GetBucketACLRequest(input *GetBucketACLInput) (req *aws.Request, ou
 	return
 }
 
-// Gets the access control policy for the bucket.
+// GetBucketACL Gets the access control policy for the bucket.
 func (c *S3) GetBucketACL(input *GetBucketACLInput) (*GetBucketACLOutput, error) {
 	req, out := c.GetBucketACLRequest(input)
 	err := req.Send()
@@ -660,7 +656,7 @@ func (c *S3) GetBucketLocationRequest(input *GetBucketLocationInput) (req *aws.R
 	return
 }
 
-// Returns the region the bucket resides in.
+// GetBucketLocation Returns the region the bucket resides in.
 func (c *S3) GetBucketLocation(input *GetBucketLocationInput) (*GetBucketLocationOutput, error) {
 	req, out := c.GetBucketLocationRequest(input)
 	err := req.Send()
@@ -699,7 +695,7 @@ func (c *S3) GetBucketLoggingRequest(input *GetBucketLoggingInput) (req *aws.Req
 	return
 }
 
-// Returns the logging status of a bucket and the permissions users have to
+// GetBucketLogging Returns the logging status of a bucket and the permissions users have to
 // view and modify that status. To use GET, you must be the bucket owner.
 func (c *S3) GetBucketLogging(input *GetBucketLoggingInput) (*GetBucketLoggingOutput, error) {
 	req, out := c.GetBucketLoggingRequest(input)
@@ -739,7 +735,7 @@ func (c *S3) GetBucketNotificationRequest(input *GetBucketNotificationConfigurat
 	return
 }
 
-// Deprecated, see the GetBucketNotificationConfiguration operation.
+// GetBucketNotification Deprecated, see the GetBucketNotificationConfiguration operation.
 func (c *S3) GetBucketNotification(input *GetBucketNotificationConfigurationRequest) (*NotificationConfigurationDeprecated, error) {
 	req, out := c.GetBucketNotificationRequest(input)
 	err := req.Send()
@@ -778,7 +774,7 @@ func (c *S3) GetBucketNotificationConfigurationRequest(input *GetBucketNotificat
 	return
 }
 
-// Returns the notification configuration of a bucket.
+// GetBucketNotificationConfiguration Returns the notification configuration of a bucket.
 func (c *S3) GetBucketNotificationConfiguration(input *GetBucketNotificationConfigurationRequest) (*NotificationConfiguration, error) {
 	req, out := c.GetBucketNotificationConfigurationRequest(input)
 	err := req.Send()
@@ -817,7 +813,7 @@ func (c *S3) GetBucketPolicyRequest(input *GetBucketPolicyInput) (req *aws.Reque
 	return
 }
 
-// Returns the policy of a specified bucket.
+// GetBucketPolicy Returns the policy of a specified bucket.
 func (c *S3) GetBucketPolicy(input *GetBucketPolicyInput) (*GetBucketPolicyOutput, error) {
 	req, out := c.GetBucketPolicyRequest(input)
 	err := req.Send()
@@ -894,7 +890,7 @@ func (c *S3) GetBucketRequestPaymentRequest(input *GetBucketRequestPaymentInput)
 	return
 }
 
-// Returns the request payment configuration of a bucket.
+// GetBucketRequestPayment Returns the request payment configuration of a bucket.
 func (c *S3) GetBucketRequestPayment(input *GetBucketRequestPaymentInput) (*GetBucketRequestPaymentOutput, error) {
 	req, out := c.GetBucketRequestPaymentRequest(input)
 	err := req.Send()
@@ -933,7 +929,7 @@ func (c *S3) GetBucketTaggingRequest(input *GetBucketTaggingInput) (req *aws.Req
 	return
 }
 
-// Returns the tag set associated with the bucket.
+// GetBucketTagging Returns the tag set associated with the bucket.
 func (c *S3) GetBucketTagging(input *GetBucketTaggingInput) (*GetBucketTaggingOutput, error) {
 	req, out := c.GetBucketTaggingRequest(input)
 	err := req.Send()
@@ -972,7 +968,7 @@ func (c *S3) GetBucketVersioningRequest(input *GetBucketVersioningInput) (req *a
 	return
 }
 
-// Returns the versioning state of a bucket.
+// GetBucketVersioning Returns the versioning state of a bucket.
 func (c *S3) GetBucketVersioning(input *GetBucketVersioningInput) (*GetBucketVersioningOutput, error) {
 	req, out := c.GetBucketVersioningRequest(input)
 	err := req.Send()
@@ -1011,7 +1007,7 @@ func (c *S3) GetBucketWebsiteRequest(input *GetBucketWebsiteInput) (req *aws.Req
 	return
 }
 
-// Returns the website configuration for a bucket.
+// GetBucketWebsite Returns the website configuration for a bucket.
 func (c *S3) GetBucketWebsite(input *GetBucketWebsiteInput) (*GetBucketWebsiteOutput, error) {
 	req, out := c.GetBucketWebsiteRequest(input)
 	err := req.Send()
@@ -1050,7 +1046,7 @@ func (c *S3) GetObjectRequest(input *GetObjectInput) (req *aws.Request, output *
 	return
 }
 
-// Retrieves objects from Amazon S3.
+// GetObject Retrieves objects from KS3.
 func (c *S3) GetObject(input *GetObjectInput) (*GetObjectOutput, error) {
 	req, out := c.GetObjectRequest(input)
 	err := req.Send()
@@ -1064,35 +1060,25 @@ func (c *S3) GetObjectWithContext(ctx aws.Context, input *GetObjectInput) (*GetO
 	return out, err
 }
 
-func (c *S3) GetObjectToFile(bucket, objectKey, filePath, Range string) error {
-	getInput := &GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(objectKey),
-		Range:  aws.String(Range),
-	}
+func (c *S3) GetObjectToFile(input *GetObjectInput, filePath string) error {
 	// Calls the API to actually download the object. Returns the result instance.
-	res, err := c.GetObject(getInput)
+	res, err := c.GetObject(input)
 	if err != nil {
 		return err
 	}
-	return c.SaveObjectToFile(filePath, res)
+	return c.SaveObjectToFile(filePath, input, res)
 }
 
-func (c *S3) GetObjectToFileWithContext(ctx aws.Context, bucket, objectKey, filePath, Range string) error {
-	getInput := &GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(objectKey),
-		Range:  aws.String(Range),
-	}
+func (c *S3) GetObjectToFileWithContext(ctx aws.Context, input *GetObjectInput, filePath string) error {
 	// Calls the API to actually download the object. Returns the result instance.
-	res, err := c.GetObjectWithContext(ctx, getInput)
+	res, err := c.GetObjectWithContext(ctx, input)
 	if err != nil {
 		return err
 	}
-	return c.SaveObjectToFile(filePath, res)
+	return c.SaveObjectToFile(filePath, input, res)
 }
 
-func (c *S3) SaveObjectToFile(filePath string, res *GetObjectOutput) error {
+func (c *S3) SaveObjectToFile(filePath string, input *GetObjectInput, res *GetObjectOutput) error {
 	tempFilePath := filePath + TempFileSuffix
 	// If the local file does not exist, create a new one. If it exists, overwrite it.
 	fd, err := os.OpenFile(tempFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(0664))
@@ -1100,8 +1086,18 @@ func (c *S3) SaveObjectToFile(filePath string, res *GetObjectOutput) error {
 		return err
 	}
 
-	crc := crc.NewCRC(crc.CrcTable(), 0)
-	res.Body = util.TeeReader(res.Body, crc)
+	var crc64 hash.Hash64
+	if c.Config.CrcCheckEnabled {
+		crc64 = crc.NewCRC(crc.CrcTable(), 0)
+	}
+
+	if c.Config.CrcCheckEnabled || input.ProgressFn != nil {
+		var contentLength int64
+		if res.ContentLength != nil {
+			contentLength = *res.ContentLength
+		}
+		res.Body = aws.TeeReader(res.Body, crc64, contentLength, input.ProgressFn)
+	}
 
 	// Copy the data to the local file path.
 	_, err = io.Copy(fd, res.Body)
@@ -1111,7 +1107,7 @@ func (c *S3) SaveObjectToFile(filePath string, res *GetObjectOutput) error {
 	}
 
 	if c.Config.CrcCheckEnabled {
-		err = CheckDownloadCrc64(c, res, crc)
+		err = CheckDownloadCrc64(c, res, crc64)
 		if err != nil {
 			return err
 		}
@@ -1145,7 +1141,7 @@ func (c *S3) GetObjectACLRequest(input *GetObjectACLInput) (req *aws.Request, ou
 	return
 }
 
-// Returns the access control list (ACL) of an object.
+// GetObjectACL Returns the access control list (ACL) of an object.
 func (c *S3) GetObjectACL(input *GetObjectACLInput) (*GetObjectACLOutput, error) {
 	req, out := c.GetObjectACLRequest(input)
 	err := req.Send()
@@ -1184,7 +1180,7 @@ func (c *S3) GetObjectTorrentRequest(input *GetObjectTorrentInput) (req *aws.Req
 	return
 }
 
-// Return torrent files from a bucket.
+// GetObjectTorrent Return torrent files from a bucket.
 func (c *S3) GetObjectTorrent(input *GetObjectTorrentInput) (*GetObjectTorrentOutput, error) {
 	req, out := c.GetObjectTorrentRequest(input)
 	err := req.Send()
@@ -1223,7 +1219,7 @@ func (c *S3) HeadBucketRequest(input *HeadBucketInput) (req *aws.Request, output
 	return
 }
 
-// This operation is useful to determine if a bucket exists and you have permission
+// HeadBucket This operation is useful to determine if a bucket exists and you have permission
 // to access it.
 func (c *S3) HeadBucket(input *HeadBucketInput) (*HeadBucketOutput, error) {
 	req, out := c.HeadBucketRequest(input)
@@ -1238,7 +1234,7 @@ func (c *S3) HeadBucketWithContext(ctx aws.Context, input *HeadBucketInput) (*He
 	return out, err
 }
 
-// 判断桶是否存在
+// HeadBucketExist checks if the bucket exists.
 func (c *S3) HeadBucketExist(bucket string) (bool, error) {
 	var err error
 	req, _ := c.HeadBucketRequest(&HeadBucketInput{
@@ -1289,7 +1285,7 @@ func (c *S3) HeadObjectRequest(input *HeadObjectInput) (req *aws.Request, output
 	return
 }
 
-// The HEAD operation retrieves metadata from an object without returning the
+// HeadObject The HEAD operation retrieves metadata from an object without returning the
 // object itself. This operation is useful if you're only interested in an object's
 // metadata. To use HEAD, you must have READ access to the object.
 func (c *S3) HeadObject(input *HeadObjectInput) (*HeadObjectOutput, error) {
@@ -1330,7 +1326,7 @@ func (c *S3) ListBucketsRequest(input *ListBucketsInput) (req *aws.Request, outp
 	return
 }
 
-// Returns a list of all buckets owned by the authenticated sender of the request.
+// ListBuckets Returns a list of all buckets owned by the authenticated sender of the request.
 func (c *S3) ListBuckets(input *ListBucketsInput) (*ListBucketsOutput, error) {
 	req, out := c.ListBucketsRequest(input)
 	err := req.Send()
@@ -1375,7 +1371,7 @@ func (c *S3) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) (req 
 	return
 }
 
-// This operation lists in-progress multipart uploads.
+// ListMultipartUploads This operation lists in-progress multipart uploads.
 func (c *S3) ListMultipartUploads(input *ListMultipartUploadsInput) (*ListMultipartUploadsOutput, error) {
 	req, out := c.ListMultipartUploadsRequest(input)
 	err := req.Send()
@@ -1427,7 +1423,7 @@ func (c *S3) ListObjectVersionsRequest(input *ListObjectVersionsInput) (req *aws
 	return
 }
 
-// Returns metadata about all of the versions of objects in a bucket.
+// ListObjectVersions Returns metadata about all the versions of objects in a bucket.
 func (c *S3) ListObjectVersions(input *ListObjectVersionsInput) (*ListObjectVersionsOutput, error) {
 	req, out := c.ListObjectVersionsRequest(input)
 	err := req.Send()
@@ -1479,7 +1475,7 @@ func (c *S3) ListObjectsRequest(input *ListObjectsInput) (req *aws.Request, outp
 	return
 }
 
-// Returns some or all (up to 1000) of the objects in a bucket. You can use
+// ListObjects Returns some or all (up to 1000) of the objects in a bucket. You can use
 // the request parameters as selection criteria to return a subset of the objects
 // in a bucket.
 func (c *S3) ListObjects(input *ListObjectsInput) (*ListObjectsOutput, error) {
@@ -1533,7 +1529,7 @@ func (c *S3) ListPartsRequest(input *ListPartsInput) (req *aws.Request, output *
 	return
 }
 
-// Lists the parts that have been uploaded for a specific multipart upload.
+// ListParts Lists the parts that have been uploaded for a specific multipart upload.
 func (c *S3) ListParts(input *ListPartsInput) (*ListPartsOutput, error) {
 	req, out := c.ListPartsRequest(input)
 	err := req.Send()
@@ -1579,7 +1575,7 @@ func (c *S3) PutBucketACLRequest(input *PutBucketACLInput) (req *aws.Request, ou
 	return
 }
 
-// Sets the permissions on a bucket using access control lists (ACL).
+// PutBucketACL Sets the permissions on a bucket using access control lists (ACL).
 func (c *S3) PutBucketACL(input *PutBucketACLInput) (*PutBucketACLOutput, error) {
 	req, out := c.PutBucketACLRequest(input)
 	err := req.Send()
@@ -1618,7 +1614,7 @@ func (c *S3) PutBucketLoggingRequest(input *PutBucketLoggingInput) (req *aws.Req
 	return
 }
 
-// Set the logging parameters for a bucket and to specify permissions for who
+// PutBucketLogging Set the logging parameters for a bucket and to specify permissions for who
 // can view and modify the logging parameters. To set the logging status of
 // a bucket, you must be the bucket owner.
 func (c *S3) PutBucketLogging(input *PutBucketLoggingInput) (*PutBucketLoggingOutput, error) {
@@ -1659,7 +1655,7 @@ func (c *S3) PutBucketNotificationRequest(input *PutBucketNotificationInput) (re
 	return
 }
 
-// Deprecated, see the PutBucketNotificationConfiguraiton operation.
+// PutBucketNotification Deprecated, see the PutBucketNotificationConfiguraiton operation.
 func (c *S3) PutBucketNotification(input *PutBucketNotificationInput) (*PutBucketNotificationOutput, error) {
 	req, out := c.PutBucketNotificationRequest(input)
 	err := req.Send()
@@ -1698,7 +1694,7 @@ func (c *S3) PutBucketNotificationConfigurationRequest(input *PutBucketNotificat
 	return
 }
 
-// Enables notifications of specified events for a bucket.
+// PutBucketNotificationConfiguration Enables notifications of specified events for a bucket.
 func (c *S3) PutBucketNotificationConfiguration(input *PutBucketNotificationConfigurationInput) (*PutBucketNotificationConfigurationOutput, error) {
 	req, out := c.PutBucketNotificationConfigurationRequest(input)
 	err := req.Send()
@@ -1737,7 +1733,7 @@ func (c *S3) PutBucketPolicyRequest(input *PutBucketPolicyInput) (req *aws.Reque
 	return
 }
 
-// Replaces a policy on a bucket. If the bucket already has a policy, the one
+// PutBucketPolicy Replaces a policy on a bucket. If the bucket already has a policy, the one
 // in this request completely replaces it.
 func (c *S3) PutBucketPolicy(input *PutBucketPolicyInput) (*PutBucketPolicyOutput, error) {
 	req, out := c.PutBucketPolicyRequest(input)
@@ -1777,8 +1773,7 @@ func (c *S3) PutBucketReplicationRequest(input *PutBucketReplicationInput) (req 
 	return
 }
 
-// Creates a new replication configuration (or replaces an existing one, if
-// present).
+// PutBucketReplication Creates a new replication configuration (or replaces an existing one, if present).
 func (c *S3) PutBucketReplication(input *PutBucketReplicationInput) (*PutBucketReplicationOutput, error) {
 	req, out := c.PutBucketReplicationRequest(input)
 	err := req.Send()
@@ -1817,11 +1812,10 @@ func (c *S3) PutBucketRequestPaymentRequest(input *PutBucketRequestPaymentInput)
 	return
 }
 
-// Sets the request payment configuration for a bucket. By default, the bucket
+// PutBucketRequestPayment Sets the request payment configuration for a bucket. By default, the bucket
 // owner pays for downloads from the bucket. This configuration parameter enables
 // the bucket owner (only) to specify that the person requesting the download
-// will be charged for the download. Documentation on requester pays buckets
-// can be found at http://docs.aws.amazon.com/AmazonS3/latest/dev/RequesterPaysBuckets.html
+// will be charged for the download.
 func (c *S3) PutBucketRequestPayment(input *PutBucketRequestPaymentInput) (*PutBucketRequestPaymentOutput, error) {
 	req, out := c.PutBucketRequestPaymentRequest(input)
 	err := req.Send()
@@ -1860,7 +1854,7 @@ func (c *S3) PutBucketTaggingRequest(input *PutBucketTaggingInput) (req *aws.Req
 	return
 }
 
-// Sets the tags for a bucket.
+// PutBucketTagging Sets the tags for a bucket.
 func (c *S3) PutBucketTagging(input *PutBucketTaggingInput) (*PutBucketTaggingOutput, error) {
 	req, out := c.PutBucketTaggingRequest(input)
 	err := req.Send()
@@ -1899,7 +1893,7 @@ func (c *S3) PutBucketVersioningRequest(input *PutBucketVersioningInput) (req *a
 	return
 }
 
-// Sets the versioning state of an existing bucket. To set the versioning state,
+// PutBucketVersioning Sets the versioning state of an existing bucket. To set the versioning state,
 // you must be the bucket owner.
 func (c *S3) PutBucketVersioning(input *PutBucketVersioningInput) (*PutBucketVersioningOutput, error) {
 	req, out := c.PutBucketVersioningRequest(input)
@@ -1999,7 +1993,7 @@ type GeneratePresignedUrlOutput struct {
 	url *string
 }
 
-// Set the website configuration for a bucket.
+// PutBucketWebsite Set the website configuration for a bucket.
 func (c *S3) PutBucketWebsite(input *PutBucketWebsiteInput) (*PutBucketWebsiteOutput, error) {
 	req, out := c.PutBucketWebsiteRequest(input)
 	err := req.Send()
@@ -2036,12 +2030,15 @@ func (c *S3) PutObjectRequest(input *PutObjectInput) (req *aws.Request, output *
 	if c.Config.CrcCheckEnabled {
 		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
 	}
+	if input.ProgressFn != nil {
+		req.ProgressFn = input.ProgressFn
+	}
 	output = &PutObjectOutput{}
 	req.Data = output
 	return
 }
 
-// Adds an object to a bucket.
+// PutObject Adds an object to a bucket.
 func (c *S3) PutObject(input *PutObjectInput) (*PutObjectOutput, error) {
 	req, out := c.PutObjectRequest(input)
 	err := req.Send()
@@ -2077,7 +2074,7 @@ func (c *S3) PutReaderRequest(input *PutReaderRequest) (req *aws.Request, output
 	return
 }
 
-// Adds an object to a bucket.
+// PutReader Adds an object to a bucket.
 func (c *S3) PutReader(input *PutReaderRequest) (*PutObjectOutput, error) {
 	req, out := c.PutReaderRequest(input)
 	err := req.Send()
@@ -2091,16 +2088,8 @@ func (c *S3) PutReaderWithContext(ctx aws.Context, input *PutReaderRequest) (*Pu
 	return out, err
 }
 
-//func (c *S3) PutObjectMD5Check(input *PutObjectInput) (*PutObjectOutput, error) {
-//	req, out := c.PutObjectRequest(input)
-//	req.Handlers.Build.PushBack(contentMD5)
-//	err := req.Send()
-//	return out, err
-//}
-
-// 生成链接
+// GeneratePresignedUrl generates a presigned url for the object
 func (c *S3) GeneratePresignedUrl(input *GeneratePresignedUrlInput) (url string, err error) {
-
 	opGeneratePresigned := &aws.Operation{
 		HTTPMethod: string(input.HTTPMethod),
 		HTTPPath:   "/{Bucket}/{Key+}",
@@ -2130,9 +2119,9 @@ func (c *S3) GeneratePresignedUrl(input *GeneratePresignedUrlInput) (url string,
 	return req.HTTPRequest.URL.String(), nil
 }
 
-// 生成链接（旧版本）
+// GeneratePresignedUrlInput generates a presigned url for the object.
+// This method has been deprecated, please use GeneratePresignedUrl instead.
 func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url string) {
-
 	opGeneratePresigned := &aws.Operation{
 		HTTPMethod: string(input.HTTPMethod),
 		HTTPPath:   "/{Bucket}/{Key+}",
@@ -2180,7 +2169,7 @@ func (c *S3) PutObjectACLRequest(input *PutObjectACLInput) (req *aws.Request, ou
 	return
 }
 
-// uses the acl subresource to set the access control list (ACL) permissions
+// PutObjectACL uses the acl subresource to set the access control list (ACL) permissions
 // for an object that already exists in a bucket
 func (c *S3) PutObjectACL(input *PutObjectACLInput) (*PutObjectACLOutput, error) {
 	req, out := c.PutObjectACLRequest(input)
@@ -2256,12 +2245,15 @@ func (c *S3) UploadPartRequest(input *UploadPartInput) (req *aws.Request, output
 	if c.Config.CrcCheckEnabled {
 		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
 	}
+	if input.ProgressFn != nil {
+		req.ProgressFn = input.ProgressFn
+	}
 	output = &UploadPartOutput{}
 	req.Data = output
 	return
 }
 
-// Uploads a part in a multipart upload.
+// UploadPart Uploads a part in a multipart upload.
 //
 // Note: After you initiate multipart upload and upload one or more parts,
 // you must either complete or abort multipart upload in order to stop getting
@@ -2300,13 +2292,17 @@ func (c *S3) UploadPartCopyRequest(input *UploadPartCopyInput) (req *aws.Request
 		input = &UploadPartCopyInput{}
 	}
 
+	// URL encode the copy source
+	if input.CopySource == nil {
+		input.CopySource = aws.String(s3util.BuildCopySource(input.SourceBucket, input.SourceKey))
+	}
 	req = c.newRequest(opUploadPartCopy, input, output)
 	output = &UploadPartCopyOutput{}
 	req.Data = output
 	return
 }
 
-// Uploads a part by copying data from an existing object as data source.
+// UploadPartCopy Uploads a part by copying data from an existing object as data source.
 func (c *S3) UploadPartCopy(input *UploadPartCopyInput) (*UploadPartCopyOutput, error) {
 	req, out := c.UploadPartCopyRequest(input)
 	err := req.Send()
@@ -2345,8 +2341,7 @@ type metadataAbortMultipartUploadInput struct {
 }
 
 type AbortMultipartUploadOutput struct {
-	// If present, indicates that the requester was successfully charged for the
-	// request.
+	// If present, indicates that the requester was successfully charged for the request.
 	RequestCharged *string `location:"header" locationName:"x-amz-request-charged" type:"string"`
 
 	metadataAbortMultipartUploadOutput `json:"-" xml:"-"`
@@ -2561,6 +2556,12 @@ type CopyObjectInput struct {
 
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
+	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+
+	SourceBucket *string `location:"uri" locationName:"sourceBucket" type:"string"`
+
+	SourceKey *string `location:"uri" locationName:"sourceKey" type:"string"`
+
 	// Specifies caching behavior along the request/reply chain.
 	CacheControl *string `location:"header" locationName:"Cache-Control" type:"string"`
 
@@ -2588,8 +2589,7 @@ type CopyObjectInput struct {
 	// Copies the object if it has been modified since the specified time.
 	CopySourceIfModifiedSince *time.Time `location:"header" locationName:"x-amz-copy-source-if-modified-since" type:"timestamp" timestampFormat:"rfc822"`
 
-	// Copies the object if its entity tag (ETag) is different than the specified
-	// ETag.
+	// Copies the object if its entity tag (ETag) is different from the specified ETag.
 	CopySourceIfNoneMatch *string `location:"header" locationName:"x-amz-copy-source-if-none-match" type:"string"`
 
 	// Copies the object if it hasn't been modified since the specified time.
@@ -2622,8 +2622,6 @@ type CopyObjectInput struct {
 
 	// Allows grantee to write the ACL for the applicable object.
 	GrantWriteACP *string `location:"header" locationName:"x-amz-grant-write-acp" type:"string"`
-
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
 
 	// A map of metadata to store with the object in S3.
 	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
@@ -3648,6 +3646,9 @@ type GetObjectInput struct {
 
 	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"string"`
 
+	// Progress callback function
+	ProgressFn aws.ProgressFunc `location:"function"`
+
 	metadataGetObjectInput `json:"-" xml:"-"`
 }
 
@@ -4039,7 +4040,7 @@ type metadataInitiator struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-// Container for specifying the AWS Lambda notification configuration.
+// LambdaFunctionConfiguration Container for specifying the AWS Lambda notification configuration.
 type LambdaFunctionConfiguration struct {
 	Events []*string `locationName:"Event" type:"list" flattened:"true" required:"true"`
 
@@ -4460,50 +4461,7 @@ type metadataMultipartUpload struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-// Specifies when noncurrent object versions expire. Upon expiration, Amazon
-// S3 permanently deletes the noncurrent object versions. You set this lifecycle
-// configuration action on a bucket that has versioning enabled (or suspended)
-// to request that Amazon S3 delete noncurrent object versions at a specific
-// period in the object's lifetime.
-type NoncurrentVersionExpiration struct {
-	// Specifies the number of days an object is noncurrent before Amazon S3 can
-	// perform the associated action. For information about the noncurrent days
-	// calculations, see How Amazon S3 Calculates When an Object Became Noncurrent
-	// (/AmazonS3/latest/dev/s3-access-control.html) in the Amazon Simple Storage
-	// Service Developer Guide.
-	NoncurrentDays *int64 `type:"integer"`
-
-	metadataNoncurrentVersionExpiration `json:"-" xml:"-"`
-}
-
-type metadataNoncurrentVersionExpiration struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-// Container for the transition rule that describes when noncurrent objects
-// transition to the GLACIER storage class. If your bucket is versioning-enabled
-// (or versioning is suspended), you can set this action to request that Amazon
-// S3 transition noncurrent object versions to the GLACIER storage class at
-// a specific period in the object's lifetime.
-type NoncurrentVersionTransition struct {
-	// Specifies the number of days an object is noncurrent before Amazon S3 can
-	// perform the associated action. For information about the noncurrent days
-	// calculations, see How Amazon S3 Calculates When an Object Became Noncurrent
-	// (/AmazonS3/latest/dev/s3-access-control.html) in the Amazon Simple Storage
-	// Service Developer Guide.
-	NoncurrentDays *int64 `type:"integer"`
-
-	// The class of storage used to store the object.
-	StorageClass *string `type:"string"`
-
-	metadataNoncurrentVersionTransition `json:"-" xml:"-"`
-}
-
-type metadataNoncurrentVersionTransition struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-// Container for specifying the notification configuration of the bucket. If
+// NotificationConfiguration Container for specifying the notification configuration of the bucket. If
 // this element is empty, notifications are turned off on the bucket.
 type NotificationConfiguration struct {
 	LambdaFunctionConfigurations []*LambdaFunctionConfiguration `locationName:"CloudFunctionConfiguration" type:"list" flattened:"true"`
@@ -5065,12 +5023,16 @@ type PutObjectInput struct {
 
 	ContentMaxLength *int64 `location:"header" locationName:"x-amz-content-maxlength" type:"integer"`
 
-	CallbackUrl  *string `location:"header" locationName:"x-kss-callbackurl" type:"string"`
+	CallbackUrl *string `location:"header" locationName:"x-kss-callbackurl" type:"string"`
+
 	CallbackBody *string `location:"header" locationName:"x-kss-callbackbody" type:"string"`
 
 	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"integer"`
 
 	ContentMD5 *string `location:"header" locationName:"Content-MD5" type:"string"`
+
+	// Progress callback function
+	ProgressFn aws.ProgressFunc `location:"function"`
 
 	metadataPutObjectInput `json:"-" xml:"-"`
 }
@@ -5222,7 +5184,7 @@ type metadataPutObjectOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-// Container for specifying an configuration when you want Amazon S3 to publish
+// QueueConfiguration Container for specifying an configuration when you want Amazon S3 to publish
 // events to an Amazon Simple Queue Service (Amazon SQS) queue.
 type QueueConfiguration struct {
 	Events []*string `locationName:"Event" type:"list" flattened:"true" required:"true"`
@@ -5308,7 +5270,7 @@ type metadataRedirectAllRequestsTo struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-// Container for replication rules. You can add as many as 1,000 rules. Total
+// ReplicationConfiguration Container for replication rules. You can add as many as 1,000 rules. Total
 // replication configuration size can be up to 2 MB.
 type ReplicationConfiguration struct {
 	// Amazon Resource Name (ARN) of an IAM role for Amazon S3 to assume when replicating
@@ -5455,7 +5417,7 @@ type metadataTargetGrant struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-// Container for specifying the configuration when you want Amazon S3 to publish
+// TopicConfiguration Container for specifying the configuration when you want Amazon S3 to publish
 // events to an Amazon Simple Notification Service (Amazon SNS) topic.
 type TopicConfiguration struct {
 	Events []*string `locationName:"Event" type:"list" flattened:"true" required:"true"`
@@ -5518,6 +5480,12 @@ type metadataTransition struct {
 type UploadPartCopyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
+	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+
+	SourceBucket *string `location:"uri" locationName:"sourceBucket" type:"string"`
+
+	SourceKey *string `location:"uri" locationName:"sourceKey" type:"string"`
+
 	// The name of the source bucket and key name of the source object, separated
 	// by a slash (/). Must be URL-encoded.
 	CopySource *string `location:"header" locationName:"x-amz-copy-source" type:"string" required:"true"`
@@ -5554,8 +5522,6 @@ type UploadPartCopyInput struct {
 	// Amazon S3 uses this header for a message integrity check to ensure the encryption
 	// key was transmitted without error.
 	CopySourceSSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-copy-source-server-side-encryption-customer-key-MD5" type:"string"`
-
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
 
 	// Part number of part being copied.
 	PartNumber *int64 `location:"querystring" locationName:"partNumber" type:"integer" required:"true"`
@@ -5681,6 +5647,9 @@ type UploadPartInput struct {
 
 	ContentMD5 *string `location:"header" locationName:"Content-MD5" type:"string"`
 
+	// Progress callback function
+	ProgressFn aws.ProgressFunc `location:"function"`
+
 	metadataUploadPartInput `json:"-" xml:"-"`
 }
 
@@ -5760,86 +5729,6 @@ type metadataWebsiteConfiguration struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-type Header map[string][]string
-
-func (c *S3) SignedReq(req *http.Request, canonicalizedResource string) {
-
-	ossHeadersMap := make(map[string]string)
-	for k, v := range req.Header {
-		if strings.HasPrefix(strings.ToLower(k), "x-kss-") {
-			ossHeadersMap[strings.ToLower(k)] = v[0]
-		}
-	}
-	hs := newHeaderSorter(ossHeadersMap)
-	hs.Sort()
-	canonicalizedKS3Headers := ""
-	for i := range hs.Keys {
-		canonicalizedKS3Headers += hs.Keys[i] + ":" + hs.Vals[i] + "\n"
-	}
-	date := req.Header.Get(HTTPHeaderDate)
-	contentType := req.Header.Get(HTTPHeaderContentType)
-	contentMd5 := req.Header.Get(HTTPHeaderContentMD5)
-	signStr := req.Method + "\n" + contentMd5 + "\n" + contentType + "\n" + date + "\n" + canonicalizedKS3Headers + canonicalizedResource
-	if c.Config.LogHTTPBody {
-		fmt.Print("signStr : ", signStr+"\n")
-	}
-	config, _ := c.Config.Credentials.Get()
-	h := hmac.New(func() hash.Hash { return sha1.New() }, []byte(config.SecretAccessKey))
-	io.WriteString(h, signStr)
-	signedStr := "KSS " + config.AccessKeyID + ":" + base64.StdEncoding.EncodeToString(h.Sum(nil))
-	if c.Config.LogHTTPBody {
-		fmt.Print("signedStr : ", signedStr+"\n")
-	}
-	req.Header.Set(HTTPHeaderAuthorization, signedStr)
-
-}
-
-// headerSorter defines the key-value structure for storing the sorted data in signHeader.
-type headerSorter struct {
-	Keys []string
-	Vals []string
-}
-
-// Sort is an additional function for function SignHeader.
-func (hs *headerSorter) Sort() {
-	sort.Sort(hs)
-}
-
-// Len is an additional function for function SignHeader.
-func (hs *headerSorter) Len() int {
-	return len(hs.Vals)
-}
-
-// Less is an additional function for function SignHeader.
-func (hs *headerSorter) Less(i, j int) bool {
-	return bytes.Compare([]byte(hs.Keys[i]), []byte(hs.Keys[j])) < 0
-}
-
-// Swap is an additional function for function SignHeader.
-func (hs *headerSorter) Swap(i, j int) {
-	hs.Vals[i], hs.Vals[j] = hs.Vals[j], hs.Vals[i]
-	hs.Keys[i], hs.Keys[j] = hs.Keys[j], hs.Keys[i]
-}
-
-// newHeaderSorter is an additional function for function SignHeader.
-func newHeaderSorter(m map[string]string) *headerSorter {
-	hs := &headerSorter{
-		Keys: make([]string, 0, len(m)),
-		Vals: make([]string, 0, len(m)),
-	}
-
-	for k, v := range m {
-		hs.Keys = append(hs.Keys, k)
-		hs.Vals = append(hs.Vals, v)
-	}
-	return hs
-}
-
-/*
-*
-
-	ACL类型
-*/
 const AllUsersUri = "http://acs.amazonaws.com/groups/global/AllUsers"
 
 type CannedAccessControlType int32
@@ -5951,7 +5840,7 @@ type metadataDeleteObjectTaggingOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-// get 对象标签
+// GetObjectTaggingRequest generates a request for the GetObjectTagging operation.
 func (c *S3) GetObjectTaggingRequest(input *GetObjectTaggingInput) (req *aws.Request, output *GetObjectTaggingOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
@@ -5974,6 +5863,7 @@ func (c *S3) GetObjectTaggingRequest(input *GetObjectTaggingInput) (req *aws.Req
 	return
 }
 
+// GetObjectTagging gets the tagging configuration for an object.
 func (c *S3) GetObjectTagging(input *GetObjectTaggingInput) (*GetObjectTaggingOutput, error) {
 	req, out := c.GetObjectTaggingRequest(input)
 	err := req.Send()
@@ -6017,7 +5907,7 @@ type metadataGetObjectTaggingOutput struct {
 	SDKShapeTraits bool `type:"structure" payload:"Tagging"`
 }
 
-// 对象标签 put
+// PutObjectTaggingRequest generates a request for the PutObjectTagging operation.
 func (c *S3) PutObjectTaggingRequest(input *PutObjectTaggingInput) (req *aws.Request, output *PutObjectTaggingOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
@@ -6040,6 +5930,7 @@ func (c *S3) PutObjectTaggingRequest(input *PutObjectTaggingInput) (req *aws.Req
 	return
 }
 
+// PutObjectTagging sets the tagging configuration for an object.
 func (c *S3) PutObjectTagging(input *PutObjectTaggingInput) (*PutObjectTaggingOutput, error) {
 	req, out := c.PutObjectTaggingRequest(input)
 	err := req.Send()
@@ -6083,8 +5974,6 @@ type metadataPutObjectTaggingOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-// ----obj tag end--
-
 // FetchObjectRequest generates a request for the FetchObject operation.
 func (c *S3) FetchObjectRequest(input *FetchObjectInput) (req *aws.Request, output *FetchObjectOutput) {
 	oprw.Lock()
@@ -6102,6 +5991,9 @@ func (c *S3) FetchObjectRequest(input *FetchObjectInput) (req *aws.Request, outp
 		input = &FetchObjectInput{}
 	}
 
+	if input.SourceUrl != nil {
+		input.SourceUrl = aws.String(url.QueryEscape(*input.SourceUrl))
+	}
 	req = c.newRequest(opFetchObject, input, output)
 	output = &FetchObjectOutput{}
 	req.Data = output
@@ -6262,5 +6154,3 @@ type FetchObjectOutput struct {
 type metadataFetchObjectOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
-
-// --------fetch object end-------

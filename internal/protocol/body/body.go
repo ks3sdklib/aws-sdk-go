@@ -9,8 +9,7 @@ import (
 
 // Build builds the REST component of a service request.
 func Build(r *aws.Request) {
-	index := IndexOf(jsonRequestApiName, r.Operation.Name)
-	if index != -1 {
+	if r.ContentType == "application/json" {
 		restjson.Build(r)
 	} else {
 		restxml.Build(r)
@@ -20,8 +19,7 @@ func Build(r *aws.Request) {
 // UnmarshalBody unmarshal a response body for the REST protocol.
 func UnmarshalBody(r *aws.Request) {
 	rest.Unmarshal(r)
-	index := IndexOf(jsonResponseApiName, r.Operation.Name)
-	if index != -1 {
+	if r.ContentType == "application/json" {
 		restjson.Unmarshal(r)
 	} else {
 		restxml.Unmarshal(r)
@@ -36,21 +34,4 @@ func UnmarshalMeta(r *aws.Request) {
 // UnmarshalError unmarshal a response error for the REST protocol.
 func UnmarshalError(r *aws.Request) {
 	restxml.UnmarshalError(r)
-}
-
-var jsonRequestApiName = []string{
-	"PutBucketMirror",
-}
-
-var jsonResponseApiName = []string{
-	"GetBucketMirror",
-}
-
-func IndexOf(apiNames []string, apiName string) int {
-	for index, value := range apiNames {
-		if value == apiName {
-			return index
-		}
-	}
-	return -1
 }

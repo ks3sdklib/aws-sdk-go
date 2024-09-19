@@ -16,13 +16,7 @@ import (
 	"time"
 )
 
-var (
-	randKey  = randLowStr(10)
-	key      = "123.txt"
-	key_copy = randLowStr(10)
-)
-
-// 列举bucket下对象
+// TestListObjects 列举bucket下对象
 func (s *Ks3utilCommandSuite) TestListObjects(c *C) {
 	_, err := client.ListObjects(&s3.ListObjectsInput{
 		Bucket: aws.String(bucket),
@@ -34,10 +28,7 @@ func (s *Ks3utilCommandSuite) TestListObjects(c *C) {
 	c.Assert(err, IsNil)
 }
 
-/*
-*
-上传示例 -可设置标签  acl
-*/
+// TestPutObject 上传示例 -可设置标签  acl
 func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 	//指定目标Object对象标签，可同时设置多个标签，如：TagA=A&TagB=B。
 	//说明 Key和Value需要先进行URL编码，如果某项没有“=”，则看作Value为空字符串。详情请见对象标签（https://docs.ksyun.com/documents/39576）。
@@ -63,10 +54,7 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 	os.Remove(object)
 }
 
-/*
-*
-上传示例 -限速
-*/
+// TestPutObjectByLimit 上传示例 -限速
 func (s *Ks3utilCommandSuite) TestPutObjectByLimit(c *C) {
 	MIN_BANDWIDTH := 1024 * 100 * 8 // 100KB/s
 	object := randLowStr(10)
@@ -89,10 +77,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectByLimit(c *C) {
 	os.Remove(object)
 }
 
-/*
-*
-下载限速示例
-*/
+// TestGetObjectByLimit 下载限速示例
 func (s *Ks3utilCommandSuite) TestGetObjectByLimit(c *C) {
 	MIN_BANDWIDTH := 1024 * 100 * 8 // 100KB/s
 	_, err := client.PutObject(&s3.PutObjectInput{
@@ -112,10 +97,7 @@ func (s *Ks3utilCommandSuite) TestGetObjectByLimit(c *C) {
 	c.Assert(err, IsNil)
 }
 
-/*
-*
-下载示例
-*/
+// TestGetObject 下载示例
 func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
 	_, err := client.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(bucket),
@@ -133,8 +115,8 @@ func (s *Ks3utilCommandSuite) TestGetObject(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 删除对象
-func (s *Ks3utilCommandSuite) TestDelObject(c *C) {
+// TestDeleteObject 删除对象
+func (s *Ks3utilCommandSuite) TestDeleteObject(c *C) {
 	_, err := client.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
@@ -150,7 +132,7 @@ func (s *Ks3utilCommandSuite) TestDelObject(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 根据方法生成外链
+// TestGeneratePresignedUrl 根据方法生成外链
 func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 	_, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
 		Bucket: aws.String(bucket), // 设置 bucket 名称
@@ -163,7 +145,7 @@ func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 根据外链PUT上传
+// TestGeneratePUTPresignedUrl 根据外链PUT上传
 func (s *Ks3utilCommandSuite) TestGeneratePUTPresignedUrl(c *C) {
 	text := "test content"
 	md5 := s3util.GetBase64MD5Str(text)
@@ -193,7 +175,7 @@ func (s *Ks3utilCommandSuite) TestGeneratePUTPresignedUrl(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 获取对象Acl
+// TestGetObjectAcl 获取对象Acl
 func (s *Ks3utilCommandSuite) TestGetObjectAcl(c *C) {
 	_, err := client.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(bucket),
@@ -211,7 +193,7 @@ func (s *Ks3utilCommandSuite) TestGetObjectAcl(c *C) {
 	c.Assert(s3.GetAcl(*resp), Equals, s3.PublicRead)
 }
 
-// 设置对象Acl
+// TestPutObjectAcl 设置对象Acl
 func (s *Ks3utilCommandSuite) TestPutObjectAcl(c *C) {
 	s.PutObject(key, c)
 	_, err := client.PutObjectACL(&s3.PutObjectACLInput{
@@ -222,7 +204,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectAcl(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 复制对象
+// TestCopyObject 复制对象
 func (s *Ks3utilCommandSuite) TestCopyObject(c *C) {
 	s.PutObject(key, c)
 	//设置对象Tag
@@ -248,7 +230,7 @@ func (s *Ks3utilCommandSuite) TestCopyObject(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 分块拷贝用例
+// TestUploadPartCopy 分块拷贝用例
 func (s *Ks3utilCommandSuite) TestUploadPartCopy(c *C) {
 	s.PutObject(key, c)
 
@@ -287,24 +269,22 @@ func (s *Ks3utilCommandSuite) TestUploadPartCopy(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 抓取第三方URL上传到KS3
+// TestFetchObject 抓取第三方URL上传到KS3
 func (s *Ks3utilCommandSuite) TestFetchObject(c *C) {
 	s.PutObject(key, c)
 	// 填写源站对象的url
 	sourceUrl := fmt.Sprintf("https://%s.%s/%s", bucket, endpoint, key)
-	// 对源站对象url进行编码
-	encodedUrl := url.QueryEscape(sourceUrl)
 	// 通过第三方URL拉取文件上传
 	_, err := client.FetchObject(&s3.FetchObjectInput{
 		Bucket:    aws.String(bucket),        // 存储空间名称，必填
 		Key:       aws.String(key),           // 对象的key，必填
-		SourceUrl: aws.String(encodedUrl),    // 编码后的源站url，必填
+		SourceUrl: aws.String(sourceUrl),     // 编码后的源站url，必填
 		ACL:       aws.String("public-read"), // 对象访问权限，非必填
 	})
 	c.Assert(err, IsNil)
 }
 
-// 修改元数据信息
+// TestModifyObjectMeta 修改元数据信息
 func (s *Ks3utilCommandSuite) TestModifyObjectMeta(c *C) {
 	s.PutObject(key, c)
 
@@ -328,7 +308,7 @@ func (s *Ks3utilCommandSuite) TestModifyObjectMeta(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 分块上传
+// TestMultipartUpload 分块上传
 // 此操作将启动一个分块上传任务并返回 upload ID。在一个确定的分块上传任务中，upload ID用于关联所有分块。连续分块上传请求中的 upload ID由用户指定。在Complete Multipart Upload 和 Abort Multipart Upload请求中同样包含 upload ID。
 // 关于请求签名的问题，分块上传为一系列的请求（初始化分块上传，上传块，完成分块上传，终止分块上传），用户启动任务，发送一个或多个分块，最终完成任务。用户需要对每一个请求单独签名。
 // 注意: 当你启动分块上传后，并开始上传分块，你必须完成或者放弃上传任务，才能终止因为存储造成的收费。
@@ -404,7 +384,7 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 	os.Remove(object)
 }
 
-// 上传加密
+// TestPutObjectWithSSEC 上传加密
 // 服务器端加密关乎静态数据加密，即 KS3 在将您的数据写入数据中心内的磁盘时会在对象级别上加密这些数据，并在您访问这些数据时为您解密这些数据。
 // 只要您验证了您的请求并且拥有访问权限，您访问加密和未加密数据元的方式就没有区别。
 // 例如，如果您使用预签名的 URL 来共享您的对象，那么对于加密和解密对象，该 URL 的工作方式是相同的。
@@ -420,13 +400,30 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithSSEC(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 判断文件是否存在
+// TestHeadObject 判断文件是否存在
 func (s *Ks3utilCommandSuite) TestHeadObject(c *C) {
-	etag := s.uploadTmpFile(c)
-	_, err := client.HeadObject(&s3.HeadObjectInput{
+	v := url.Values{}
+	v.Add("name", "yz")
+	v.Add("age", "11")
+	XAmzTagging := v.Encode()
+
+	object := randLowStr(10)
+	createFile(object, 1024*1024*1)
+	fd, _ := os.Open(content)
+	resp, err := client.PutObject(&s3.PutObjectInput{
 		Bucket:      aws.String(bucket),
 		Key:         aws.String(key),
-		IfNoneMatch: aws.String(etag),
+		ACL:         aws.String("public-read"),
+		Body:        fd,
+		XAmzTagging: aws.String(XAmzTagging),
+	})
+	c.Assert(err, IsNil)
+	os.Remove(object)
+
+	_, err = client.HeadObject(&s3.HeadObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		IfNoneMatch: aws.String(*resp.ETag),
 	})
 	//判断err的状态码是否为304
 	if awsErr, ok := err.(awserr.RequestFailure); ok {
@@ -434,10 +431,7 @@ func (s *Ks3utilCommandSuite) TestHeadObject(c *C) {
 	}
 }
 
-/*
-*
-批量删除对象
-*/
+// TestDeleteObjects 批量删除对象
 func (s *Ks3utilCommandSuite) TestDeleteObjects(c *C) {
 	s.PutObject("key1", c)
 	s.PutObject("key2", c)
@@ -461,10 +455,7 @@ func (s *Ks3utilCommandSuite) TestDeleteObjects(c *C) {
 	c.Assert(len(resp.Deleted), Equals, 2)
 }
 
-/*
-*
-删除前缀
-*/
+// TestDeleteBucketPrefix 删除前缀
 func (s *Ks3utilCommandSuite) TestDeleteBucketPrefix(c *C) {
 	s.PutObject("123/key1", c)
 	s.PutObject("123/key2", c)
@@ -478,10 +469,7 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketPrefix(c *C) {
 	c.Assert(len(resp.Deleted), Equals, 2)
 }
 
-/*
-*
-删除前缀(包含三次重试)
-*/
+// TestTryDeleteBucketPrefix 删除前缀(包含三次重试)
 func (s *Ks3utilCommandSuite) TestTryDeleteBucketPrefix(c *C) {
 	s.PutObject("123/key1", c)
 	s.PutObject("123/key2", c)
@@ -495,7 +483,7 @@ func (s *Ks3utilCommandSuite) TestTryDeleteBucketPrefix(c *C) {
 	c.Assert(len(resp.Deleted), Equals, 2)
 }
 
-// 文件解冻
+// TestRestoreObject 文件解冻
 func (s *Ks3utilCommandSuite) TestRestoreObject(c *C) {
 	_, err := client.PutObject(&s3.PutObjectInput{
 		Bucket:       aws.String(bucket),
@@ -512,7 +500,7 @@ func (s *Ks3utilCommandSuite) TestRestoreObject(c *C) {
 	s.DeleteObject(key, c)
 }
 
-// delObjectTagging
+// TestDeleteObjectTagging 删除对象Tag
 func (s *Ks3utilCommandSuite) TestDeleteObjectTagging(c *C) {
 	s.PutObject(key, c)
 	//指定目标Object对象标签
@@ -539,7 +527,7 @@ func (s *Ks3utilCommandSuite) TestDeleteObjectTagging(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// getObjectTagging
+// TestGetObjectTagging 获取对象Tag
 func (s *Ks3utilCommandSuite) TestGetObjectTagging(c *C) {
 	s.PutObject(key, c)
 	//指定目标Object对象标签
@@ -566,7 +554,7 @@ func (s *Ks3utilCommandSuite) TestGetObjectTagging(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 设置对象Tag
+// TestPutObjectTagging 设置对象Tag
 func (s *Ks3utilCommandSuite) TestPutObjectTagging(c *C) {
 	s.PutObject(key, c)
 	//指定目标Object对象标签
@@ -588,7 +576,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectTagging(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 上传文件夹
+// TestBatchUploadWithClient 上传文件夹
 func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
 	os.MkdirAll("temp/", os.ModePerm)
 	createFile("temp/1.txt", 1024*1024*1)
@@ -622,40 +610,135 @@ func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
 	os.RemoveAll("temp/")
 }
 
-func (s *Ks3utilCommandSuite) uploadTmpFile(c *C) (etag string) {
-	v := url.Values{}
-	v.Add("name", "yz")
-	v.Add("age", "11")
-	XAmzTagging := v.Encode()
+// TestPutObjectCharacterSet 上传文件，测试字符集
+func (s *Ks3utilCommandSuite) TestPutObjectCharacterSet(c *C) {
+	strList := []string{
+		`①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⓪❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴㊀㊁㊂㊃㊄㊅㊆㊇㊈㊉㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩`,
+		`⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒈⒉⒊⒋⒌⒍⒎⒏⒐⒑⒒⒓⒔⒕⒖⒗⒘⒙⒚⒛ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⒶⒷⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵`,
+		`﹢﹣×÷±/=≌∽≦≧≒﹤﹥≈≡≠=≤≥<>≮≯∷∶∫∮∝∞∧∨∑∏∪∩∈∵∴⊥∥∠⌒⊙√∟⊿㏒㏑%`,
+		`‰⅟½⅓⅕⅙⅛⅔⅖⅚⅜¾⅗⅝⅞⅘≂≃≄≅≆≇≈≉≊≋≌≍≎≏≐≑≒≓≔≕≖≗≘≙≚≛≜≝≞≟≠≡≢≣≤≥≦≧≨≩⊰⊱⋛⋚∫∬∭∮∯∰∱∲∳%℅‰‱øØπ`,
+		`=, +=, -=, *=, /, =, ==, ===, !=, !==, >, <, >=, <=, +, -, *, /, %, &&, ||, !,  &, |, ^, ~, <<, >>, >>>`,
+		`(), [], {}, "", ;, ?, :, \, #,  /* */, ￥, $`,
+		`测试中文 ** 特殊符号 && @@ ！@#￥%……&*（）——+{}|：“《》？【】、；‘’，。、`,
+		"\n\t\\",
+		`abc//////////////`,
+	}
+	for _, str := range strList {
+		srcKey := str
+		dstKey := str + "copy"
+		s.PutObject(srcKey, c)
+		s.CopyObject(srcKey, dstKey, c)
+		s.HeadObject(srcKey, c)
+		s.HeadObject(dstKey, c)
+	}
+}
 
+// TestCopyObjectSourceUrlEncoded 复制对象，源URL编码
+func (s *Ks3utilCommandSuite) TestCopyObjectSourceUrlEncoded(c *C) {
+	srcKey := "测试文件///"
+	dstKey := "测试文件_copy///"
+	s.PutObject(srcKey, c)
+	_, err := client.CopyObject(&s3.CopyObjectInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(dstKey),
+		SourceBucket: aws.String(bucket),
+		SourceKey:    aws.String(srcKey),
+	})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestPutObjectProgress(c *C) {
 	object := randLowStr(10)
-	s.createFile(object, content, c)
-	fd, _ := os.Open(content)
-	resp, err := client.PutObject(&s3.PutObjectInput{
-		Bucket:      aws.String(bucket),
-		Key:         aws.String(key),
-		ACL:         aws.String("public-read"),
-		Body:        fd,
-		XAmzTagging: aws.String(XAmzTagging),
+	createFile(object, 1024*1024*10)
+	fd, _ := os.Open(object)
+	_, err := client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		Body:   fd,
+		ProgressFn: func(increment, completed, total int64) {
+			fmt.Printf("percent: %.2f%%\n", float64(completed)/float64(total)*100)
+		},
 	})
 	c.Assert(err, IsNil)
 	os.Remove(object)
-	return *resp.ETag
 }
 
-func (s *Ks3utilCommandSuite) PutObject(key string, c *C) {
+func (s *Ks3utilCommandSuite) TestGetObjectToFileProgress(c *C) {
+	object := randLowStr(10)
+	filePath := object + "_download"
+	createFile(object, 1024*1024*10)
+	fd, _ := os.Open(object)
 	_, err := client.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-		Body:   strings.NewReader(content),
+		Key:    aws.String(object),
+		Body:   fd,
 	})
 	c.Assert(err, IsNil)
+	err = client.GetObjectToFile(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		ProgressFn: func(increment, completed, total int64) {
+			fmt.Printf("percent: %.2f%%\n", float64(completed)/float64(total)*100)
+		},
+	}, filePath)
+	c.Assert(err, IsNil)
+	os.Remove(object)
+	os.Remove(filePath)
 }
 
-func (s *Ks3utilCommandSuite) DeleteObject(key string, c *C) {
-	_, err := client.DeleteObject(&s3.DeleteObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+func (s *Ks3utilCommandSuite) TestAppendObjectProgress(c *C) {
+	object := randLowStr(10)
+	createFile(object, 1024*1024*10)
+	fd, _ := os.Open(object)
+	_, err := client.AppendObject(&s3.AppendObjectInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(object),
+		Position: aws.Long(0),
+		Body:     fd,
+		ProgressFn: func(increment, completed, total int64) {
+			fmt.Printf("percent: %.2f%%\n", float64(completed)/float64(total)*100)
+		},
 	})
 	c.Assert(err, IsNil)
+	os.Remove(object)
+}
+
+func (s *Ks3utilCommandSuite) TestUploadPartProgress(c *C) {
+	object := randLowStr(10)
+	createFile(object, 1024*1024*10)
+	fd, _ := os.Open(object)
+
+	initResp, err := client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+
+	partResp, err := client.UploadPart(&s3.UploadPartInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		UploadID:   initResp.UploadID,
+		PartNumber: aws.Long(1),
+		Body:       fd,
+		ProgressFn: func(increment, completed, total int64) {
+			fmt.Printf("percent: %.2f%%\n", float64(completed)/float64(total)*100)
+		},
+	})
+	c.Assert(err, IsNil)
+
+	_, err = client.CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(object),
+		UploadID: initResp.UploadID,
+		MultipartUpload: &s3.CompletedMultipartUpload{
+			Parts: []*s3.CompletedPart{
+				{
+					PartNumber: aws.Long(1),
+					ETag:       partResp.ETag,
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	os.Remove(object)
 }

@@ -27,7 +27,7 @@ func (c *S3) GetBucketCORSRequest(input *GetBucketCORSInput) (req *aws.Request, 
 	return
 }
 
-// Returns the cors configuration for the bucket.
+// GetBucketCORS Returns the cors configuration for the bucket.
 func (c *S3) GetBucketCORS(input *GetBucketCORSInput) (*GetBucketCORSOutput, error) {
 	req, out := c.GetBucketCORSRequest(input)
 	err := req.Send()
@@ -72,7 +72,7 @@ func (c *S3) DeleteBucketCORSRequest(input *DeleteBucketCORSInput) (req *aws.Req
 	return
 }
 
-// Deletes the cors configuration information set for the bucket.
+// DeleteBucketCORS Deletes the cors configuration information set for the bucket.
 func (c *S3) DeleteBucketCORS(input *DeleteBucketCORSInput) (*DeleteBucketCORSOutput, error) {
 	req, out := c.DeleteBucketCORSRequest(input)
 	err := req.Send()
@@ -110,7 +110,7 @@ func (c *S3) PutBucketCORSRequest(input *PutBucketCORSInput) (req *aws.Request, 
 	return
 }
 
-// Sets the cors configuration for a bucket.
+// PutBucketCORS Sets the cors configuration for a bucket.
 func (c *S3) PutBucketCORS(input *PutBucketCORSInput) (*PutBucketCORSOutput, error) {
 	req, out := c.PutBucketCORSRequest(input)
 	err := req.Send()

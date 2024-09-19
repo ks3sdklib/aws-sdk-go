@@ -443,10 +443,22 @@ func (s *Ks3utilCommandSuite) TestPutBucketLifecycleWithContext(c *C) {
 	lifecycleConfiguration := &s3.LifecycleConfiguration{
 		Rules: []*s3.LifecycleRule{
 			{
-				ID:     aws.String("rule1"),
+				ID: aws.String("rule1"),
+				Filter: &s3.LifecycleFilter{
+					Prefix: aws.String("prefix1"),
+				},
 				Status: aws.String("Enabled"),
 				Expiration: &s3.LifecycleExpiration{
-					Days: aws.Long(30),
+					Days: aws.Long(90),
+				},
+				Transitions: []*s3.Transition{
+					{
+						StorageClass: aws.String(s3.StorageClassIA),
+						Days:         aws.Long(30),
+					},
+				},
+				AbortIncompleteMultipartUpload: &s3.AbortIncompleteMultipartUpload{
+					DaysAfterInitiation: aws.Long(60),
 				},
 			},
 		},
@@ -490,10 +502,22 @@ func (s *Ks3utilCommandSuite) TestGetBucketLifecycleWithContext(c *C) {
 	lifecycleConfiguration := &s3.LifecycleConfiguration{
 		Rules: []*s3.LifecycleRule{
 			{
-				ID:     aws.String("rule1"),
+				ID: aws.String("rule1"),
+				Filter: &s3.LifecycleFilter{
+					Prefix: aws.String("prefix1"),
+				},
 				Status: aws.String("Enabled"),
 				Expiration: &s3.LifecycleExpiration{
-					Days: aws.Long(30),
+					Days: aws.Long(90),
+				},
+				Transitions: []*s3.Transition{
+					{
+						StorageClass: aws.String(s3.StorageClassIA),
+						Days:         aws.Long(30),
+					},
+				},
+				AbortIncompleteMultipartUpload: &s3.AbortIncompleteMultipartUpload{
+					DaysAfterInitiation: aws.Long(60),
 				},
 			},
 		},
@@ -530,10 +554,22 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketLifecycleWithContext(c *C) {
 	lifecycleConfiguration := &s3.LifecycleConfiguration{
 		Rules: []*s3.LifecycleRule{
 			{
-				ID:     aws.String("rule1"),
+				ID: aws.String("rule1"),
+				Filter: &s3.LifecycleFilter{
+					Prefix: aws.String("prefix1"),
+				},
 				Status: aws.String("Enabled"),
 				Expiration: &s3.LifecycleExpiration{
-					Days: aws.Long(30),
+					Days: aws.Long(90),
+				},
+				Transitions: []*s3.Transition{
+					{
+						StorageClass: aws.String(s3.StorageClassIA),
+						Days:         aws.Long(30),
+					},
+				},
+				AbortIncompleteMultipartUpload: &s3.AbortIncompleteMultipartUpload{
+					DaysAfterInitiation: aws.Long(60),
 				},
 			},
 		},
@@ -723,6 +759,155 @@ func (s *Ks3utilCommandSuite) TestGetBucketLoggingWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, NotNil)
+}
+
+// PUT Bucket Decompress Policy
+func (s *Ks3utilCommandSuite) TestPutBucketDecompressPolicyWithContext(c *C) {
+	// put,不通过context取消
+	_, err := client.PutBucketDecompressPolicyWithContext(context.Background(), &s3.PutBucketDecompressPolicyInput{
+		Bucket: aws.String(bucket),
+		BucketDecompressPolicy: &s3.BucketDecompressPolicy{
+			Rules: []*s3.DecompressPolicyRule{
+				{
+					Id:         aws.String("test"),
+					Events:     aws.String("ObjectCreated:*"),
+					Prefix:     aws.String("prefix"),
+					Suffix:     []*string{aws.String(".zip")},
+					Overwrite:  aws.Long(0),
+					PolicyType: aws.String("decompress"),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	// get
+	resp, err := client.GetBucketDecompressPolicyWithContext(context.Background(), &s3.GetBucketDecompressPolicyInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.BucketDecompressPolicy.Rules), Equals, 1)
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Id, Equals, "test")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Events, Equals, "ObjectCreated:*")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Prefix, Equals, "prefix")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Suffix[0], Equals, ".zip")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Overwrite, Equals, int64(0))
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].PolicyType, Equals, "decompress")
+	// put,通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
+	defer cancelFunc()
+	_, err = client.PutBucketDecompressPolicyWithContext(ctx, &s3.PutBucketDecompressPolicyInput{
+		Bucket: aws.String(bucket),
+		BucketDecompressPolicy: &s3.BucketDecompressPolicy{
+			Rules: []*s3.DecompressPolicyRule{
+				{
+					Id:         aws.String("test"),
+					Events:     aws.String("ObjectCreated:*"),
+					Prefix:     aws.String("prefix"),
+					Suffix:     []*string{aws.String(".zip")},
+					Overwrite:  aws.Long(0),
+					PolicyType: aws.String("decompress"),
+				},
+			},
+		},
+	})
+	c.Assert(err, NotNil)
+	// get
+	resp, err = client.GetBucketDecompressPolicyWithContext(context.Background(), &s3.GetBucketDecompressPolicyInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.BucketDecompressPolicy.Rules), Equals, 1)
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Id, Equals, "test")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Events, Equals, "ObjectCreated:*")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Prefix, Equals, "prefix")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Suffix[0], Equals, ".zip")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Overwrite, Equals, int64(0))
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].PolicyType, Equals, "decompress")
+}
+
+// GET Bucket Decompress Policy
+func (s *Ks3utilCommandSuite) TestGetBucketDecompressPolicyWithContext(c *C) {
+	// put
+	_, err := client.PutBucketDecompressPolicyWithContext(context.Background(), &s3.PutBucketDecompressPolicyInput{
+		Bucket: aws.String(bucket),
+		BucketDecompressPolicy: &s3.BucketDecompressPolicy{
+			Rules: []*s3.DecompressPolicyRule{
+				{
+					Id:         aws.String("test"),
+					Events:     aws.String("ObjectCreated:*"),
+					Prefix:     aws.String("prefix"),
+					Suffix:     []*string{aws.String(".zip")},
+					Overwrite:  aws.Long(0),
+					PolicyType: aws.String("decompress"),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	// get,不通过context取消
+	resp, err := client.GetBucketDecompressPolicyWithContext(context.Background(), &s3.GetBucketDecompressPolicyInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.BucketDecompressPolicy.Rules), Equals, 1)
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Id, Equals, "test")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Events, Equals, "ObjectCreated:*")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Prefix, Equals, "prefix")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Suffix[0], Equals, ".zip")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Overwrite, Equals, int64(0))
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].PolicyType, Equals, "decompress")
+	// get,通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
+	defer cancelFunc()
+	resp, err = client.GetBucketDecompressPolicyWithContext(ctx, &s3.GetBucketDecompressPolicyInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, NotNil)
+}
+
+// DELETE Bucket Decompress Policy
+func (s *Ks3utilCommandSuite) TestDeleteBucketDecompressPolicyWithContext(c *C) {
+	// put
+	_, err := client.PutBucketDecompressPolicyWithContext(context.Background(), &s3.PutBucketDecompressPolicyInput{
+		Bucket: aws.String(bucket),
+		BucketDecompressPolicy: &s3.BucketDecompressPolicy{
+			Rules: []*s3.DecompressPolicyRule{
+				{
+					Id:         aws.String("test"),
+					Events:     aws.String("ObjectCreated:*"),
+					Prefix:     aws.String("prefix"),
+					Suffix:     []*string{aws.String(".zip")},
+					Overwrite:  aws.Long(0),
+					PolicyType: aws.String("decompress"),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	// get
+	resp, err := client.GetBucketDecompressPolicyWithContext(context.Background(), &s3.GetBucketDecompressPolicyInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.BucketDecompressPolicy.Rules), Equals, 1)
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Id, Equals, "test")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Events, Equals, "ObjectCreated:*")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Prefix, Equals, "prefix")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Suffix[0], Equals, ".zip")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Overwrite, Equals, int64(0))
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].PolicyType, Equals, "decompress")
+	// delete，通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
+	defer cancelFunc()
+	_, err = client.DeleteBucketDecompressPolicyWithContext(ctx, &s3.DeleteBucketDecompressPolicyInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, NotNil)
+	// delete，不通过context取消
+	_, err = client.DeleteBucketDecompressPolicyWithContext(context.Background(), &s3.DeleteBucketDecompressPolicyInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
 }
 
 // PUT Bucket ACL

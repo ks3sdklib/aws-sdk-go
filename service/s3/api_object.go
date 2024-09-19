@@ -83,6 +83,9 @@ type AppendObjectInput struct {
 	// Specifies the 128-bit MD5 digest of the encryption key according to RFC 1321.
 	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
 
+	// Progress callback function
+	ProgressFn aws.ProgressFunc `location:"function"`
+
 	metadataAppendObjectInput `json:"-" xml:"-"`
 }
 
@@ -123,6 +126,7 @@ type metadataAppendObjectOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// AppendObjectRequest generates a request for the AppendObject operation.
 func (c *S3) AppendObjectRequest(input *AppendObjectInput) (req *aws.Request, output *AppendObjectOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
@@ -140,11 +144,17 @@ func (c *S3) AppendObjectRequest(input *AppendObjectInput) (req *aws.Request, ou
 	}
 
 	req = c.newRequest(opAppendObject, input, output)
+
+	if input.ProgressFn != nil {
+		req.ProgressFn = input.ProgressFn
+	}
+
 	output = &AppendObjectOutput{}
 	req.Data = output
 	return
 }
 
+// AppendObject is used to append data to an Appendable object.
 func (c *S3) AppendObject(input *AppendObjectInput) (*AppendObjectOutput, error) {
 	req, out := c.AppendObjectRequest(input)
 	err := req.Send()

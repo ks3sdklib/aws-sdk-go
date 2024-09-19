@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,45 +23,50 @@ var DefaultChainCredentials = credentials.NewChainCredentials(
 		&credentials.EC2RoleProvider{ExpiryWindow: 5 * time.Minute},
 	})
 
-// The default number of retries for a service. The value of -1 indicates that
+// DefaultRetries The default number of retries for a service. The value of -1 indicates that
 // the service specific retry default will be used.
 const DefaultRetries = -1
 
 // DefaultConfig is the default all service configuration will be based off of.
 var DefaultConfig = &Config{
-	Credentials:             DefaultChainCredentials,
-	Endpoint:                "",
-	Region:                  os.Getenv("AWS_REGION"),
-	DisableSSL:              false,
-	ManualSend:              false,
-	HTTPClient:              http.DefaultClient,
-	LogHTTPBody:             false,
-	LogLevel:                0,
-	Logger:                  os.Stdout,
-	MaxRetries:              DefaultRetries,
-	DisableParamValidation:  false,
-	DisableComputeChecksums: false,
-	S3ForcePathStyle:        false,
+	Credentials:                    DefaultChainCredentials,
+	Endpoint:                       "",
+	Region:                         "",
+	DisableSSL:                     false,
+	ManualSend:                     false,
+	HTTPClient:                     http.DefaultClient,
+	LogHTTPBody:                    false,
+	LogLevel:                       Off,
+	Logger:                         os.Stdout,
+	MaxRetries:                     DefaultRetries,
+	DisableParamValidation:         false,
+	DisableComputeChecksums:        false,
+	S3ForcePathStyle:               false,
+	DomainMode:                     false,
+	SignerVersion:                  "V2",
+	CrcCheckEnabled:                false,
+	DisableRestProtocolURICleaning: true,
 }
 
 // A Config provides service configuration
 type Config struct {
-	Credentials             *credentials.Credentials
-	Endpoint                string
-	Region                  string
-	DisableSSL              bool
-	ManualSend              bool
-	HTTPClient              *http.Client
-	LogHTTPBody             bool
-	LogLevel                uint
-	Logger                  io.Writer
-	MaxRetries              int
-	DisableParamValidation  bool
-	DisableComputeChecksums bool
-	S3ForcePathStyle        bool
-	DomainMode              bool
-	SignerVersion           string
-	CrcCheckEnabled         bool
+	Credentials                    *credentials.Credentials
+	Endpoint                       string
+	Region                         string
+	DisableSSL                     bool
+	ManualSend                     bool
+	HTTPClient                     *http.Client
+	LogHTTPBody                    bool
+	LogLevel                       uint
+	Logger                         io.Writer
+	MaxRetries                     int
+	DisableParamValidation         bool
+	DisableComputeChecksums        bool
+	S3ForcePathStyle               bool
+	DomainMode                     bool
+	SignerVersion                  string
+	CrcCheckEnabled                bool // 允许crc64校验，默认为false
+	DisableRestProtocolURICleaning bool // 禁用path clean，默认为true
 }
 
 // Copy will return a shallow copy of the Config object.
@@ -82,6 +88,7 @@ func (c Config) Copy() Config {
 	dst.DomainMode = c.DomainMode
 	dst.SignerVersion = c.SignerVersion
 	dst.CrcCheckEnabled = c.CrcCheckEnabled
+	dst.DisableRestProtocolURICleaning = c.DisableRestProtocolURICleaning
 	return dst
 }
 
@@ -191,17 +198,66 @@ func (c Config) Merge(newcfg *Config) *Config {
 	} else {
 		cfg.CrcCheckEnabled = c.CrcCheckEnabled
 	}
+	if newcfg.DisableRestProtocolURICleaning {
+		cfg.DisableRestProtocolURICleaning = newcfg.DisableRestProtocolURICleaning
+	} else {
+		cfg.DisableRestProtocolURICleaning = c.DisableRestProtocolURICleaning
+	}
 	return &cfg
 }
 
+// Define the level of the output log
 const (
-	LogOff = iota
-	LogOn
+	Off = iota
+	Error
+	Warn
+	Info
+	Debug
 )
 
-func (c Config) WriteLog(LogLevel uint, format string, a ...interface{}) {
-	if c.LogLevel < LogLevel {
+// LogTag Tag for each level of log
+var LogTag = []string{"[error]", "[warn]", "[info]", "[debug]"}
+
+func (c Config) writeLog(level uint, format string, a ...interface{}) {
+	if c.LogLevel < level {
 		return
 	}
-	fmt.Fprintf(c.Logger, format, a...)
+
+	var logBuffer bytes.Buffer
+	logBuffer.WriteString(time.Now().Format("2006/01/02 15:04:05"))
+	logBuffer.WriteString(" ")
+	logBuffer.WriteString(LogTag[level-1])
+	logBuffer.WriteString(fmt.Sprintf(format, a...))
+	if logBuffer.Bytes()[logBuffer.Len()-1] != '\n' {
+		logBuffer.WriteString("\n")
+	}
+	fmt.Fprintf(c.Logger, "%s", logBuffer.String())
+}
+
+func (c Config) LogError(format string, a ...interface{}) {
+	if c.LogLevel < Error {
+		return
+	}
+	c.writeLog(Error, format, a...)
+}
+
+func (c Config) LogWarn(format string, a ...interface{}) {
+	if c.LogLevel < Warn {
+		return
+	}
+	c.writeLog(Warn, format, a...)
+}
+
+func (c Config) LogInfo(format string, a ...interface{}) {
+	if c.LogLevel < Info {
+		return
+	}
+	c.writeLog(Info, format, a...)
+}
+
+func (c Config) LogDebug(format string, a ...interface{}) {
+	if c.LogLevel < Debug {
+		return
+	}
+	c.writeLog(Debug, format, a...)
 }

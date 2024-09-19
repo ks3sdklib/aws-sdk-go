@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"github.com/ks3sdklib/aws-sdk-go/aws"
+	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 	"io"
 	"net/url"
 	"path"
@@ -12,8 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"github.com/ks3sdklib/aws-sdk-go/aws"
-	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 )
 
 // RFC822 returns an RFC822 formatted timestamp for AWS protocols
@@ -83,7 +83,7 @@ func buildLocationElements(r *aws.Request, v reflect.Value) {
 	}
 
 	r.HTTPRequest.URL.RawQuery = query.Encode()
-	updatePath(r.HTTPRequest.URL, r.HTTPRequest.URL.Path)
+	updatePath(r.HTTPRequest.URL, r.Config)
 }
 
 func buildBody(r *aws.Request, v reflect.Value) {
@@ -152,27 +152,21 @@ func buildQueryString(r *aws.Request, v reflect.Value, name string, query url.Va
 	}
 }
 
-func updatePath(url *url.URL, urlPath string) {
+func updatePath(url *url.URL, cfg *aws.Config) {
+	urlPath := url.Path
 	scheme, query := url.Scheme, url.RawQuery
-
-	//path.Clean会去掉最后的斜杠，导致无法创建目录。所以添加以下逻辑
-	add := false
-	if urlPath[len(urlPath)-1] == '/'&&len(urlPath)>1{
-		add = true
-	}
 
 	// path.Clean will remove duplicate leading /
 	// this will make deleting / started key impossible
 	// so escape it here first
 	urlPath = strings.Replace(urlPath, "//", "/%2F", -1)
 
-	// clean up path
-	urlPath = path.Clean(urlPath)
-	if add{
-		urlPath += "/"
+	// 新增参数控制path clean，默认值为true
+	if !cfg.DisableRestProtocolURICleaning {
+		urlPath = cleanPath(urlPath)
 	}
 
-	// get formatted URL minus scheme so we can build this into Opaque
+	// get formatted URL minus scheme, so we can build this into Opaque
 	url.Scheme, url.Path, url.RawQuery = "", "", ""
 	s := url.String()
 	url.Scheme = scheme
@@ -182,7 +176,26 @@ func updatePath(url *url.URL, urlPath string) {
 	url.Opaque = s + urlPath
 }
 
+func cleanPath(urlPath string) string {
+	// path.Clean会去掉最后的斜杠，导致无法创建目录。所以添加以下逻辑
+	add := false
+	if urlPath[len(urlPath)-1] == '/' && len(urlPath) > 1 {
+		add = true
+	}
+
+	// clean up path
+	urlPath = path.Clean(urlPath)
+	if add {
+		urlPath += "/"
+	}
+
+	return urlPath
+}
+
 // EscapePath escapes part of a URL path in Amazon style
+//
+// path The path segment to escape
+// encodeSep If true, '/' will be encoded, otherwise they will not
 func EscapePath(path string, encodeSep bool) string {
 	var buf bytes.Buffer
 	for i := 0; i < len(path); i++ {
@@ -190,8 +203,7 @@ func EscapePath(path string, encodeSep bool) string {
 		if noEscape[c] || (c == '/' && !encodeSep) {
 			buf.WriteByte(c)
 		} else {
-			buf.WriteByte('%')
-			buf.WriteString(strings.ToUpper(strconv.FormatUint(uint64(c), 16)))
+			fmt.Fprintf(&buf, "%%%02X", c)
 		}
 	}
 	return buf.String()

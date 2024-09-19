@@ -6,7 +6,7 @@ import (
 	. "gopkg.in/check.v1"
 )
 
-// 创建bucket并关联项目
+// TestBucket 创建bucket
 func (s *Ks3utilCommandSuite) TestBucket(c *C) {
 	// 创建bucket
 	bucketName := commonNamePrefix + randLowStr(10)
@@ -14,7 +14,7 @@ func (s *Ks3utilCommandSuite) TestBucket(c *C) {
 		ACL:    aws.String("public-read"),
 		Bucket: aws.String(bucketName),
 		//ProjectId:  aws.String("1232"), //项目ID
-		BucketType: aws.String(s3.BucketTypeIA),
+		BucketType: aws.String(s3.BucketTypeNormal),
 	})
 	c.Assert(err, IsNil)
 
@@ -36,13 +36,13 @@ func (s *Ks3utilCommandSuite) TestBucket(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// 获取bucket列表
+// TestListBuckets 获取bucket列表
 func (s *Ks3utilCommandSuite) TestListBuckets(c *C) {
 	_, err := client.ListBuckets(&s3.ListBucketsInput{})
 	c.Assert(err, IsNil)
 }
 
-// bucket acl
+// TestBucketAcl bucket acl
 func (s *Ks3utilCommandSuite) TestBucketAcl(c *C) {
 	_, err := client.PutBucketACL(&s3.PutBucketACLInput{
 		Bucket: aws.String(bucket),
@@ -57,16 +57,28 @@ func (s *Ks3utilCommandSuite) TestBucketAcl(c *C) {
 	c.Assert(s3.GetBucketAcl(*resp), Equals, s3.PublicRead)
 }
 
-// bucket lifecycle
+// TestBucketLifecycle bucket lifecycle
 func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 	// 配置生命周期规则
 	lifecycleConfiguration := &s3.LifecycleConfiguration{
 		Rules: []*s3.LifecycleRule{
 			{
-				ID:     aws.String("rule1"),
+				ID: aws.String("rule1"),
+				Filter: &s3.LifecycleFilter{
+					Prefix: aws.String("prefix1"),
+				},
 				Status: aws.String("Enabled"),
 				Expiration: &s3.LifecycleExpiration{
-					Days: aws.Long(30),
+					Days: aws.Long(90),
+				},
+				Transitions: []*s3.Transition{
+					{
+						StorageClass: aws.String(s3.StorageClassIA),
+						Days:         aws.Long(30),
+					},
+				},
+				AbortIncompleteMultipartUpload: &s3.AbortIncompleteMultipartUpload{
+					DaysAfterInitiation: aws.Long(60),
 				},
 			},
 		},
@@ -78,10 +90,18 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 	c.Assert(err, IsNil)
 
 	// 获取生命周期规则
-	_, err = client.GetBucketLifecycle(&s3.GetBucketLifecycleInput{
+	resp, err := client.GetBucketLifecycle(&s3.GetBucketLifecycleInput{
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
+	c.Assert(len(resp.Rules), Equals, 1)
+	c.Assert(*resp.Rules[0].ID, Equals, "rule1")
+	c.Assert(*resp.Rules[0].Filter.Prefix, Equals, "prefix1")
+	c.Assert(*resp.Rules[0].Status, Equals, "Enabled")
+	c.Assert(*resp.Rules[0].Expiration.Days, Equals, int64(90))
+	c.Assert(*resp.Rules[0].Transitions[0].StorageClass, Equals, s3.StorageClassIA)
+	c.Assert(*resp.Rules[0].Transitions[0].Days, Equals, int64(30))
+	c.Assert(*resp.Rules[0].AbortIncompleteMultipartUpload.DaysAfterInitiation, Equals, int64(60))
 
 	// 删除生命周期规则
 	_, err = client.DeleteBucketLifecycle(&s3.DeleteBucketLifecycleInput{
@@ -90,7 +110,7 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// bucket cors
+// TestBucketCors bucket cors
 func (s *Ks3utilCommandSuite) TestBucketCors(c *C) {
 	// 配置CORS规则
 	corsConfiguration := &s3.CORSConfiguration{
@@ -129,7 +149,7 @@ func (s *Ks3utilCommandSuite) TestBucketCors(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// bucket log
+// TestSetBucketLog bucket log
 func (s *Ks3utilCommandSuite) TestSetBucketLog(c *C) {
 	logStatus := &s3.BucketLoggingStatus{
 		LoggingEnabled: &s3.LoggingEnabled{
@@ -149,8 +169,7 @@ func (s *Ks3utilCommandSuite) TestSetBucketLog(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// bucket mirror
-// 详情见API(https://docs.ksyun.com/documents/39134)
+// TestBucketMirror bucket mirror
 func (s *Ks3utilCommandSuite) TestBucketMirror(c *C) {
 	bucketMirror := &s3.BucketMirror{
 		Version:          aws.String("V3"),   //回源类型
@@ -232,10 +251,11 @@ func (s *Ks3utilCommandSuite) TestBucketMirror(c *C) {
 	c.Assert(err, IsNil)
 
 	// 获取桶的镜像回源规则
-	_, err = client.GetBucketMirror(&s3.GetBucketMirrorInput{
+	resp, err := client.GetBucketMirror(&s3.GetBucketMirrorInput{
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
+	c.Assert(*resp.BucketMirror.Version, Equals, "V3")
 
 	// 删除桶的镜像回源规则
 	_, err = client.DeleteBucketMirror(&s3.DeleteBucketMirrorInput{
@@ -244,7 +264,7 @@ func (s *Ks3utilCommandSuite) TestBucketMirror(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// bucket policy
+// TestBucketPolicy bucket policy
 func (s *Ks3utilCommandSuite) TestBucketPolicy(c *C) {
 	_, err := client.PutBucketPolicy(&s3.PutBucketPolicyInput{
 		Bucket: aws.String(bucket),
@@ -258,6 +278,51 @@ func (s *Ks3utilCommandSuite) TestBucketPolicy(c *C) {
 	c.Assert(err, IsNil)
 
 	_, err = client.DeleteBucketPolicy(&s3.DeleteBucketPolicyInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+}
+
+// TestBucketDecompressPolicy bucket decompress policy
+func (s *Ks3utilCommandSuite) TestBucketDecompressPolicy(c *C) {
+	_, err := client.PutBucketDecompressPolicy(&s3.PutBucketDecompressPolicyInput{
+		Bucket: aws.String(bucket),
+		BucketDecompressPolicy: &s3.BucketDecompressPolicy{
+			Rules: []*s3.DecompressPolicyRule{
+				{
+					Id:                 aws.String("test"),
+					Events:             aws.String("ObjectCreated:*"),
+					Prefix:             aws.String("prefix"),
+					Suffix:             []*string{aws.String(".zip")},
+					Overwrite:          aws.Long(0),
+					Callback:           aws.String("http://callback.demo.com"),
+					CallbackFormat:     aws.String("JSON"),
+					PathPrefix:         aws.String("test/"),
+					PathPrefixReplaced: aws.Long(0),
+					PolicyType:         aws.String("decompress"),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	resp, err := client.GetBucketDecompressPolicy(&s3.GetBucketDecompressPolicyInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.BucketDecompressPolicy.Rules), Equals, 1)
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Id, Equals, "test")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Events, Equals, "ObjectCreated:*")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Prefix, Equals, "prefix")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Suffix[0], Equals, ".zip")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Overwrite, Equals, int64(0))
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].Callback, Equals, "http://callback.demo.com")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].CallbackFormat, Equals, "JSON")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].PathPrefix, Equals, "test/")
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].PathPrefixReplaced, Equals, int64(0))
+	c.Assert(*resp.BucketDecompressPolicy.Rules[0].PolicyType, Equals, "decompress")
+
+	_, err = client.DeleteBucketDecompressPolicy(&s3.DeleteBucketDecompressPolicyInput{
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
