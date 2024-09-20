@@ -9,7 +9,6 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 	"github.com/ks3sdklib/aws-sdk-go/internal/crc"
-	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3util"
 	"hash"
 	"io"
 	"net/http"
@@ -123,7 +122,7 @@ func (c *S3) CopyObjectRequest(input *CopyObjectInput) (req *aws.Request, output
 
 	// URL encode the copy source
 	if input.CopySource == nil {
-		input.CopySource = aws.String(s3util.BuildCopySource(input.SourceBucket, input.SourceKey))
+		input.CopySource = aws.String(BuildCopySource(input.SourceBucket, input.SourceKey))
 	}
 	req = c.newRequest(opCopyObject, input, output)
 	output = &CopyObjectOutput{}
@@ -651,6 +650,7 @@ func (c *S3) GetBucketLocationRequest(input *GetBucketLocationInput) (req *aws.R
 	}
 
 	req = c.newRequest(opGetBucketLocation, input, output)
+	req.Handlers.Unmarshal.PushFront(buildGetBucketLocation)
 	output = &GetBucketLocationOutput{}
 	req.Data = output
 	return
@@ -1933,15 +1933,6 @@ func (c *S3) PutBucketWebsiteRequest(input *PutBucketWebsiteInput) (req *aws.Req
 	return
 }
 
-type HTTPMethod string
-
-const (
-	PUT    HTTPMethod = "PUT"
-	GET    HTTPMethod = "GET"
-	DELETE HTTPMethod = "DELETE"
-	HEAD   HTTPMethod = "HEAD"
-)
-
 type metadataGeneratePresignedUrlInput struct {
 	SDKShapeTraits bool `type:"structure" payload:"GeneratePresignedUrlInput"`
 }
@@ -1986,6 +1977,10 @@ type GeneratePresignedUrlInput struct {
 
 	// Sets the Expires header of the response.
 	ResponseExpires *time.Time `location:"querystring" locationName:"response-expires" type:"timestamp" timestampFormat:"iso8601"`
+
+	Headers map[string]*string `location:"headers" type:"map"`
+
+	Parameters map[string]*string `location:"parameters" type:"map"`
 
 	metadataGeneratePresignedUrlInput `json:"-" xml:"-"`
 }
@@ -2294,7 +2289,7 @@ func (c *S3) UploadPartCopyRequest(input *UploadPartCopyInput) (req *aws.Request
 
 	// URL encode the copy source
 	if input.CopySource == nil {
-		input.CopySource = aws.String(s3util.BuildCopySource(input.SourceBucket, input.SourceKey))
+		input.CopySource = aws.String(BuildCopySource(input.SourceBucket, input.SourceKey))
 	}
 	req = c.newRequest(opUploadPartCopy, input, output)
 	output = &UploadPartCopyOutput{}
@@ -5727,54 +5722,6 @@ type WebsiteConfiguration struct {
 
 type metadataWebsiteConfiguration struct {
 	SDKShapeTraits bool `type:"structure"`
-}
-
-const AllUsersUri = "http://acs.amazonaws.com/groups/global/AllUsers"
-
-type CannedAccessControlType int32
-
-const (
-	PublicReadWrite CannedAccessControlType = 0
-	PublicRead      CannedAccessControlType = 1
-	Private         CannedAccessControlType = 2
-)
-
-func GetAcl(resp GetObjectACLOutput) CannedAccessControlType {
-
-	allUsersPermissions := map[string]*string{}
-	for _, value := range resp.Grants {
-		if value.Grantee.URI != nil && *value.Grantee.URI == AllUsersUri {
-			allUsersPermissions[*value.Permission] = value.Permission
-		}
-	}
-	_, read := allUsersPermissions["READ"]
-	_, write := allUsersPermissions["WRITE"]
-	if read && write {
-		return PublicReadWrite
-	} else if read {
-		return PublicRead
-	} else {
-		return Private
-	}
-}
-
-func GetBucketAcl(resp GetBucketACLOutput) CannedAccessControlType {
-
-	allUsersPermissions := map[string]*string{}
-	for _, value := range resp.Grants {
-		if value.Grantee.URI != nil && *value.Grantee.URI == AllUsersUri {
-			allUsersPermissions[*value.Permission] = value.Permission
-		}
-	}
-	_, read := allUsersPermissions["READ"]
-	_, write := allUsersPermissions["WRITE"]
-	if read && write {
-		return PublicReadWrite
-	} else if read {
-		return PublicRead
-	} else {
-		return Private
-	}
 }
 
 func (c *S3) DeleteObjectTaggingRequest(input *DeleteObjectTaggingInput) (req *aws.Request, output *DeleteObjectTaggingOutput) {

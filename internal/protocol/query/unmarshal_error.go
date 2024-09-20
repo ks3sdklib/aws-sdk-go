@@ -3,12 +3,11 @@ package query
 import (
 	"bytes"
 	"encoding/xml"
+	"github.com/ks3sdklib/aws-sdk-go/aws"
+	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 	"golang.org/x/net/html"
 	"io"
 	"strings"
-
-	"github.com/ks3sdklib/aws-sdk-go/aws"
-	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 )
 
 type XmlErrorResponse struct {

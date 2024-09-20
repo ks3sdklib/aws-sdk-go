@@ -2,13 +2,14 @@ package lib
 
 import (
 	"bytes"
+	"encoding/xml"
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3manager"
-	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3util"
 	. "gopkg.in/check.v1"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -40,7 +41,7 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 	object := randLowStr(10)
 	createFile(object, 1024*1024*1)
 	fd, _ := os.Open(object)
-	md5, _ := s3util.GetBase64FileMD5Str(object)
+	md5, _ := s3.GetBase64FileMD5Str(object)
 	_, err := client.PutObject(&s3.PutObjectInput{
 		Bucket:      aws.String(bucket),
 		Key:         aws.String(object),
@@ -132,7 +133,7 @@ func (s *Ks3utilCommandSuite) TestGeneratePresignedUrl(c *C) {
 // TestGeneratePUTPresignedUrl 根据外链PUT上传
 func (s *Ks3utilCommandSuite) TestGeneratePUTPresignedUrl(c *C) {
 	text := "test content"
-	md5 := s3util.GetBase64MD5Str(text)
+	md5 := s3.GetBase64MD5Str(text)
 	url, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
 		Bucket:      aws.String(bucket),       // 设置 bucket 名称
 		Key:         aws.String(key),          // 设置 object key
@@ -334,7 +335,7 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 			//块的数量可以是1到10,000中的任意一个（包含1和10,000）。块序号用于标识一个块以及其在对象创建时的位置。如果你上传一个新的块，使用之前已经使用的序列号，那么之前的那个块将会被覆盖。当所有块总大小大于5M时，除了最后一个块没有大小限制外，其余的块的大小均要求在5MB以上。当所有块总大小小于5M时，除了最后一个块没有大小限制外，其余的块的大小均要求在100K以上。如果不符合上述要求，会返回413状态码。
 			//为了保证数据在传输过程中没有损坏，请使用 Content-MD5 头部。当使用此头部时，KS3会自动计算出MD5，并根据用户提供的MD5进行校验，如果不匹配，将会返回错误信息。
 			//计算sc[:nr]的md5值
-			md5 := s3util.GetBase64MD5Str(string(sc[0:nr]))
+			md5 := s3.GetBase64MD5Str(string(sc[0:nr]))
 			resp, err := client.UploadPart(&s3.UploadPartInput{
 				Bucket:        aws.String(bucket),
 				Key:           aws.String(key),
@@ -376,9 +377,9 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithSSEC(c *C) {
 	_, err := client.PutObject(&s3.PutObjectInput{
 		Bucket:               aws.String(bucket),
 		Key:                  aws.String(key),
-		SSECustomerAlgorithm: aws.String("AES256"),                               //加密类型
-		SSECustomerKey:       aws.String(s3util.GetBase64Str(SSECustomerKey)),    // 客户端提供的加密密钥
-		SSECustomerKeyMD5:    aws.String(s3util.GetBase64MD5Str(SSECustomerKey)), // 客户端提供的通过BASE64编码的通过128位MD5加密的密钥的MD5值
+		SSECustomerAlgorithm: aws.String("AES256"),                           //加密类型
+		SSECustomerKey:       aws.String(s3.GetBase64Str(SSECustomerKey)),    // 客户端提供的加密密钥
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(SSECustomerKey)), // 客户端提供的通过BASE64编码的通过128位MD5加密的密钥的MD5值
 	})
 	c.Assert(err, IsNil)
 }
@@ -751,4 +752,243 @@ func (s *Ks3utilCommandSuite) TestHeadNotExistsObject(c *C) {
 	})
 	c.Assert(err, NotNil)
 	c.Assert(strings.Index(err.Error(), "[")+1 != strings.Index(err.Error(), "]"), Equals, true)
+}
+
+// TestPresignedMultipartUpload 通过外链分块上传
+func (s *Ks3utilCommandSuite) TestPresignedMultipartUpload(c *C) {
+	object := randLowStr(10)
+	createFile(object, 1024*1024*1)
+	fd, _ := os.Open(object)
+	// 生成init外链
+	initUrl, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
+		HTTPMethod: s3.POST,
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		Expires:    3600,
+		Parameters: map[string]*string{
+			"uploads": nil,
+		},
+	})
+
+	fmt.Println(initUrl)
+
+	initRequest, err := http.NewRequest("POST", initUrl, nil)
+	c.Assert(err, IsNil)
+
+	initResp, err := http.DefaultClient.Do(initRequest)
+	c.Assert(err, IsNil)
+
+	body, err := io.ReadAll(initResp.Body)
+	c.Assert(err, IsNil)
+
+	initXml := struct {
+		UploadId string `xml:"UploadId"`
+	}{}
+	err = xml.Unmarshal(body, &initXml)
+	c.Assert(err, IsNil)
+
+	fmt.Println(initXml.UploadId)
+
+	// 生成upload part外链
+	uploadPartUrl, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
+		HTTPMethod: s3.PUT,
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		Expires:    3600,
+		Parameters: map[string]*string{
+			"partNumber": aws.String("1"),
+			"uploadId":   aws.String(initXml.UploadId),
+		},
+	})
+	c.Assert(err, IsNil)
+	fmt.Println(uploadPartUrl)
+
+	uploadPartRequest, err := http.NewRequest("PUT", uploadPartUrl, fd)
+	c.Assert(err, IsNil)
+
+	uploadPartResp, err := http.DefaultClient.Do(uploadPartRequest)
+	c.Assert(err, IsNil)
+
+	etag := uploadPartResp.Header.Get("ETag")
+	fmt.Println(etag)
+
+	// 生成complete外链
+	completeUrl, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
+		HTTPMethod: s3.POST,
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		Expires:    3600,
+		Parameters: map[string]*string{
+			"uploadId": aws.String(initXml.UploadId),
+		},
+	})
+	c.Assert(err, IsNil)
+	fmt.Println(completeUrl)
+
+	completeParts := `<CompleteMultipartUpload>
+		<Part>
+			<PartNumber>1</PartNumber>
+			<ETag>` + etag + `</ETag>
+		</Part>	
+	</CompleteMultipartUpload>`
+	fmt.Println(completeParts)
+
+	completeRequest, err := http.NewRequest("POST", completeUrl, strings.NewReader(completeParts))
+	c.Assert(err, IsNil)
+
+	completeResp, err := http.DefaultClient.Do(completeRequest)
+	c.Assert(err, IsNil)
+
+	body, err = io.ReadAll(completeResp.Body)
+	c.Assert(err, IsNil)
+
+	fmt.Println(string(body))
+
+	// 获取head外链
+	headUrl, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
+		HTTPMethod: s3.HEAD,
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		Expires:    3600,
+	})
+	c.Assert(err, IsNil)
+	fmt.Println(headUrl)
+
+	headRequest, err := http.NewRequest("HEAD", headUrl, nil)
+	c.Assert(err, IsNil)
+
+	headResp, err := http.DefaultClient.Do(headRequest)
+	c.Assert(err, IsNil)
+	c.Assert(headResp.StatusCode, Equals, 200)
+
+	os.Remove(object)
+}
+
+// TestPresignedMultipartCopy 通过外链分块复制
+func (s *Ks3utilCommandSuite) TestPresignedMultipartCopy(c *C) {
+	object := randLowStr(10)
+	createFile(object, 1024*1024*1)
+	s.PutObject(object, c)
+
+	// 生成init外链
+	initUrl, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
+		HTTPMethod: s3.POST,
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object + "copy"),
+		Expires:    3600,
+		Parameters: map[string]*string{
+			"uploads": nil,
+		},
+	})
+	c.Assert(err, IsNil)
+	fmt.Println(initUrl)
+
+	initRequest, err := http.NewRequest("POST", initUrl, nil)
+	c.Assert(err, IsNil)
+
+	initResp, err := http.DefaultClient.Do(initRequest)
+	c.Assert(err, IsNil)
+
+	body, err := io.ReadAll(initResp.Body)
+	c.Assert(err, IsNil)
+
+	initXml := struct {
+		UploadId string `xml:"UploadId"`
+	}{}
+
+	err = xml.Unmarshal(body, &initXml)
+	c.Assert(err, IsNil)
+
+	fmt.Println(initXml.UploadId)
+
+	// 生成upload part外链
+	uploadPartUrl, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
+		HTTPMethod: s3.PUT,
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object + "copy"),
+		Expires:    3600,
+		Parameters: map[string]*string{
+			"partNumber": aws.String("1"),
+			"uploadId":   aws.String(initXml.UploadId),
+		},
+		Headers: map[string]*string{
+			"X-Amz-Copy-Source": aws.String("/" + bucket + "/" + object),
+		},
+	})
+	c.Assert(err, IsNil)
+	fmt.Println(uploadPartUrl)
+
+	uploadPartRequest, err := http.NewRequest("PUT", uploadPartUrl, nil)
+	c.Assert(err, IsNil)
+
+	// 设置header
+	uploadPartRequest.Header.Set("X-Amz-Copy-Source", "/"+bucket+"/"+object)
+
+	uploadPartResp, err := http.DefaultClient.Do(uploadPartRequest)
+	c.Assert(err, IsNil)
+
+	body, err = io.ReadAll(uploadPartResp.Body)
+	c.Assert(err, IsNil)
+	fmt.Println(string(body))
+
+	uploadPartXml := struct {
+		ETag string `xml:"ETag"`
+	}{}
+
+	err = xml.Unmarshal(body, &uploadPartXml)
+	c.Assert(err, IsNil)
+
+	etag := uploadPartXml.ETag
+
+	// 生成complete外链
+	completeUrl, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
+		HTTPMethod: s3.POST,
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object + "copy"),
+		Expires:    3600,
+		Parameters: map[string]*string{
+			"uploadId": aws.String(initXml.UploadId),
+		},
+	})
+	c.Assert(err, IsNil)
+	fmt.Println(completeUrl)
+
+	completeParts := `<CompleteMultipartUpload>
+		<Part>
+			<PartNumber>1</PartNumber>
+			<ETag>` + etag + `</ETag>
+		</Part>
+	</CompleteMultipartUpload>`
+
+	fmt.Println(completeParts)
+
+	completeRequest, err := http.NewRequest("POST", completeUrl, strings.NewReader(completeParts))
+	c.Assert(err, IsNil)
+
+	completeResp, err := http.DefaultClient.Do(completeRequest)
+	c.Assert(err, IsNil)
+
+	body, err = io.ReadAll(completeResp.Body)
+	c.Assert(err, IsNil)
+
+	fmt.Println(string(body))
+
+	// 获取head外链
+	headUrl, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
+		HTTPMethod: s3.HEAD,
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object + "copy"),
+		Expires:    3600,
+	})
+	c.Assert(err, IsNil)
+	fmt.Println(headUrl)
+
+	headRequest, err := http.NewRequest("HEAD", headUrl, nil)
+	c.Assert(err, IsNil)
+
+	headResp, err := http.DefaultClient.Do(headRequest)
+	c.Assert(err, IsNil)
+	c.Assert(headResp.StatusCode, Equals, 200)
+
+	os.Remove(object)
 }
