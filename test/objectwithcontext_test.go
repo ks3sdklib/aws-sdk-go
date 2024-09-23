@@ -667,10 +667,9 @@ func (s *Ks3utilCommandSuite) TestCreateMultipartUploadWithContext(c *C) {
 	c.Assert(err, IsNil)
 	// 获取分块上传Id
 	uploadId := *initRet.UploadID
-	var i int64 = 1
+	var partNum int64 = 1
 	// 待合并分块
-	compParts := []*s3.CompletedPart{}
-	partsNum := []int64{0}
+	var compParts []*s3.CompletedPart
 	// 缓冲区，分块大小为5MB
 	buffer := make([]byte, 5*1024*1024)
 	for {
@@ -684,14 +683,13 @@ func (s *Ks3utilCommandSuite) TestCreateMultipartUploadWithContext(c *C) {
 			resp, err := client.UploadPartWithContext(context.Background(), &s3.UploadPartInput{
 				Bucket:     aws.String(bucket),
 				Key:        aws.String(object),
-				PartNumber: aws.Long(i),
+				PartNumber: aws.Long(partNum),
 				UploadID:   aws.String(uploadId),
 				Body:       bytes.NewReader(buffer[:n]),
 			})
 			c.Assert(err, IsNil)
-			partsNum = append(partsNum, i)
-			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
-			i++
+			compParts = append(compParts, &s3.CompletedPart{PartNumber: aws.Long(partNum), ETag: resp.ETag})
+			partNum++
 		}
 	}
 	// complete
@@ -726,10 +724,9 @@ func (s *Ks3utilCommandSuite) TestUploadPartWithContext(c *C) {
 	c.Assert(err, IsNil)
 	// 获取分块上传Id
 	uploadId := *initRet.UploadID
-	var i int64 = 1
+	var partNum int64 = 1
 	// 待合并分块
-	compParts := []*s3.CompletedPart{}
-	partsNum := []int64{0}
+	var compParts []*s3.CompletedPart
 	// 缓冲区，分块大小为5MB
 	buffer := make([]byte, 5*1024*1024)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Millisecond*500)
@@ -745,7 +742,7 @@ func (s *Ks3utilCommandSuite) TestUploadPartWithContext(c *C) {
 			_, err := client.UploadPartWithContext(ctx, &s3.UploadPartInput{
 				Bucket:     aws.String(bucket),
 				Key:        aws.String(object),
-				PartNumber: aws.Long(i),
+				PartNumber: aws.Long(partNum),
 				UploadID:   aws.String(uploadId),
 				Body:       bytes.NewReader(buffer[:n]),
 			})
@@ -765,14 +762,13 @@ func (s *Ks3utilCommandSuite) TestUploadPartWithContext(c *C) {
 			resp, err := client.UploadPartWithContext(context.Background(), &s3.UploadPartInput{
 				Bucket:     aws.String(bucket),
 				Key:        aws.String(object),
-				PartNumber: aws.Long(i),
+				PartNumber: aws.Long(partNum),
 				UploadID:   aws.String(uploadId),
 				Body:       bytes.NewReader(buffer[:n]),
 			})
 			c.Assert(err, IsNil)
-			partsNum = append(partsNum, i)
-			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
-			i++
+			compParts = append(compParts, &s3.CompletedPart{PartNumber: aws.Long(partNum), ETag: resp.ETag})
+			partNum++
 		}
 	}
 	// complete
@@ -807,10 +803,9 @@ func (s *Ks3utilCommandSuite) TestCompleteMultipartUploadWithContext(c *C) {
 	c.Assert(err, IsNil)
 	// 获取分块上传Id
 	uploadId := *initRet.UploadID
-	var i int64 = 1
+	var partNum int64 = 1
 	// 待合并分块
-	compParts := []*s3.CompletedPart{}
-	partsNum := []int64{0}
+	var compParts []*s3.CompletedPart
 	// 缓冲区，分块大小为5MB
 	buffer := make([]byte, 5*1024*1024)
 	for {
@@ -824,14 +819,13 @@ func (s *Ks3utilCommandSuite) TestCompleteMultipartUploadWithContext(c *C) {
 			resp, err := client.UploadPartWithContext(context.Background(), &s3.UploadPartInput{
 				Bucket:     aws.String(bucket),
 				Key:        aws.String(object),
-				PartNumber: aws.Long(i),
+				PartNumber: aws.Long(partNum),
 				UploadID:   aws.String(uploadId),
 				Body:       bytes.NewReader(buffer[:n]),
 			})
 			c.Assert(err, IsNil)
-			partsNum = append(partsNum, i)
-			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
-			i++
+			compParts = append(compParts, &s3.CompletedPart{PartNumber: aws.Long(partNum), ETag: resp.ETag})
+			partNum++
 		}
 	}
 	// complete，通过context取消
@@ -889,10 +883,9 @@ func (s *Ks3utilCommandSuite) TestAbortMultipartUploadWithContext(c *C) {
 	c.Assert(err, IsNil)
 	// 获取分块上传Id
 	uploadId := *initRet.UploadID
-	var i int64 = 1
+	var partNum int64 = 1
 	// 待合并分块
-	compParts := []*s3.CompletedPart{}
-	partsNum := []int64{0}
+	var compParts []*s3.CompletedPart
 	// 缓冲区，分块大小为5MB
 	buffer := make([]byte, 5*1024*1024)
 	for {
@@ -906,14 +899,13 @@ func (s *Ks3utilCommandSuite) TestAbortMultipartUploadWithContext(c *C) {
 			resp, err := client.UploadPartWithContext(context.Background(), &s3.UploadPartInput{
 				Bucket:     aws.String(bucket),
 				Key:        aws.String(object),
-				PartNumber: aws.Long(i),
+				PartNumber: aws.Long(partNum),
 				UploadID:   aws.String(uploadId),
 				Body:       bytes.NewReader(buffer[:n]),
 			})
 			c.Assert(err, IsNil)
-			partsNum = append(partsNum, i)
-			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
-			i++
+			compParts = append(compParts, &s3.CompletedPart{PartNumber: aws.Long(partNum), ETag: resp.ETag})
+			partNum++
 		}
 	}
 	// abort，通过context取消
@@ -959,10 +951,9 @@ func (s *Ks3utilCommandSuite) TestListPartsWithContext(c *C) {
 	c.Assert(err, IsNil)
 	// 获取分块上传Id
 	uploadId := *initRet.UploadID
-	var i int64 = 1
+	var partNum int64 = 1
 	// 待合并分块
-	compParts := []*s3.CompletedPart{}
-	partsNum := []int64{0}
+	var compParts []*s3.CompletedPart
 	// 缓冲区，分块大小为5MB
 	buffer := make([]byte, 5*1024*1024)
 	for {
@@ -976,14 +967,13 @@ func (s *Ks3utilCommandSuite) TestListPartsWithContext(c *C) {
 			resp, err := client.UploadPartWithContext(context.Background(), &s3.UploadPartInput{
 				Bucket:     aws.String(bucket),
 				Key:        aws.String(object),
-				PartNumber: aws.Long(i),
+				PartNumber: aws.Long(partNum),
 				UploadID:   aws.String(uploadId),
 				Body:       bytes.NewReader(buffer[:n]),
 			})
 			c.Assert(err, IsNil)
-			partsNum = append(partsNum, i)
-			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
-			i++
+			compParts = append(compParts, &s3.CompletedPart{PartNumber: aws.Long(partNum), ETag: resp.ETag})
+			partNum++
 		}
 	}
 	// list，通过context取消
@@ -1026,10 +1016,9 @@ func (s *Ks3utilCommandSuite) TestListMultipartUploadsWithContext(c *C) {
 	c.Assert(err, IsNil)
 	// 获取分块上传Id
 	uploadId := *initRet.UploadID
-	var i int64 = 1
+	var partNum int64 = 1
 	// 待合并分块
-	compParts := []*s3.CompletedPart{}
-	partsNum := []int64{0}
+	var compParts []*s3.CompletedPart
 	// 缓冲区，分块大小为5MB
 	buffer := make([]byte, 5*1024*1024)
 	for {
@@ -1043,14 +1032,13 @@ func (s *Ks3utilCommandSuite) TestListMultipartUploadsWithContext(c *C) {
 			resp, err := client.UploadPartWithContext(context.Background(), &s3.UploadPartInput{
 				Bucket:     aws.String(bucket),
 				Key:        aws.String(object),
-				PartNumber: aws.Long(i),
+				PartNumber: aws.Long(partNum),
 				UploadID:   aws.String(uploadId),
 				Body:       bytes.NewReader(buffer[:n]),
 			})
 			c.Assert(err, IsNil)
-			partsNum = append(partsNum, i)
-			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
-			i++
+			compParts = append(compParts, &s3.CompletedPart{PartNumber: aws.Long(partNum), ETag: resp.ETag})
+			partNum++
 		}
 	}
 	// list mul，通过context取消
@@ -1101,11 +1089,10 @@ func (s *Ks3utilCommandSuite) TestPartWithContext(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(*headObjectResp.StatusCode, Equals, int64(200))
 	contentLength := *headObjectResp.ContentLength
-	partSize := int64(5 * 1024 * 1024)
-	var i int64 = 1
+	var partSize int64 = 5 * 1024 * 1024
+	var partNum int64 = 1
 	// 待合并分块
-	compParts := []*s3.CompletedPart{}
-	partsNum := []int64{0}
+	var compParts []*s3.CompletedPart
 	var start int64 = 0
 	var end int64 = 0
 	dstObject := randLowStr(10)
@@ -1134,14 +1121,14 @@ func (s *Ks3utilCommandSuite) TestPartWithContext(c *C) {
 			Key:             aws.String(dstObject),
 			CopySource:      aws.String("/" + bucket + "/" + srcObject),
 			UploadID:        aws.String(uploadId),
-			PartNumber:      aws.Long(i),
+			PartNumber:      aws.Long(partNum),
 			CopySourceRange: aws.String("bytes=" + strconv.FormatInt(start, 10) + "-" + strconv.FormatInt(end-1, 10)),
 		})
 		c.Assert(err, NotNil)
-		i++
+		partNum++
 		start = end
 	}
-	i = 1
+	partNum = 1
 	start = 0
 	end = 0
 	for {
@@ -1159,13 +1146,12 @@ func (s *Ks3utilCommandSuite) TestPartWithContext(c *C) {
 			Key:             aws.String(dstObject),
 			CopySource:      aws.String("/" + bucket + "/" + srcObject),
 			UploadID:        aws.String(uploadId),
-			PartNumber:      aws.Long(i),
+			PartNumber:      aws.Long(partNum),
 			CopySourceRange: aws.String("bytes=" + strconv.FormatInt(start, 10) + "-" + strconv.FormatInt(end-1, 10)),
 		})
 		c.Assert(err, IsNil)
-		partsNum = append(partsNum, i)
-		compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.CopyPartResult.ETag})
-		i++
+		compParts = append(compParts, &s3.CompletedPart{PartNumber: aws.Long(partNum), ETag: resp.CopyPartResult.ETag})
+		partNum++
 		start = end
 	}
 	// complete

@@ -315,14 +315,13 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 	c.Assert(err, IsNil)
 
 	defer f.Close()
-	var i int64 = 1
-	//组装分块参数
+	var partNum int64 = 1
+	// 待合并分块
 	var compParts []*s3.CompletedPart
-	partsNum := []int64{0}
-	sc := make([]byte, 52428800)
-
+	// 缓冲区，分块大小为5MB
+	buffer := make([]byte, 5*1024*1024)
 	for {
-		nr, err := f.Read(sc[:])
+		nr, err := f.Read(buffer)
 		if nr < 0 {
 			fmt.Fprintf(os.Stderr, "cat: error reading: %s\n", err.Error())
 			os.Exit(1)
@@ -335,21 +334,20 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 			//块的数量可以是1到10,000中的任意一个（包含1和10,000）。块序号用于标识一个块以及其在对象创建时的位置。如果你上传一个新的块，使用之前已经使用的序列号，那么之前的那个块将会被覆盖。当所有块总大小大于5M时，除了最后一个块没有大小限制外，其余的块的大小均要求在5MB以上。当所有块总大小小于5M时，除了最后一个块没有大小限制外，其余的块的大小均要求在100K以上。如果不符合上述要求，会返回413状态码。
 			//为了保证数据在传输过程中没有损坏，请使用 Content-MD5 头部。当使用此头部时，KS3会自动计算出MD5，并根据用户提供的MD5进行校验，如果不匹配，将会返回错误信息。
 			//计算sc[:nr]的md5值
-			md5 := s3.GetBase64MD5Str(string(sc[0:nr]))
+			md5 := s3.GetBase64MD5Str(string(buffer[0:nr]))
 			resp, err := client.UploadPart(&s3.UploadPartInput{
 				Bucket:        aws.String(bucket),
 				Key:           aws.String(key),
-				PartNumber:    aws.Long(i),
+				PartNumber:    aws.Long(partNum),
 				UploadID:      aws.String(uploadId),
-				Body:          bytes.NewReader(sc[0:nr]),
-				ContentLength: aws.Long(int64(len(sc[0:nr]))),
+				Body:          bytes.NewReader(buffer[0:nr]),
+				ContentLength: aws.Long(int64(len(buffer[0:nr]))),
 				//TrafficLimit:  aws.Long(int64(MIN_BANDWIDTH)),
 				ContentMD5: aws.String(md5),
 			})
 			c.Assert(err, IsNil)
-			partsNum = append(partsNum, i)
-			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
-			i++
+			compParts = append(compParts, &s3.CompletedPart{PartNumber: aws.Long(partNum), ETag: resp.ETag})
+			partNum++
 		}
 	}
 

@@ -195,10 +195,9 @@ func (s *Ks3utilCommandSuite) TestMultipartUploadWithSSE_S3(c *C) {
 	c.Assert(*initRet.ServerSideEncryption, Equals, "AES256")
 	// 获取分块上传Id
 	uploadId := *initRet.UploadID
-	var i int64 = 1
+	var partNum int64 = 1
 	// 待合并分块
-	compParts := []*s3.CompletedPart{}
-	partsNum := []int64{0}
+	var compParts []*s3.CompletedPart
 	// 缓冲区，分块大小为5MB
 	buffer := make([]byte, 5*1024*1024)
 	for {
@@ -212,15 +211,14 @@ func (s *Ks3utilCommandSuite) TestMultipartUploadWithSSE_S3(c *C) {
 			resp, err := client.UploadPartWithContext(context.Background(), &s3.UploadPartInput{
 				Bucket:     aws.String(bucket),
 				Key:        aws.String(object),
-				PartNumber: aws.Long(i),
+				PartNumber: aws.Long(partNum),
 				UploadID:   aws.String(uploadId),
 				Body:       bytes.NewReader(buffer[:n]),
 			})
 			c.Assert(err, IsNil)
 			c.Assert(*resp.ServerSideEncryption, Equals, "AES256")
-			partsNum = append(partsNum, i)
-			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
-			i++
+			compParts = append(compParts, &s3.CompletedPart{PartNumber: aws.Long(partNum), ETag: resp.ETag})
+			partNum++
 		}
 	}
 	// complete
@@ -263,10 +261,9 @@ func (s *Ks3utilCommandSuite) TestMultipartUploadWithSSE_C(c *C) {
 	c.Assert(*initRet.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
 	// 获取分块上传Id
 	uploadId := *initRet.UploadID
-	var i int64 = 1
+	var partNum int64 = 1
 	// 待合并分块
-	compParts := []*s3.CompletedPart{}
-	partsNum := []int64{0}
+	var compParts []*s3.CompletedPart
 	// 缓冲区，分块大小为5MB
 	buffer := make([]byte, 5*1024*1024)
 	for {
@@ -280,7 +277,7 @@ func (s *Ks3utilCommandSuite) TestMultipartUploadWithSSE_C(c *C) {
 			resp, err := client.UploadPartWithContext(context.Background(), &s3.UploadPartInput{
 				Bucket:               aws.String(bucket),
 				Key:                  aws.String(object),
-				PartNumber:           aws.Long(i),
+				PartNumber:           aws.Long(partNum),
 				UploadID:             aws.String(uploadId),
 				Body:                 bytes.NewReader(buffer[:n]),
 				SSECustomerAlgorithm: aws.String("AES256"),
@@ -290,9 +287,8 @@ func (s *Ks3utilCommandSuite) TestMultipartUploadWithSSE_C(c *C) {
 			c.Assert(err, IsNil)
 			c.Assert(*resp.SSECustomerAlgorithm, Equals, "AES256")
 			c.Assert(*resp.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
-			partsNum = append(partsNum, i)
-			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
-			i++
+			compParts = append(compParts, &s3.CompletedPart{PartNumber: aws.Long(partNum), ETag: resp.ETag})
+			partNum++
 		}
 	}
 	// complete
