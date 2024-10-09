@@ -1,9 +1,7 @@
 package lib
 
 import (
-	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
-	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	. "gopkg.in/check.v1"
 )
@@ -383,22 +381,4 @@ func (s *Ks3utilCommandSuite) TestBucketReplication(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-}
-
-func (s *Ks3utilCommandSuite) TestListRetention(c *C) {
-	resp, err := client.ListRetention(&s3.ListRetentionInput{
-		Bucket: aws.String("likui-test2"),
-	})
-	c.Assert(err, IsNil)
-	fmt.Println(awsutil.StringValue(resp.ListRetentionResult))
-}
-
-func (s *Ks3utilCommandSuite) TestClearObject(c *C) {
-	resp, err := client.ClearObject(&s3.ClearObjectInput{
-		Bucket:      aws.String("likui-test2"),
-		Key:         aws.String("upgrade.json"),
-		RetentionId: aws.String("29807535817133_MA=="),
-	})
-	c.Assert(err, IsNil)
-	fmt.Println(awsutil.StringValue(resp))
 }
