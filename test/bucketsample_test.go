@@ -1,7 +1,9 @@
 package lib
 
 import (
+	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
+	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	. "gopkg.in/check.v1"
 )
@@ -326,4 +328,67 @@ func (s *Ks3utilCommandSuite) TestBucketDecompressPolicy(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
+}
+
+// TestBucketRetention bucket retention
+func (s *Ks3utilCommandSuite) TestBucketRetention(c *C) {
+	_, err := client.PutBucketRetention(&s3.PutBucketRetentionInput{
+		Bucket: aws.String(bucket),
+		RetentionConfiguration: &s3.BucketRetentionConfiguration{
+			Rule: &s3.RetentionRule{
+				Status: aws.String("Enabled"),
+				Days:   aws.Long(30),
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	resp, err := client.GetBucketRetention(&s3.GetBucketRetentionInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.RetentionConfiguration.Rule.Status, Equals, "Enabled")
+	c.Assert(*resp.RetentionConfiguration.Rule.Days, Equals, int64(30))
+
+	_, err = client.ListRetention(&s3.ListRetentionInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+}
+
+// TestBucketReplication bucket replication
+func (s *Ks3utilCommandSuite) TestBucketReplication(c *C) {
+	_, err := client.PutBucketReplication(&s3.PutBucketReplicationInput{
+		Bucket: aws.String(bucket),
+		ReplicationConfiguration: &s3.ReplicationConfiguration{
+			Prefix:                      []*string{aws.String("test/")},
+			DeleteMarkerStatus:          aws.String("Disabled"),
+			TargetBucket:                aws.String(bucket),
+			HistoricalObjectReplication: aws.String("Enabled"),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	resp, err := client.GetBucketReplication(&s3.GetBucketReplicationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.ReplicationConfiguration.Prefix), Equals, 1)
+	c.Assert(*resp.ReplicationConfiguration.Prefix[0], Equals, "test/")
+	c.Assert(*resp.ReplicationConfiguration.DeleteMarkerStatus, Equals, "Disabled")
+	c.Assert(*resp.ReplicationConfiguration.TargetBucket, Equals, bucket)
+	c.Assert(*resp.ReplicationConfiguration.HistoricalObjectReplication, Equals, "Enabled")
+
+	_, err = client.DeleteBucketReplication(&s3.DeleteBucketReplicationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestListRetention(c *C) {
+	resp, err := client.ListRetention(&s3.ListRetentionInput{
+		Bucket: aws.String("likui-test2"),
+	})
+	c.Assert(err, IsNil)
+	fmt.Println(awsutil.StringValue(resp.ListRetentionResult))
 }

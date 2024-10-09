@@ -314,44 +314,6 @@ func (c *S3) DeleteBucketPolicyWithContext(ctx aws.Context, input *DeleteBucketP
 
 var opDeleteBucketPolicy *aws.Operation
 
-// DeleteBucketReplicationRequest generates a request for the DeleteBucketReplication operation.
-func (c *S3) DeleteBucketReplicationRequest(input *DeleteBucketReplicationInput) (req *aws.Request, output *DeleteBucketReplicationOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteBucketReplication == nil {
-		opDeleteBucketReplication = &aws.Operation{
-			Name:       "DeleteBucketReplication",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?replication",
-		}
-	}
-
-	if input == nil {
-		input = &DeleteBucketReplicationInput{}
-	}
-
-	req = c.newRequest(opDeleteBucketReplication, input, output)
-	output = &DeleteBucketReplicationOutput{}
-	req.Data = output
-	return
-}
-
-func (c *S3) DeleteBucketReplication(input *DeleteBucketReplicationInput) (*DeleteBucketReplicationOutput, error) {
-	req, out := c.DeleteBucketReplicationRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-func (c *S3) DeleteBucketReplicationWithContext(ctx aws.Context, input *DeleteBucketReplicationInput) (*DeleteBucketReplicationOutput, error) {
-	req, out := c.DeleteBucketReplicationRequest(input)
-	req.SetContext(ctx)
-	err := req.Send()
-	return out, err
-}
-
-var opDeleteBucketReplication *aws.Operation
-
 // DeleteBucketTaggingRequest generates a request for the DeleteBucketTagging operation.
 func (c *S3) DeleteBucketTaggingRequest(input *DeleteBucketTaggingInput) (req *aws.Request, output *DeleteBucketTaggingOutput) {
 	oprw.Lock()
@@ -828,44 +790,6 @@ func (c *S3) GetBucketPolicyWithContext(ctx aws.Context, input *GetBucketPolicyI
 }
 
 var opGetBucketPolicy *aws.Operation
-
-// GetBucketReplicationRequest generates a request for the GetBucketReplication operation.
-func (c *S3) GetBucketReplicationRequest(input *GetBucketReplicationInput) (req *aws.Request, output *GetBucketReplicationOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketReplication == nil {
-		opGetBucketReplication = &aws.Operation{
-			Name:       "GetBucketReplication",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?replication",
-		}
-	}
-
-	if input == nil {
-		input = &GetBucketReplicationInput{}
-	}
-
-	req = c.newRequest(opGetBucketReplication, input, output)
-	output = &GetBucketReplicationOutput{}
-	req.Data = output
-	return
-}
-
-func (c *S3) GetBucketReplication(input *GetBucketReplicationInput) (*GetBucketReplicationOutput, error) {
-	req, out := c.GetBucketReplicationRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-func (c *S3) GetBucketReplicationWithContext(ctx aws.Context, input *GetBucketReplicationInput) (*GetBucketReplicationOutput, error) {
-	req, out := c.GetBucketReplicationRequest(input)
-	req.SetContext(ctx)
-	err := req.Send()
-	return out, err
-}
-
-var opGetBucketReplication *aws.Operation
 
 // GetBucketRequestPaymentRequest generates a request for the GetBucketRequestPayment operation.
 func (c *S3) GetBucketRequestPaymentRequest(input *GetBucketRequestPaymentInput) (req *aws.Request, output *GetBucketRequestPaymentOutput) {
@@ -1749,45 +1673,6 @@ func (c *S3) PutBucketPolicyWithContext(ctx aws.Context, input *PutBucketPolicyI
 }
 
 var opPutBucketPolicy *aws.Operation
-
-// PutBucketReplicationRequest generates a request for the PutBucketReplication operation.
-func (c *S3) PutBucketReplicationRequest(input *PutBucketReplicationInput) (req *aws.Request, output *PutBucketReplicationOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketReplication == nil {
-		opPutBucketReplication = &aws.Operation{
-			Name:       "PutBucketReplication",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?replication",
-		}
-	}
-
-	if input == nil {
-		input = &PutBucketReplicationInput{}
-	}
-
-	req = c.newRequest(opPutBucketReplication, input, output)
-	output = &PutBucketReplicationOutput{}
-	req.Data = output
-	return
-}
-
-// PutBucketReplication Creates a new replication configuration (or replaces an existing one, if present).
-func (c *S3) PutBucketReplication(input *PutBucketReplicationInput) (*PutBucketReplicationOutput, error) {
-	req, out := c.PutBucketReplicationRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-func (c *S3) PutBucketReplicationWithContext(ctx aws.Context, input *PutBucketReplicationInput) (*PutBucketReplicationOutput, error) {
-	req, out := c.PutBucketReplicationRequest(input)
-	req.SetContext(ctx)
-	err := req.Send()
-	return out, err
-}
-
-var opPutBucketReplication *aws.Operation
 
 // PutBucketRequestPaymentRequest generates a request for the PutBucketRequestPayment operation.
 func (c *S3) PutBucketRequestPaymentRequest(input *PutBucketRequestPaymentInput) (req *aws.Request, output *PutBucketRequestPaymentOutput) {
@@ -3001,30 +2886,6 @@ type metadataDeleteBucketPolicyOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-type DeleteBucketReplicationInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	metadataDeleteBucketReplicationInput `json:"-" xml:"-"`
-}
-
-type metadataDeleteBucketReplicationInput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type DeleteBucketReplicationOutput struct {
-	metadataDeleteBucketReplicationOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-
-	StatusCode *int64 `location:"statusCode" type:"integer"`
-}
-
-type metadataDeleteBucketReplicationOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type DeleteBucketTaggingInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -3378,34 +3239,6 @@ type GetBucketPolicyOutput struct {
 
 type metadataGetBucketPolicyOutput struct {
 	SDKShapeTraits bool `type:"structure" payload:"Policy"`
-}
-
-type GetBucketReplicationInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	metadataGetBucketReplicationInput `json:"-" xml:"-"`
-}
-
-type metadataGetBucketReplicationInput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type GetBucketReplicationOutput struct {
-	// Container for replication rules. You can add as many as 1,000 rules. Total
-	// replication configuration size can be up to 2 MB.
-	ReplicationConfiguration *ReplicationConfiguration `type:"structure"`
-
-	metadataGetBucketReplicationOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-
-	StatusCode *int64 `location:"statusCode" type:"integer"`
-}
-
-type metadataGetBucketReplicationOutput struct {
-	SDKShapeTraits bool `type:"structure" payload:"ReplicationConfiguration"`
 }
 
 type GetBucketRequestPaymentInput struct {
@@ -4736,34 +4569,6 @@ type metadataPutBucketPolicyOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-type PutBucketReplicationInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	// Container for replication rules. You can add as many as 1,000 rules. Total
-	// replication configuration size can be up to 2 MB.
-	ReplicationConfiguration *ReplicationConfiguration `locationName:"ReplicationConfiguration" type:"structure" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	metadataPutBucketReplicationInput `json:"-" xml:"-"`
-}
-
-type metadataPutBucketReplicationInput struct {
-	SDKShapeTraits bool `type:"structure" payload:"ReplicationConfiguration"`
-}
-
-type PutBucketReplicationOutput struct {
-	metadataPutBucketReplicationOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-
-	StatusCode *int64 `location:"statusCode" type:"integer"`
-}
-
-type metadataPutBucketReplicationOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type PutBucketRequestPaymentInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -5262,45 +5067,6 @@ type RedirectAllRequestsTo struct {
 }
 
 type metadataRedirectAllRequestsTo struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-// ReplicationConfiguration Container for replication rules. You can add as many as 1,000 rules. Total
-// replication configuration size can be up to 2 MB.
-type ReplicationConfiguration struct {
-	// Amazon Resource Name (ARN) of an IAM role for Amazon S3 to assume when replicating
-	// the objects.
-	Role *string `type:"string" required:"true"`
-
-	// Container for information about a particular replication rule. Replication
-	// configuration must have at least one rule and can contain up to 1,000 rules.
-	Rules []*ReplicationRule `locationName:"Rule" type:"list" flattened:"true" required:"true"`
-
-	metadataReplicationConfiguration `json:"-" xml:"-"`
-}
-
-type metadataReplicationConfiguration struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type ReplicationRule struct {
-	Destination *Destination `type:"structure" required:"true"`
-
-	// Unique identifier for the rule. The value cannot be longer than 255 characters.
-	ID *string `type:"string"`
-
-	// Object keyname prefix identifying one or more objects to which the rule applies.
-	// Maximum prefix length can be up to 1,024 characters. Overlapping prefixes
-	// are not supported.
-	Prefix *string `type:"string" required:"true"`
-
-	// The rule is ignored if status is not Enabled.
-	Status *string `type:"string" required:"true"`
-
-	metadataReplicationRule `json:"-" xml:"-"`
-}
-
-type metadataReplicationRule struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 

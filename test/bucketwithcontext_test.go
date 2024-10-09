@@ -910,6 +910,133 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketDecompressPolicyWithContext(c *C) 
 	c.Assert(err, IsNil)
 }
 
+// PUT Bucket Replication
+func (s *Ks3utilCommandSuite) TestPutBucketReplicationWithContext(c *C) {
+	// put,不通过context取消
+	_, err := client.PutBucketReplicationWithContext(context.Background(), &s3.PutBucketReplicationInput{
+		Bucket: aws.String(bucket),
+		ReplicationConfiguration: &s3.ReplicationConfiguration{
+			Prefix:                      []*string{aws.String("test/")},
+			DeleteMarkerStatus:          aws.String("Disabled"),
+			TargetBucket:                aws.String(bucket),
+			HistoricalObjectReplication: aws.String("Enabled"),
+		},
+	})
+	c.Assert(err, IsNil)
+	// get
+	resp, err := client.GetBucketReplicationWithContext(context.Background(), &s3.GetBucketReplicationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.ReplicationConfiguration.Prefix), Equals, 1)
+	c.Assert(*resp.ReplicationConfiguration.Prefix[0], Equals, "test/")
+	c.Assert(*resp.ReplicationConfiguration.DeleteMarkerStatus, Equals, "Disabled")
+	c.Assert(*resp.ReplicationConfiguration.TargetBucket, Equals, bucket)
+	c.Assert(*resp.ReplicationConfiguration.HistoricalObjectReplication, Equals, "Enabled")
+	// put,通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
+	defer cancelFunc()
+	_, err = client.PutBucketReplicationWithContext(ctx, &s3.PutBucketReplicationInput{
+		Bucket: aws.String(bucket),
+		ReplicationConfiguration: &s3.ReplicationConfiguration{
+			Prefix:                      []*string{aws.String("test2/")},
+			DeleteMarkerStatus:          aws.String("Enabled"),
+			TargetBucket:                aws.String(bucket),
+			HistoricalObjectReplication: aws.String("Disabled"),
+		},
+	})
+	c.Assert(err, NotNil)
+	// get
+	resp, err = client.GetBucketReplicationWithContext(context.Background(), &s3.GetBucketReplicationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.ReplicationConfiguration.Prefix), Equals, 1)
+	c.Assert(*resp.ReplicationConfiguration.Prefix[0], Equals, "test/")
+	c.Assert(*resp.ReplicationConfiguration.DeleteMarkerStatus, Equals, "Disabled")
+	c.Assert(*resp.ReplicationConfiguration.TargetBucket, Equals, bucket)
+	c.Assert(*resp.ReplicationConfiguration.HistoricalObjectReplication, Equals, "Enabled")
+	// delete
+	_, err = client.DeleteBucketReplicationWithContext(context.Background(), &s3.DeleteBucketReplicationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+}
+
+// GET Bucket Replication
+func (s *Ks3utilCommandSuite) TestGetBucketReplicationWithContext(c *C) {
+	// put
+	_, err := client.PutBucketReplicationWithContext(context.Background(), &s3.PutBucketReplicationInput{
+		Bucket: aws.String(bucket),
+		ReplicationConfiguration: &s3.ReplicationConfiguration{
+			Prefix:                      []*string{aws.String("test/")},
+			DeleteMarkerStatus:          aws.String("Disabled"),
+			TargetBucket:                aws.String(bucket),
+			HistoricalObjectReplication: aws.String("Enabled"),
+		},
+	})
+	c.Assert(err, IsNil)
+	// get,不通过context取消
+	resp, err := client.GetBucketReplicationWithContext(context.Background(), &s3.GetBucketReplicationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.ReplicationConfiguration.Prefix), Equals, 1)
+	c.Assert(*resp.ReplicationConfiguration.Prefix[0], Equals, "test/")
+	c.Assert(*resp.ReplicationConfiguration.DeleteMarkerStatus, Equals, "Disabled")
+	c.Assert(*resp.ReplicationConfiguration.TargetBucket, Equals, bucket)
+	c.Assert(*resp.ReplicationConfiguration.HistoricalObjectReplication, Equals, "Enabled")
+	// get,通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
+	defer cancelFunc()
+	resp, err = client.GetBucketReplicationWithContext(ctx, &s3.GetBucketReplicationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, NotNil)
+	// delete
+	_, err = client.DeleteBucketReplicationWithContext(context.Background(), &s3.DeleteBucketReplicationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+}
+
+// DELETE Bucket Replication
+func (s *Ks3utilCommandSuite) TestDeleteBucketReplicationWithContext(c *C) {
+	// put
+	_, err := client.PutBucketReplicationWithContext(context.Background(), &s3.PutBucketReplicationInput{
+		Bucket: aws.String(bucket),
+		ReplicationConfiguration: &s3.ReplicationConfiguration{
+			Prefix:                      []*string{aws.String("test/")},
+			DeleteMarkerStatus:          aws.String("Disabled"),
+			TargetBucket:                aws.String(bucket),
+			HistoricalObjectReplication: aws.String("Enabled"),
+		},
+	})
+	c.Assert(err, IsNil)
+	// get
+	resp, err := client.GetBucketReplicationWithContext(context.Background(), &s3.GetBucketReplicationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.ReplicationConfiguration.Prefix), Equals, 1)
+	c.Assert(*resp.ReplicationConfiguration.Prefix[0], Equals, "test/")
+	c.Assert(*resp.ReplicationConfiguration.DeleteMarkerStatus, Equals, "Disabled")
+	c.Assert(*resp.ReplicationConfiguration.TargetBucket, Equals, bucket)
+	c.Assert(*resp.ReplicationConfiguration.HistoricalObjectReplication, Equals, "Enabled")
+	// delete，通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
+	defer cancelFunc()
+	_, err = client.DeleteBucketReplicationWithContext(ctx, &s3.DeleteBucketReplicationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, NotNil)
+	// delete，不通过context取消
+	_, err = client.DeleteBucketReplicationWithContext(context.Background(), &s3.DeleteBucketReplicationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+}
+
 // PUT Bucket ACL
 func (s *Ks3utilCommandSuite) TestPutBucketACLWithContext(c *C) {
 	// put,不通过context取消
