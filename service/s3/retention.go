@@ -9,6 +9,7 @@ import (
 func (c *S3) PutBucketRetentionRequest(input *PutBucketRetentionInput) (req *aws.Request, output *PutBucketRetentionOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
+
 	if opPutBucketRetention == nil {
 		opPutBucketRetention = &aws.Operation{
 			Name:       "PutBucketRetention",
@@ -16,9 +17,11 @@ func (c *S3) PutBucketRetentionRequest(input *PutBucketRetentionInput) (req *aws
 			HTTPPath:   "/{Bucket}?retention",
 		}
 	}
+
 	if input == nil {
 		input = &PutBucketRetentionInput{}
 	}
+
 	input.AutoFillMD5 = true
 	req = c.newRequest(opPutBucketRetention, input, output)
 	output = &PutBucketRetentionOutput{}
@@ -84,6 +87,7 @@ type PutBucketRetentionOutput struct {
 func (c *S3) GetBucketRetentionRequest(input *GetBucketRetentionInput) (req *aws.Request, output *GetBucketRetentionOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
+
 	if opGetBucketRetention == nil {
 		opGetBucketRetention = &aws.Operation{
 			Name:       "GetBucketRetention",
@@ -91,9 +95,11 @@ func (c *S3) GetBucketRetentionRequest(input *GetBucketRetentionInput) (req *aws
 			HTTPPath:   "/{Bucket}?retention",
 		}
 	}
+
 	if input == nil {
 		input = &GetBucketRetentionInput{}
 	}
+
 	req = c.newRequest(opGetBucketRetention, input, output)
 	output = &GetBucketRetentionOutput{
 		RetentionConfiguration: &BucketRetentionConfiguration{},
@@ -188,14 +194,6 @@ type ListRetentionInput struct {
 
 	// Limits the response to keys that begin with the specified prefix.
 	Prefix *string `location:"querystring" locationName:"prefix" type:"string"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	metadataListRetentionInput `json:"-" xml:"-"`
-}
-
-type metadataListRetentionInput struct {
-	SDKShapeTraits bool `type:"structure"`
 }
 
 type ListRetentionOutput struct {
@@ -270,38 +268,38 @@ type RetentionObject struct {
 	EstimatedClearTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 }
 
-// RecoverObjectRequest generates a request for the RecoverObject operation.`
-func (c *S3) RecoverObjectRequest(input *ListRetentionInput) (req *aws.Request, output *ListRetentionOutput) {
+// RecoverObjectRequest generates a request for the RecoverObject operation.
+func (c *S3) RecoverObjectRequest(input *RecoverObjectInput) (req *aws.Request, output *RecoverObjectOutput) {
 	oprw.Lock()
 	defer oprw.Unlock()
 
-	if opListRetention == nil {
-		opListRetention = &aws.Operation{
-			Name:       "ListRetention",
-			HTTPMethod: "GET",
+	if opRecoverObject == nil {
+		opRecoverObject = &aws.Operation{
+			Name:       "RecoverObject",
+			HTTPMethod: "POST",
 			HTTPPath:   "/{Bucket}/{Key+}?recover",
 		}
 	}
 
 	if input == nil {
-		input = &ListRetentionInput{}
+		input = &RecoverObjectInput{}
 	}
 
-	req = c.newRequest(opListRetention, input, output)
-	output = &ListRetentionOutput{}
+	req = c.newRequest(opRecoverObject, input, output)
+	output = &RecoverObjectOutput{}
 	req.Data = output
 	return
 }
 
 // RecoverObject recovers the object from the recycle bin.
-func (c *S3) RecoverObject(input *ListRetentionInput) (*ListRetentionOutput, error) {
-	req, out := c.ListRetentionRequest(input)
+func (c *S3) RecoverObject(input *RecoverObjectInput) (*RecoverObjectOutput, error) {
+	req, out := c.RecoverObjectRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-func (c *S3) RecoverObjectWithContext(ctx aws.Context, input *ListRetentionInput) (*ListRetentionOutput, error) {
-	req, out := c.ListRetentionRequest(input)
+func (c *S3) RecoverObjectWithContext(ctx aws.Context, input *RecoverObjectInput) (*RecoverObjectOutput, error) {
+	req, out := c.RecoverObjectRequest(input)
 	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
@@ -315,4 +313,75 @@ type RecoverObjectInput struct {
 
 	// The key of the object.
 	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+
+	// Does it support overwriting when an object with the same name exists in the bucket after being
+	// recovered from the recycle bin. When the value is true, it indicates overwriting, and the overwritten
+	// objects in the bucket will enter the recycle bin.
+	RetentionOverwrite *bool `location:"header" locationName:"x-kss-retention-overwrite" type:"boolean"`
+
+	// Specify the deletion ID of the recovered object. When the request header is not included,
+	// only the latest version is restored by default.
+	RetentionId *string `location:"header" locationName:"x-kss-retention-id" type:"string"`
+}
+
+type RecoverObjectOutput struct {
+	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
+}
+
+// ClearObjectRequest generates a request for the ClearObject operation.
+func (c *S3) ClearObjectRequest(input *ClearObjectInput) (req *aws.Request, output *ClearObjectOutput) {
+	oprw.Lock()
+	defer oprw.Unlock()
+
+	if opClearObject == nil {
+		opClearObject = &aws.Operation{
+			Name:       "ClearObject",
+			HTTPMethod: "DELETE",
+			HTTPPath:   "/{Bucket}/{Key+}?clear",
+		}
+	}
+
+	if input == nil {
+		input = &ClearObjectInput{}
+	}
+
+	req = c.newRequest(opClearObject, input, output)
+	output = &ClearObjectOutput{}
+	req.Data = output
+	return
+}
+
+// ClearObject clears the object from the recycle bin.
+func (c *S3) ClearObject(input *ClearObjectInput) (*ClearObjectOutput, error) {
+	req, out := c.ClearObjectRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) ClearObjectWithContext(ctx aws.Context, input *ClearObjectInput) (*ClearObjectOutput, error) {
+	req, out := c.ClearObjectRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
+var opClearObject *aws.Operation
+
+type ClearObjectInput struct {
+	// The name of the bucket.
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// The key of the object.
+	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+
+	// Specify the deletion ID of the deleted object.
+	RetentionId *string `location:"header" locationName:"x-kss-retention-id" type:"string" required:"true"`
+}
+
+type ClearObjectOutput struct {
+	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
 }

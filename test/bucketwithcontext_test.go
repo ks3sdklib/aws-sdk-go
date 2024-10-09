@@ -1037,6 +1037,107 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketReplicationWithContext(c *C) {
 	c.Assert(err, IsNil)
 }
 
+// PUT Bucket Retention
+func (s *Ks3utilCommandSuite) TestPutBucketRetentionWithContext(c *C) {
+	// put,不通过context取消
+	_, err := client.PutBucketRetentionWithContext(context.Background(), &s3.PutBucketRetentionInput{
+		Bucket: aws.String(bucket),
+		RetentionConfiguration: &s3.BucketRetentionConfiguration{
+			Rule: &s3.RetentionRule{
+				Status: aws.String("Enabled"),
+				Days:   aws.Long(30),
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	// get
+	resp, err := client.GetBucketRetentionWithContext(context.Background(), &s3.GetBucketRetentionInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.RetentionConfiguration.Rule.Status, Equals, "Enabled")
+	c.Assert(*resp.RetentionConfiguration.Rule.Days, Equals, int64(30))
+	// put,通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
+	defer cancelFunc()
+	_, err = client.PutBucketRetentionWithContext(ctx, &s3.PutBucketRetentionInput{
+		Bucket: aws.String(bucket),
+		RetentionConfiguration: &s3.BucketRetentionConfiguration{
+			Rule: &s3.RetentionRule{
+				Status: aws.String("Enabled"),
+				Days:   aws.Long(60),
+			},
+		},
+	})
+	c.Assert(err, NotNil)
+	// get
+	resp, err = client.GetBucketRetentionWithContext(context.Background(), &s3.GetBucketRetentionInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.RetentionConfiguration.Rule.Status, Equals, "Enabled")
+	c.Assert(*resp.RetentionConfiguration.Rule.Days, Equals, int64(30))
+}
+
+// GET Bucket Retention
+func (s *Ks3utilCommandSuite) TestGetBucketRetentionWithContext(c *C) {
+	// put
+	_, err := client.PutBucketRetentionWithContext(context.Background(), &s3.PutBucketRetentionInput{
+		Bucket: aws.String(bucket),
+		RetentionConfiguration: &s3.BucketRetentionConfiguration{
+			Rule: &s3.RetentionRule{
+				Status: aws.String("Enabled"),
+				Days:   aws.Long(30),
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	// get,不通过context取消
+	resp, err := client.GetBucketRetentionWithContext(context.Background(), &s3.GetBucketRetentionInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.RetentionConfiguration.Rule.Status, Equals, "Enabled")
+	c.Assert(*resp.RetentionConfiguration.Rule.Days, Equals, int64(30))
+	// get,通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
+	defer cancelFunc()
+	resp, err = client.GetBucketRetentionWithContext(ctx, &s3.GetBucketRetentionInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, NotNil)
+}
+
+// List Retention
+func (s *Ks3utilCommandSuite) TestListBucketRetentionWithContext(c *C) {
+	// put
+	_, err := client.PutBucketRetentionWithContext(context.Background(), &s3.PutBucketRetentionInput{
+		Bucket: aws.String(bucket),
+		RetentionConfiguration: &s3.BucketRetentionConfiguration{
+			Rule: &s3.RetentionRule{
+				Status: aws.String("Enabled"),
+				Days:   aws.Long(30),
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	// list,不通过context取消
+	resp, err := client.ListRetentionWithContext(context.Background(), &s3.ListRetentionInput{
+		Bucket: aws.String(bucket),
+		Prefix: aws.String("test/"),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.ListRetentionResult.Prefix, Equals, "test/")
+	// list,通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
+	defer cancelFunc()
+	resp, err = client.ListRetentionWithContext(ctx, &s3.ListRetentionInput{
+		Bucket: aws.String(bucket),
+		Prefix: aws.String("test/"),
+	})
+	c.Assert(err, NotNil)
+}
+
 // PUT Bucket ACL
 func (s *Ks3utilCommandSuite) TestPutBucketACLWithContext(c *C) {
 	// put,不通过context取消

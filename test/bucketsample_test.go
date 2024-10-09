@@ -392,3 +392,13 @@ func (s *Ks3utilCommandSuite) TestListRetention(c *C) {
 	c.Assert(err, IsNil)
 	fmt.Println(awsutil.StringValue(resp.ListRetentionResult))
 }
+
+func (s *Ks3utilCommandSuite) TestClearObject(c *C) {
+	resp, err := client.ClearObject(&s3.ClearObjectInput{
+		Bucket:      aws.String("likui-test2"),
+		Key:         aws.String("upgrade.json"),
+		RetentionId: aws.String("29807535817133_MA=="),
+	})
+	c.Assert(err, IsNil)
+	fmt.Println(awsutil.StringValue(resp))
+}

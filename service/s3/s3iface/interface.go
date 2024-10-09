@@ -21,6 +21,8 @@ type S3API interface {
 
 	CreateMultipartUpload(*s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error)
 
+	ClearObject(*s3.ClearObjectInput) (*s3.ClearObjectOutput, error)
+
 	DeleteBucket(*s3.DeleteBucketInput) (*s3.DeleteBucketOutput, error)
 
 	DeleteBucketCORS(*s3.DeleteBucketCORSInput) (*s3.DeleteBucketCORSOutput, error)
@@ -34,6 +36,8 @@ type S3API interface {
 	DeleteBucketTagging(*s3.DeleteBucketTaggingInput) (*s3.DeleteBucketTaggingOutput, error)
 
 	DeleteBucketWebsite(*s3.DeleteBucketWebsiteInput) (*s3.DeleteBucketWebsiteOutput, error)
+
+	DeleteBucketDecompressPolicy(*s3.DeleteBucketDecompressPolicyInput) (*s3.DeleteBucketDecompressPolicyOutput, error)
 
 	DeleteObject(*s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 
@@ -65,6 +69,10 @@ type S3API interface {
 
 	GetBucketWebsite(*s3.GetBucketWebsiteInput) (*s3.GetBucketWebsiteOutput, error)
 
+	GetBucketDecompressPolicy(*s3.GetBucketDecompressPolicyInput) (*s3.GetBucketDecompressPolicyOutput, error)
+
+	GetBucketRetention(*s3.GetBucketRetentionInput) (*s3.GetBucketRetentionOutput, error)
+
 	GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error)
 
 	GetObjectACL(*s3.GetObjectACLInput) (*s3.GetObjectACLOutput, error)
@@ -84,6 +92,8 @@ type S3API interface {
 	ListObjects(*s3.ListObjectsInput) (*s3.ListObjectsOutput, error)
 
 	ListParts(*s3.ListPartsInput) (*s3.ListPartsOutput, error)
+
+	ListRetention(*s3.ListRetentionInput) (*s3.ListRetentionOutput, error)
 
 	PutBucketACL(*s3.PutBucketACLInput) (*s3.PutBucketACLOutput, error)
 
@@ -109,11 +119,17 @@ type S3API interface {
 
 	PutBucketWebsite(*s3.PutBucketWebsiteInput) (*s3.PutBucketWebsiteOutput, error)
 
+	PutBucketDecompressPolicy(*s3.PutBucketDecompressPolicyInput) (*s3.PutBucketDecompressPolicyOutput, error)
+
+	PutBucketRetention(*s3.PutBucketRetentionInput) (*s3.PutBucketRetentionOutput, error)
+
 	PutObject(*s3.PutObjectInput) (*s3.PutObjectOutput, error)
 
 	PutObjectACL(*s3.PutObjectACLInput) (*s3.PutObjectACLOutput, error)
 
 	RestoreObject(*s3.RestoreObjectInput) (*s3.RestoreObjectOutput, error)
+
+	RecoverObject(*s3.RecoverObjectInput) (*s3.RecoverObjectOutput, error)
 
 	UploadPart(*s3.UploadPartInput) (*s3.UploadPartOutput, error)
 
