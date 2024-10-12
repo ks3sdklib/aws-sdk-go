@@ -39,6 +39,8 @@ type S3API interface {
 
 	DeleteBucketDecompressPolicy(*s3.DeleteBucketDecompressPolicyInput) (*s3.DeleteBucketDecompressPolicyOutput, error)
 
+	DeleteBucketInventory(*s3.DeleteBucketInventoryInput) (*s3.DeleteBucketInventoryOutput, error)
+
 	DeleteObject(*s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 
 	DeleteObjects(*s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
@@ -73,6 +75,8 @@ type S3API interface {
 
 	GetBucketRetention(*s3.GetBucketRetentionInput) (*s3.GetBucketRetentionOutput, error)
 
+	GetBucketInventory(*s3.GetBucketInventoryInput) (*s3.GetBucketInventoryOutput, error)
+
 	GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error)
 
 	GetObjectACL(*s3.GetObjectACLInput) (*s3.GetObjectACLOutput, error)
@@ -94,6 +98,8 @@ type S3API interface {
 	ListParts(*s3.ListPartsInput) (*s3.ListPartsOutput, error)
 
 	ListRetention(*s3.ListRetentionInput) (*s3.ListRetentionOutput, error)
+
+	ListBucketInventory(*s3.ListBucketInventoryInput) (*s3.ListBucketInventoryOutput, error)
 
 	PutBucketACL(*s3.PutBucketACLInput) (*s3.PutBucketACLOutput, error)
 
@@ -122,6 +128,8 @@ type S3API interface {
 	PutBucketDecompressPolicy(*s3.PutBucketDecompressPolicyInput) (*s3.PutBucketDecompressPolicyOutput, error)
 
 	PutBucketRetention(*s3.PutBucketRetentionInput) (*s3.PutBucketRetentionOutput, error)
+
+	PutBucketInventory(*s3.PutBucketInventoryInput) (*s3.PutBucketInventoryOutput, error)
 
 	PutObject(*s3.PutObjectInput) (*s3.PutObjectOutput, error)
 

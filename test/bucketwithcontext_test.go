@@ -1138,6 +1138,288 @@ func (s *Ks3utilCommandSuite) TestListBucketRetentionWithContext(c *C) {
 	c.Assert(err, NotNil)
 }
 
+// PUT Bucket Inventory
+func (s *Ks3utilCommandSuite) TestPutBucketInventoryWithContext(c *C) {
+	id := randLowStr(8)
+	// put,不通过context取消
+	_, err := client.PutBucketInventoryWithContext(context.Background(), &s3.PutBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+		InventoryConfiguration: &s3.InventoryConfiguration{
+			Id:        aws.String(id),
+			IsEnabled: aws.Boolean(true),
+			Filter: &s3.InventoryFilter{
+				Prefix: aws.String("abc/"),
+			},
+			Destination: &s3.Destination{
+				KS3BucketDestination: &s3.KS3BucketDestination{
+					Format: aws.String("CSV"),
+					Bucket: aws.String(bucket),
+					Prefix: aws.String("prefix/"),
+				},
+			},
+			Schedule: &s3.Schedule{
+				Frequency: aws.String("Once"),
+			},
+			OptionalFields: &s3.OptionalFields{
+				Field: []*string{
+					aws.String("Size"),
+					aws.String("LastModifiedDate"),
+					aws.String("ETag"),
+					aws.String("StorageClass"),
+					aws.String("IsMultipartUploaded"),
+					aws.String("EncryptionStatus"),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	// get
+	resp, err := client.GetBucketInventoryWithContext(context.Background(), &s3.GetBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.InventoryConfiguration.Id, Equals, id)
+	c.Assert(*resp.InventoryConfiguration.IsEnabled, Equals, true)
+	c.Assert(*resp.InventoryConfiguration.Filter.Prefix, Equals, "abc/")
+	c.Assert(*resp.InventoryConfiguration.Destination.KS3BucketDestination.Format, Equals, "CSV")
+	c.Assert(*resp.InventoryConfiguration.Destination.KS3BucketDestination.Bucket, Equals, bucket)
+	c.Assert(*resp.InventoryConfiguration.Destination.KS3BucketDestination.Prefix, Equals, "prefix/")
+	c.Assert(*resp.InventoryConfiguration.Schedule.Frequency, Equals, "Once")
+	c.Assert(len(resp.InventoryConfiguration.OptionalFields.Field), Equals, 6)
+	// put,通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
+	defer cancelFunc()
+	_, err = client.PutBucketInventoryWithContext(ctx, &s3.PutBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+		InventoryConfiguration: &s3.InventoryConfiguration{
+			Id:        aws.String(id),
+			IsEnabled: aws.Boolean(true),
+			Filter: &s3.InventoryFilter{
+				Prefix: aws.String("abc/"),
+			},
+			Destination: &s3.Destination{
+				KS3BucketDestination: &s3.KS3BucketDestination{
+					Format: aws.String("CSV"),
+					Bucket: aws.String(bucket),
+					Prefix: aws.String("prefix/"),
+				},
+			},
+			Schedule: &s3.Schedule{
+				Frequency: aws.String("Once"),
+			},
+			OptionalFields: &s3.OptionalFields{
+				Field: []*string{
+					aws.String("Size"),
+					aws.String("LastModifiedDate"),
+					aws.String("ETag"),
+					aws.String("StorageClass"),
+					aws.String("IsMultipartUploaded"),
+					aws.String("EncryptionStatus"),
+				},
+			},
+		},
+	})
+	c.Assert(err, NotNil)
+	// delete
+	_, err = client.DeleteBucketInventoryWithContext(context.Background(), &s3.DeleteBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+	})
+	c.Assert(err, IsNil)
+}
+
+// GET Bucket Inventory
+func (s *Ks3utilCommandSuite) TestGetBucketInventoryWithContext(c *C) {
+	id := randLowStr(8)
+	// put,不通过context取消
+	_, err := client.PutBucketInventoryWithContext(context.Background(), &s3.PutBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+		InventoryConfiguration: &s3.InventoryConfiguration{
+			Id:        aws.String(id),
+			IsEnabled: aws.Boolean(true),
+			Filter: &s3.InventoryFilter{
+				Prefix: aws.String("abc/"),
+			},
+			Destination: &s3.Destination{
+				KS3BucketDestination: &s3.KS3BucketDestination{
+					Format: aws.String("CSV"),
+					Bucket: aws.String(bucket),
+					Prefix: aws.String("prefix/"),
+				},
+			},
+			Schedule: &s3.Schedule{
+				Frequency: aws.String("Once"),
+			},
+			OptionalFields: &s3.OptionalFields{
+				Field: []*string{
+					aws.String("Size"),
+					aws.String("LastModifiedDate"),
+					aws.String("ETag"),
+					aws.String("StorageClass"),
+					aws.String("IsMultipartUploaded"),
+					aws.String("EncryptionStatus"),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	// get
+	resp, err := client.GetBucketInventoryWithContext(context.Background(), &s3.GetBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.InventoryConfiguration.Id, Equals, id)
+	c.Assert(*resp.InventoryConfiguration.IsEnabled, Equals, true)
+	c.Assert(*resp.InventoryConfiguration.Filter.Prefix, Equals, "abc/")
+	c.Assert(*resp.InventoryConfiguration.Destination.KS3BucketDestination.Format, Equals, "CSV")
+	c.Assert(*resp.InventoryConfiguration.Destination.KS3BucketDestination.Bucket, Equals, bucket)
+	c.Assert(*resp.InventoryConfiguration.Destination.KS3BucketDestination.Prefix, Equals, "prefix/")
+	c.Assert(*resp.InventoryConfiguration.Schedule.Frequency, Equals, "Once")
+	c.Assert(len(resp.InventoryConfiguration.OptionalFields.Field), Equals, 6)
+	// put,通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
+	defer cancelFunc()
+	_, err = client.GetBucketInventoryWithContext(ctx, &s3.GetBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+	})
+	c.Assert(err, NotNil)
+	// delete
+	_, err = client.DeleteBucketInventoryWithContext(context.Background(), &s3.DeleteBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+	})
+	c.Assert(err, IsNil)
+}
+
+// DELETE Bucket Inventory
+func (s *Ks3utilCommandSuite) TestDeleteBucketInventoryWithContext(c *C) {
+	id := randLowStr(8)
+	// put,不通过context取消
+	_, err := client.PutBucketInventoryWithContext(context.Background(), &s3.PutBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+		InventoryConfiguration: &s3.InventoryConfiguration{
+			Id:        aws.String(id),
+			IsEnabled: aws.Boolean(true),
+			Filter: &s3.InventoryFilter{
+				Prefix: aws.String("abc/"),
+			},
+			Destination: &s3.Destination{
+				KS3BucketDestination: &s3.KS3BucketDestination{
+					Format: aws.String("CSV"),
+					Bucket: aws.String(bucket),
+					Prefix: aws.String("prefix/"),
+				},
+			},
+			Schedule: &s3.Schedule{
+				Frequency: aws.String("Once"),
+			},
+			OptionalFields: &s3.OptionalFields{
+				Field: []*string{
+					aws.String("Size"),
+					aws.String("LastModifiedDate"),
+					aws.String("ETag"),
+					aws.String("StorageClass"),
+					aws.String("IsMultipartUploaded"),
+					aws.String("EncryptionStatus"),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	// get
+	resp, err := client.GetBucketInventoryWithContext(context.Background(), &s3.GetBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.InventoryConfiguration.Id, Equals, id)
+	c.Assert(*resp.InventoryConfiguration.IsEnabled, Equals, true)
+	c.Assert(*resp.InventoryConfiguration.Filter.Prefix, Equals, "abc/")
+	c.Assert(*resp.InventoryConfiguration.Destination.KS3BucketDestination.Format, Equals, "CSV")
+	c.Assert(*resp.InventoryConfiguration.Destination.KS3BucketDestination.Bucket, Equals, bucket)
+	c.Assert(*resp.InventoryConfiguration.Destination.KS3BucketDestination.Prefix, Equals, "prefix/")
+	c.Assert(*resp.InventoryConfiguration.Schedule.Frequency, Equals, "Once")
+	c.Assert(len(resp.InventoryConfiguration.OptionalFields.Field), Equals, 6)
+	// delete,通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
+	defer cancelFunc()
+	_, err = client.DeleteBucketInventoryWithContext(ctx, &s3.DeleteBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+	})
+	c.Assert(err, NotNil)
+	// delete
+	_, err = client.DeleteBucketInventoryWithContext(context.Background(), &s3.DeleteBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+	})
+	c.Assert(err, IsNil)
+}
+
+// List Bucket Inventory
+func (s *Ks3utilCommandSuite) TestListBucketInventoryWithContext(c *C) {
+	id := randLowStr(8)
+	// put,不通过context取消
+	_, err := client.PutBucketInventoryWithContext(context.Background(), &s3.PutBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+		InventoryConfiguration: &s3.InventoryConfiguration{
+			Id:        aws.String(id),
+			IsEnabled: aws.Boolean(true),
+			Filter: &s3.InventoryFilter{
+				Prefix: aws.String("abc/"),
+			},
+			Destination: &s3.Destination{
+				KS3BucketDestination: &s3.KS3BucketDestination{
+					Format: aws.String("CSV"),
+					Bucket: aws.String(bucket),
+					Prefix: aws.String("prefix/"),
+				},
+			},
+			Schedule: &s3.Schedule{
+				Frequency: aws.String("Once"),
+			},
+			OptionalFields: &s3.OptionalFields{
+				Field: []*string{
+					aws.String("Size"),
+					aws.String("LastModifiedDate"),
+					aws.String("ETag"),
+					aws.String("StorageClass"),
+					aws.String("IsMultipartUploaded"),
+					aws.String("EncryptionStatus"),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	// list
+	resp, err := client.ListBucketInventoryWithContext(context.Background(), &s3.ListBucketInventoryInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.InventoryConfigurationsResult.InventoryConfigurations), Equals, 1)
+	// list,通过context取消
+	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
+	defer cancelFunc()
+	_, err = client.ListBucketInventoryWithContext(ctx, &s3.ListBucketInventoryInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, NotNil)
+	// delete
+	_, err = client.DeleteBucketInventoryWithContext(context.Background(), &s3.DeleteBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+	})
+	c.Assert(err, IsNil)
+}
+
 // PUT Bucket ACL
 func (s *Ks3utilCommandSuite) TestPutBucketACLWithContext(c *C) {
 	// put,不通过context取消

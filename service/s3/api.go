@@ -3083,18 +3083,6 @@ type metadataDeletedObject struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-type Destination struct {
-	// Amazon resource name (ARN) of the bucket where you want Amazon S3 to store
-	// replicas of the object identified by the rule.
-	Bucket *string `type:"string" required:"true"`
-
-	metadataDestination `json:"-" xml:"-"`
-}
-
-type metadataDestination struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type Error struct {
 	Code *string `type:"string"`
 

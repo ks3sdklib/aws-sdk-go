@@ -382,3 +382,65 @@ func (s *Ks3utilCommandSuite) TestBucketReplication(c *C) {
 	})
 	c.Assert(err, IsNil)
 }
+
+func (s *Ks3utilCommandSuite) TestBucketInventory(c *C) {
+	id := randLowStr(8)
+	_, err := client.PutBucketInventory(&s3.PutBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+		InventoryConfiguration: &s3.InventoryConfiguration{
+			Id:        aws.String(id),
+			IsEnabled: aws.Boolean(true),
+			Filter: &s3.InventoryFilter{
+				Prefix: aws.String("abc/"),
+			},
+			Destination: &s3.Destination{
+				KS3BucketDestination: &s3.KS3BucketDestination{
+					Format: aws.String("CSV"),
+					Bucket: aws.String(bucket),
+					Prefix: aws.String("prefix/"),
+				},
+			},
+			Schedule: &s3.Schedule{
+				Frequency: aws.String("Once"),
+			},
+			OptionalFields: &s3.OptionalFields{
+				Field: []*string{
+					aws.String("Size"),
+					aws.String("LastModifiedDate"),
+					aws.String("ETag"),
+					aws.String("StorageClass"),
+					aws.String("IsMultipartUploaded"),
+					aws.String("EncryptionStatus"),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	resp, err := client.GetBucketInventory(&s3.GetBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.InventoryConfiguration.Id, Equals, id)
+	c.Assert(*resp.InventoryConfiguration.IsEnabled, Equals, true)
+	c.Assert(*resp.InventoryConfiguration.Filter.Prefix, Equals, "abc/")
+	c.Assert(*resp.InventoryConfiguration.Destination.KS3BucketDestination.Format, Equals, "CSV")
+	c.Assert(*resp.InventoryConfiguration.Destination.KS3BucketDestination.Bucket, Equals, bucket)
+	c.Assert(*resp.InventoryConfiguration.Destination.KS3BucketDestination.Prefix, Equals, "prefix/")
+	c.Assert(*resp.InventoryConfiguration.Schedule.Frequency, Equals, "Once")
+	c.Assert(len(resp.InventoryConfiguration.OptionalFields.Field), Equals, 6)
+
+	listResp, err := client.ListBucketInventory(&s3.ListBucketInventoryInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(listResp.InventoryConfigurationsResult.InventoryConfigurations), Equals, 1)
+
+	_, err = client.DeleteBucketInventory(&s3.DeleteBucketInventoryInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String(id),
+	})
+	c.Assert(err, IsNil)
+}

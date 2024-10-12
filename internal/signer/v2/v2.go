@@ -65,6 +65,8 @@ var signQuerys = map[string]bool{
 	"recycle":                      true,
 	"recover":                      true,
 	"clear":                        true,
+	"id":                           true,
+	"continuation-token":           true,
 }
 
 type signer struct {
