@@ -6,6 +6,7 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
 	"io"
 	"regexp"
+	"strings"
 )
 
 type XmlErrorResponse struct {
@@ -29,7 +30,7 @@ func UnmarshalError(r *aws.Request) {
 	}
 
 	// 如果响应类型是html，则解析html文本
-	if r.HTTPResponse.Header.Get("Content-Type") == "text/html" {
+	if strings.Contains(r.HTTPResponse.Header.Get("Content-Type"), "text/html") {
 		// 获取HTML文本中title标签的内容
 		re := regexp.MustCompile(`<title>(.*?)</title>`)
 		matches := re.FindStringSubmatch(string(body))
