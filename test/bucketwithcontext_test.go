@@ -1043,7 +1043,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketRetentionWithContext(c *C) {
 	s.CreateBucket(retentionBucket, c)
 	// put,不通过context取消
 	_, err := client.PutBucketRetentionWithContext(context.Background(), &s3.PutBucketRetentionInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(retentionBucket),
 		RetentionConfiguration: &s3.BucketRetentionConfiguration{
 			Rule: &s3.RetentionRule{
 				Status: aws.String("Enabled"),
