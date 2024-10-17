@@ -331,7 +331,7 @@ func (s *Ks3utilCommandSuite) TestBucketDecompressPolicy(c *C) {
 // TestBucketRetention bucket retention
 func (s *Ks3utilCommandSuite) TestBucketRetention(c *C) {
 	_, err := client.PutBucketRetention(&s3.PutBucketRetentionInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(retentionBucket),
 		RetentionConfiguration: &s3.BucketRetentionConfiguration{
 			Rule: &s3.RetentionRule{
 				Status: aws.String("Enabled"),
@@ -342,14 +342,14 @@ func (s *Ks3utilCommandSuite) TestBucketRetention(c *C) {
 	c.Assert(err, IsNil)
 
 	resp, err := client.GetBucketRetention(&s3.GetBucketRetentionInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(retentionBucket),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*resp.RetentionConfiguration.Rule.Status, Equals, "Enabled")
 	c.Assert(*resp.RetentionConfiguration.Rule.Days, Equals, int64(30))
 
 	_, err = client.ListRetention(&s3.ListRetentionInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(retentionBucket),
 	})
 	c.Assert(err, IsNil)
 }

@@ -1052,7 +1052,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketRetentionWithContext(c *C) {
 	c.Assert(err, IsNil)
 	// get
 	resp, err := client.GetBucketRetentionWithContext(context.Background(), &s3.GetBucketRetentionInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(retentionBucket),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*resp.RetentionConfiguration.Rule.Status, Equals, "Enabled")
@@ -1061,7 +1061,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketRetentionWithContext(c *C) {
 	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
 	defer cancelFunc()
 	_, err = client.PutBucketRetentionWithContext(ctx, &s3.PutBucketRetentionInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(retentionBucket),
 		RetentionConfiguration: &s3.BucketRetentionConfiguration{
 			Rule: &s3.RetentionRule{
 				Status: aws.String("Enabled"),
@@ -1072,7 +1072,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketRetentionWithContext(c *C) {
 	c.Assert(err, NotNil)
 	// get
 	resp, err = client.GetBucketRetentionWithContext(context.Background(), &s3.GetBucketRetentionInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(retentionBucket),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*resp.RetentionConfiguration.Rule.Status, Equals, "Enabled")
@@ -1083,7 +1083,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketRetentionWithContext(c *C) {
 func (s *Ks3utilCommandSuite) TestGetBucketRetentionWithContext(c *C) {
 	// put
 	_, err := client.PutBucketRetentionWithContext(context.Background(), &s3.PutBucketRetentionInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(retentionBucket),
 		RetentionConfiguration: &s3.BucketRetentionConfiguration{
 			Rule: &s3.RetentionRule{
 				Status: aws.String("Enabled"),
@@ -1094,7 +1094,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketRetentionWithContext(c *C) {
 	c.Assert(err, IsNil)
 	// get,不通过context取消
 	resp, err := client.GetBucketRetentionWithContext(context.Background(), &s3.GetBucketRetentionInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(retentionBucket),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*resp.RetentionConfiguration.Rule.Status, Equals, "Enabled")
@@ -1103,7 +1103,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketRetentionWithContext(c *C) {
 	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
 	defer cancelFunc()
 	resp, err = client.GetBucketRetentionWithContext(ctx, &s3.GetBucketRetentionInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(retentionBucket),
 	})
 	c.Assert(err, NotNil)
 }
@@ -1112,7 +1112,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketRetentionWithContext(c *C) {
 func (s *Ks3utilCommandSuite) TestListBucketRetentionWithContext(c *C) {
 	// put
 	_, err := client.PutBucketRetentionWithContext(context.Background(), &s3.PutBucketRetentionInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(retentionBucket),
 		RetentionConfiguration: &s3.BucketRetentionConfiguration{
 			Rule: &s3.RetentionRule{
 				Status: aws.String("Enabled"),
@@ -1123,7 +1123,7 @@ func (s *Ks3utilCommandSuite) TestListBucketRetentionWithContext(c *C) {
 	c.Assert(err, IsNil)
 	// list,不通过context取消
 	resp, err := client.ListRetentionWithContext(context.Background(), &s3.ListRetentionInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(retentionBucket),
 		Prefix: aws.String("test/"),
 	})
 	c.Assert(err, IsNil)
@@ -1132,7 +1132,7 @@ func (s *Ks3utilCommandSuite) TestListBucketRetentionWithContext(c *C) {
 	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
 	defer cancelFunc()
 	resp, err = client.ListRetentionWithContext(ctx, &s3.ListRetentionInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(retentionBucket),
 		Prefix: aws.String("test/"),
 	})
 	c.Assert(err, NotNil)

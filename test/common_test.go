@@ -41,6 +41,7 @@ var (
 	commonNamePrefix        = "go-sdk-test-"
 	testFileDir             = "go-sdk-test-file/"
 	timeout                 = 1 * time.Microsecond
+	retentionBucket         = commonNamePrefix + randLowStr(10)
 )
 
 // SetUpSuite 在测试套件启动前执行一次
