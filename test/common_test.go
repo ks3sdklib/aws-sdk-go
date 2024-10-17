@@ -41,7 +41,6 @@ var (
 	commonNamePrefix        = "go-sdk-test-"
 	testFileDir             = "go-sdk-test-file/"
 	timeout                 = 1 * time.Microsecond
-	retentionBucket         = commonNamePrefix + randLowStr(10)
 )
 
 // SetUpSuite 在测试套件启动前执行一次
@@ -225,6 +224,20 @@ func (s *Ks3utilCommandSuite) DeleteObject(key string, c *C) {
 	_, err := client.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
+	})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) CreateBucket(bucketName string, c *C) {
+	_, err := client.CreateBucket(&s3.CreateBucketInput{
+		Bucket: aws.String(bucketName),
+	})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) DeleteBucket(bucketName string, c *C) {
+	_, err := client.DeleteBucket(&s3.DeleteBucketInput{
+		Bucket: aws.String(bucketName),
 	})
 	c.Assert(err, IsNil)
 }

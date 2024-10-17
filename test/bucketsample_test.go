@@ -330,6 +330,8 @@ func (s *Ks3utilCommandSuite) TestBucketDecompressPolicy(c *C) {
 
 // TestBucketRetention bucket retention
 func (s *Ks3utilCommandSuite) TestBucketRetention(c *C) {
+	retentionBucket := commonNamePrefix + randLowStr(10)
+	s.CreateBucket(retentionBucket, c)
 	_, err := client.PutBucketRetention(&s3.PutBucketRetentionInput{
 		Bucket: aws.String(retentionBucket),
 		RetentionConfiguration: &s3.BucketRetentionConfiguration{
@@ -352,6 +354,7 @@ func (s *Ks3utilCommandSuite) TestBucketRetention(c *C) {
 		Bucket: aws.String(retentionBucket),
 	})
 	c.Assert(err, IsNil)
+	s.DeleteBucket(retentionBucket, c)
 }
 
 // TestBucketReplication bucket replication

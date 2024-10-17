@@ -1039,6 +1039,8 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketReplicationWithContext(c *C) {
 
 // PUT Bucket Retention
 func (s *Ks3utilCommandSuite) TestPutBucketRetentionWithContext(c *C) {
+	retentionBucket := commonNamePrefix + randLowStr(10)
+	s.CreateBucket(retentionBucket, c)
 	// put,不通过context取消
 	_, err := client.PutBucketRetentionWithContext(context.Background(), &s3.PutBucketRetentionInput{
 		Bucket: aws.String(bucket),
@@ -1077,10 +1079,13 @@ func (s *Ks3utilCommandSuite) TestPutBucketRetentionWithContext(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(*resp.RetentionConfiguration.Rule.Status, Equals, "Enabled")
 	c.Assert(*resp.RetentionConfiguration.Rule.Days, Equals, int64(30))
+	s.DeleteBucket(retentionBucket, c)
 }
 
 // GET Bucket Retention
 func (s *Ks3utilCommandSuite) TestGetBucketRetentionWithContext(c *C) {
+	retentionBucket := commonNamePrefix + randLowStr(10)
+	s.CreateBucket(retentionBucket, c)
 	// put
 	_, err := client.PutBucketRetentionWithContext(context.Background(), &s3.PutBucketRetentionInput{
 		Bucket: aws.String(retentionBucket),
@@ -1106,10 +1111,13 @@ func (s *Ks3utilCommandSuite) TestGetBucketRetentionWithContext(c *C) {
 		Bucket: aws.String(retentionBucket),
 	})
 	c.Assert(err, NotNil)
+	s.DeleteBucket(retentionBucket, c)
 }
 
 // List Retention
 func (s *Ks3utilCommandSuite) TestListBucketRetentionWithContext(c *C) {
+	retentionBucket := commonNamePrefix + randLowStr(10)
+	s.CreateBucket(retentionBucket, c)
 	// put
 	_, err := client.PutBucketRetentionWithContext(context.Background(), &s3.PutBucketRetentionInput{
 		Bucket: aws.String(retentionBucket),
@@ -1136,6 +1144,7 @@ func (s *Ks3utilCommandSuite) TestListBucketRetentionWithContext(c *C) {
 		Prefix: aws.String("test/"),
 	})
 	c.Assert(err, NotNil)
+	s.DeleteBucket(retentionBucket, c)
 }
 
 // PUT Bucket Inventory
