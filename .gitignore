@@ -2,3 +2,4 @@ vendor
 doc
 .idea/
 .DS_Store
+go-sdk-test*

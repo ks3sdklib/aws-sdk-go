@@ -1,13 +1,11 @@
 package query
 
 import (
-	"bytes"
 	"encoding/xml"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
-	"golang.org/x/net/html"
 	"io"
-	"strings"
+	"regexp"
 )
 
 type XmlErrorResponse struct {
@@ -31,19 +29,17 @@ func UnmarshalError(r *aws.Request) {
 	}
 
 	// 如果响应类型是html，则解析html文本
-	if strings.Contains(r.HTTPResponse.Header.Get("Content-Type"), "html") {
-		// 解析HTML文本
-		doc, err := html.Parse(bytes.NewReader(body))
-		if err != nil {
-			r.Error = apierr.New("Unmarshal", "failed to parse html", err)
-			return
+	if r.HTTPResponse.Header.Get("Content-Type") == "text/html" {
+		// 获取HTML文本中title标签的内容
+		re := regexp.MustCompile(`<title>(.*?)</title>`)
+		matches := re.FindStringSubmatch(string(body))
+
+		title := ""
+		if len(matches) > 1 {
+			title = matches[1]
 		}
-		title := findTitle(doc)
-		r.Error = apierr.NewRequestError(
-			apierr.New(title, "", nil),
-			r.HTTPResponse.StatusCode,
-			"",
-		)
+
+		r.Error = apierr.NewRequestError(apierr.New(title, "", nil), r.HTTPResponse.StatusCode, "")
 		return
 	}
 
@@ -52,7 +48,7 @@ func UnmarshalError(r *aws.Request) {
 
 	// head请求无法从body中获取request id，如果是head请求，则从header中获取
 	if resp.RequestID == "" && r.HTTPRequest.Method == "HEAD" {
-		resp.RequestID = r.HTTPResponse.Header.Get("X-KSS-Request-Id")
+		resp.RequestID = r.HTTPResponse.Header.Get("X-Kss-Request-Id")
 	}
 
 	if err != nil && err != io.EOF {
@@ -64,22 +60,4 @@ func UnmarshalError(r *aws.Request) {
 			resp.RequestID,
 		)
 	}
-}
-
-// findTitle 提取HTML文档中<title>标签的内容
-func findTitle(doc *html.Node) string {
-	var title string
-
-	var traverse func(*html.Node)
-	traverse = func(n *html.Node) {
-		if n.Type == html.ElementNode && n.Data == "title" && n.FirstChild != nil {
-			title = n.FirstChild.Data
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			traverse(c)
-		}
-	}
-
-	traverse(doc)
-	return title
 }
