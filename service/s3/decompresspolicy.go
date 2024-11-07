@@ -54,7 +54,7 @@ type metadataPutBucketDecompressPolicyInput struct {
 }
 
 type BucketDecompressPolicy struct {
-	Rules []*DecompressPolicyRule `json:"rules,omitempty" type:"list" locationName:"rules"  required:"true"`
+	Rules []*DecompressPolicyRule `json:"rules,omitempty" type:"list" locationName:"rules" required:"true"`
 }
 
 type DecompressPolicyRule struct {
@@ -105,7 +105,7 @@ type DecompressPolicyRule struct {
 }
 
 type PutBucketDecompressPolicyOutput struct {
-	Metadata map[string]*string `location:"headers"  type:"map"`
+	Metadata map[string]*string `location:"headers" type:"map"`
 
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
@@ -156,14 +156,14 @@ type GetBucketDecompressPolicyInput struct {
 type GetBucketDecompressPolicyOutput struct {
 	BucketDecompressPolicy *BucketDecompressPolicy `locationName:"BucketDecompressPolicy" type:"structure"`
 
-	Metadata map[string]*string `location:"headers"  type:"map"`
+	Metadata map[string]*string `location:"headers" type:"map"`
 
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 
-	metadataGetBucketDecompressPolicyInput `json:"-" xml:"-"`
+	metadataGetBucketDecompressPolicyOutput `json:"-" xml:"-"`
 }
 
-type metadataGetBucketDecompressPolicyInput struct {
+type metadataGetBucketDecompressPolicyOutput struct {
 	SDKShapeTraits bool `type:"structure" payload:"BucketDecompressPolicy"`
 }
 
@@ -207,7 +207,7 @@ type DeleteBucketDecompressPolicyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 }
 type DeleteBucketDecompressPolicyOutput struct {
-	Metadata map[string]*string `location:"headers"  type:"map"`
+	Metadata map[string]*string `location:"headers" type:"map"`
 
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }

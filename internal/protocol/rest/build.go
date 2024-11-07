@@ -75,6 +75,8 @@ func buildLocationElements(r *aws.Request, v reflect.Value) {
 				buildURI(r, m, name)
 			case "querystring":
 				buildQueryString(r, m, name, query)
+			case "parameters":
+				buildParameters(r, m, query)
 			}
 		}
 		if r.Error != nil {
@@ -149,6 +151,19 @@ func buildQueryString(r *aws.Request, v reflect.Value, name string, query url.Va
 		r.Error = apierr.New("Marshal", "failed to encode REST request", err)
 	} else if str != nil {
 		query.Set(name, *str)
+	} else if str == nil {
+		query.Set(name, "")
+	}
+}
+
+func buildParameters(r *aws.Request, v reflect.Value, query url.Values) {
+	for _, key := range v.MapKeys() {
+		str, err := convertType(v.MapIndex(key))
+		if err != nil {
+			r.Error = apierr.New("Marshal", "failed to encode REST request", err)
+		} else {
+			buildQueryString(r, reflect.ValueOf(str), key.String(), query)
+		}
 	}
 }
 
@@ -230,7 +245,7 @@ func convertType(v reflect.Value) (*string, error) {
 	case time.Time:
 		str = value.UTC().Format(RFC822)
 	default:
-		err := fmt.Errorf("Unsupported value for param %v (%s)", v.Interface(), v.Type())
+		err := fmt.Errorf("unsupported value for param %v (%s)", v.Interface(), v.Type())
 		return nil, err
 	}
 	return &str, nil

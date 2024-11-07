@@ -5,7 +5,6 @@ import (
 	"context"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
-	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3util"
 	. "gopkg.in/check.v1"
 	"io"
 	"os"
@@ -63,34 +62,34 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithSSE_C(c *C) {
 		Key:                  aws.String(object),
 		Body:                 fd,
 		SSECustomerAlgorithm: aws.String("AES256"),
-		SSECustomerKey:       aws.String(s3util.GetBase64Str(customerKey)),
-		SSECustomerKeyMD5:    aws.String(s3util.GetBase64MD5Str(customerKey)),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*sseResp.SSECustomerAlgorithm, Equals, "AES256")
-	c.Assert(*sseResp.SSECustomerKeyMD5, Equals, s3util.GetBase64MD5Str(customerKey))
+	c.Assert(*sseResp.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
 	// head
 	headResp, err := client.HeadObjectWithContext(context.Background(), &s3.HeadObjectInput{
 		Bucket:               aws.String(bucket),
 		Key:                  aws.String(object),
 		SSECustomerAlgorithm: aws.String("AES256"),
-		SSECustomerKey:       aws.String(s3util.GetBase64Str(customerKey)),
-		SSECustomerKeyMD5:    aws.String(s3util.GetBase64MD5Str(customerKey)),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*headResp.SSECustomerAlgorithm, Equals, "AES256")
-	c.Assert(*sseResp.SSECustomerKeyMD5, Equals, s3util.GetBase64MD5Str(customerKey))
+	c.Assert(*sseResp.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
 	// get
 	getResp, err := client.GetObjectWithContext(context.Background(), &s3.GetObjectInput{
 		Bucket:               aws.String(bucket),
 		Key:                  aws.String(object),
 		SSECustomerAlgorithm: aws.String("AES256"),
-		SSECustomerKey:       aws.String(s3util.GetBase64Str(customerKey)),
-		SSECustomerKeyMD5:    aws.String(s3util.GetBase64MD5Str(customerKey)),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*getResp.SSECustomerAlgorithm, Equals, "AES256")
-	c.Assert(*sseResp.SSECustomerKeyMD5, Equals, s3util.GetBase64MD5Str(customerKey))
+	c.Assert(*sseResp.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
 	// delete
 	_, err = client.DeleteObjectWithContext(context.Background(), &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
@@ -159,12 +158,12 @@ func (s *Ks3utilCommandSuite) TestCopyObjectWithSSE_C(c *C) {
 		Key:                  aws.String(dstObject),
 		CopySource:           aws.String("/" + bucket + "/" + object),
 		SSECustomerAlgorithm: aws.String("AES256"),
-		SSECustomerKey:       aws.String(s3util.GetBase64Str(customerKey)),
-		SSECustomerKeyMD5:    aws.String(s3util.GetBase64MD5Str(customerKey)),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*copyResp.SSECustomerAlgorithm, Equals, "AES256")
-	c.Assert(*copyResp.SSECustomerKeyMD5, Equals, s3util.GetBase64MD5Str(customerKey))
+	c.Assert(*copyResp.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
 	// delete
 	_, err = client.DeleteObjectWithContext(context.Background(), &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
@@ -196,10 +195,9 @@ func (s *Ks3utilCommandSuite) TestMultipartUploadWithSSE_S3(c *C) {
 	c.Assert(*initRet.ServerSideEncryption, Equals, "AES256")
 	// 获取分块上传Id
 	uploadId := *initRet.UploadID
-	var i int64 = 1
+	var partNum int64 = 1
 	// 待合并分块
-	compParts := []*s3.CompletedPart{}
-	partsNum := []int64{0}
+	var compParts []*s3.CompletedPart
 	// 缓冲区，分块大小为5MB
 	buffer := make([]byte, 5*1024*1024)
 	for {
@@ -213,15 +211,14 @@ func (s *Ks3utilCommandSuite) TestMultipartUploadWithSSE_S3(c *C) {
 			resp, err := client.UploadPartWithContext(context.Background(), &s3.UploadPartInput{
 				Bucket:     aws.String(bucket),
 				Key:        aws.String(object),
-				PartNumber: aws.Long(i),
+				PartNumber: aws.Long(partNum),
 				UploadID:   aws.String(uploadId),
 				Body:       bytes.NewReader(buffer[:n]),
 			})
 			c.Assert(err, IsNil)
 			c.Assert(*resp.ServerSideEncryption, Equals, "AES256")
-			partsNum = append(partsNum, i)
-			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
-			i++
+			compParts = append(compParts, &s3.CompletedPart{PartNumber: aws.Long(partNum), ETag: resp.ETag})
+			partNum++
 		}
 	}
 	// complete
@@ -256,18 +253,17 @@ func (s *Ks3utilCommandSuite) TestMultipartUploadWithSSE_C(c *C) {
 		Bucket:               aws.String(bucket),
 		Key:                  aws.String(object),
 		SSECustomerAlgorithm: aws.String("AES256"),
-		SSECustomerKey:       aws.String(s3util.GetBase64Str(customerKey)),
-		SSECustomerKeyMD5:    aws.String(s3util.GetBase64MD5Str(customerKey)),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*initRet.SSECustomerAlgorithm, Equals, "AES256")
-	c.Assert(*initRet.SSECustomerKeyMD5, Equals, s3util.GetBase64MD5Str(customerKey))
+	c.Assert(*initRet.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
 	// 获取分块上传Id
 	uploadId := *initRet.UploadID
-	var i int64 = 1
+	var partNum int64 = 1
 	// 待合并分块
-	compParts := []*s3.CompletedPart{}
-	partsNum := []int64{0}
+	var compParts []*s3.CompletedPart
 	// 缓冲区，分块大小为5MB
 	buffer := make([]byte, 5*1024*1024)
 	for {
@@ -281,19 +277,18 @@ func (s *Ks3utilCommandSuite) TestMultipartUploadWithSSE_C(c *C) {
 			resp, err := client.UploadPartWithContext(context.Background(), &s3.UploadPartInput{
 				Bucket:               aws.String(bucket),
 				Key:                  aws.String(object),
-				PartNumber:           aws.Long(i),
+				PartNumber:           aws.Long(partNum),
 				UploadID:             aws.String(uploadId),
 				Body:                 bytes.NewReader(buffer[:n]),
 				SSECustomerAlgorithm: aws.String("AES256"),
-				SSECustomerKey:       aws.String(s3util.GetBase64Str(customerKey)),
-				SSECustomerKeyMD5:    aws.String(s3util.GetBase64MD5Str(customerKey)),
+				SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+				SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
 			})
 			c.Assert(err, IsNil)
 			c.Assert(*resp.SSECustomerAlgorithm, Equals, "AES256")
-			c.Assert(*resp.SSECustomerKeyMD5, Equals, s3util.GetBase64MD5Str(customerKey))
-			partsNum = append(partsNum, i)
-			compParts = append(compParts, &s3.CompletedPart{PartNumber: &partsNum[i], ETag: resp.ETag})
-			i++
+			c.Assert(*resp.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
+			compParts = append(compParts, &s3.CompletedPart{PartNumber: aws.Long(partNum), ETag: resp.ETag})
+			partNum++
 		}
 	}
 	// complete
@@ -307,7 +302,7 @@ func (s *Ks3utilCommandSuite) TestMultipartUploadWithSSE_C(c *C) {
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*comResp.SSECustomerAlgorithm, Equals, "AES256")
-	c.Assert(*comResp.SSECustomerKeyMD5, Equals, s3util.GetBase64MD5Str(customerKey))
+	c.Assert(*comResp.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
 	// delete
 	_, err = client.DeleteObjectWithContext(context.Background(), &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
@@ -369,34 +364,34 @@ func (s *Ks3utilCommandSuite) TestAppendObjectWithSSE_C(c *C) {
 		Position:             aws.Long(0),
 		Body:                 fd,
 		SSECustomerAlgorithm: aws.String("AES256"),
-		SSECustomerKey:       aws.String(s3util.GetBase64Str(customerKey)),
-		SSECustomerKeyMD5:    aws.String(s3util.GetBase64MD5Str(customerKey)),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*sseResp.SSECustomerAlgorithm, Equals, "AES256")
-	c.Assert(*sseResp.SSECustomerKeyMD5, Equals, s3util.GetBase64MD5Str(customerKey))
+	c.Assert(*sseResp.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
 	// head
 	headResp, err := client.HeadObjectWithContext(context.Background(), &s3.HeadObjectInput{
 		Bucket:               aws.String(bucket),
 		Key:                  aws.String(object),
 		SSECustomerAlgorithm: aws.String("AES256"),
-		SSECustomerKey:       aws.String(s3util.GetBase64Str(customerKey)),
-		SSECustomerKeyMD5:    aws.String(s3util.GetBase64MD5Str(customerKey)),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*headResp.SSECustomerAlgorithm, Equals, "AES256")
-	c.Assert(*sseResp.SSECustomerKeyMD5, Equals, s3util.GetBase64MD5Str(customerKey))
+	c.Assert(*sseResp.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
 	// get
 	getResp, err := client.GetObjectWithContext(context.Background(), &s3.GetObjectInput{
 		Bucket:               aws.String(bucket),
 		Key:                  aws.String(object),
 		SSECustomerAlgorithm: aws.String("AES256"),
-		SSECustomerKey:       aws.String(s3util.GetBase64Str(customerKey)),
-		SSECustomerKeyMD5:    aws.String(s3util.GetBase64MD5Str(customerKey)),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*getResp.SSECustomerAlgorithm, Equals, "AES256")
-	c.Assert(*sseResp.SSECustomerKeyMD5, Equals, s3util.GetBase64MD5Str(customerKey))
+	c.Assert(*sseResp.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
 	// delete
 	_, err = client.DeleteObjectWithContext(context.Background(), &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),

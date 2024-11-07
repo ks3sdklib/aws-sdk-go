@@ -1,4 +1,4 @@
-package s3util
+package s3
 
 import (
 	"crypto/md5"
@@ -55,4 +55,42 @@ func BuildCopySource(bucket *string, key *string) string {
 		return ""
 	}
 	return "/" + *bucket + "/" + url.QueryEscape(*key)
+}
+
+// GetAcl 获取对象的访问控制权限
+func GetAcl(resp GetObjectACLOutput) CannedAccessControlType {
+	allUsersPermissions := map[string]*string{}
+	for _, value := range resp.Grants {
+		if value.Grantee.URI != nil && *value.Grantee.URI == AllUsersUri {
+			allUsersPermissions[*value.Permission] = value.Permission
+		}
+	}
+	_, read := allUsersPermissions["READ"]
+	_, write := allUsersPermissions["WRITE"]
+	if read && write {
+		return PublicReadWrite
+	} else if read {
+		return PublicRead
+	} else {
+		return Private
+	}
+}
+
+// GetBucketAcl 获取存储空间的访问控制权限
+func GetBucketAcl(resp GetBucketACLOutput) CannedAccessControlType {
+	allUsersPermissions := map[string]*string{}
+	for _, value := range resp.Grants {
+		if value.Grantee.URI != nil && *value.Grantee.URI == AllUsersUri {
+			allUsersPermissions[*value.Permission] = value.Permission
+		}
+	}
+	_, read := allUsersPermissions["READ"]
+	_, write := allUsersPermissions["WRITE"]
+	if read && write {
+		return PublicReadWrite
+	} else if read {
+		return PublicRead
+	} else {
+		return Private
+	}
 }

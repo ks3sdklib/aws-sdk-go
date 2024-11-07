@@ -59,6 +59,14 @@ var signQuerys = map[string]bool{
 	"append":                       true,
 	"position":                     true,
 	"decompresspolicy":             true,
+	"retention":                    true,
+	"crr":                          true,
+	"inventory":                    true,
+	"recycle":                      true,
+	"recover":                      true,
+	"clear":                        true,
+	"id":                           true,
+	"continuation-token":           true,
 }
 
 type signer struct {

@@ -5,8 +5,8 @@ package s3
 import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/body"
-	v2 "github.com/ks3sdklib/aws-sdk-go/internal/signer/v2"
-	v4 "github.com/ks3sdklib/aws-sdk-go/internal/signer/v4"
+	"github.com/ks3sdklib/aws-sdk-go/internal/signer/v2"
+	"github.com/ks3sdklib/aws-sdk-go/internal/signer/v4"
 	"strings"
 )
 
@@ -19,13 +19,7 @@ type S3 struct {
 var initService func(*aws.Service)
 
 // Used for custom request initialization logic
-var initRequest = func(r *aws.Request) {
-	switch r.Operation.Name {
-	case "GetBucketLocation":
-		// GetBucketLocation has custom parsing logic
-		r.Handlers.Unmarshal.PushFront(buildGetBucketLocation)
-	}
-}
+var initRequest func(*aws.Request)
 
 // New returns a new S3 client.
 func New(config *aws.Config) *S3 {
