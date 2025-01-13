@@ -11,9 +11,27 @@ func String(v string) *string {
 	return &v
 }
 
+// ToString converts a string pointer into a string.
+func ToString(p *string) (v string) {
+	if p == nil {
+		return v
+	}
+
+	return *p
+}
+
 // Boolean converts a Go bool into a boolean pointer.
 func Boolean(v bool) *bool {
 	return &v
+}
+
+// ToBoolean converts a boolean pointer into a bool.
+func ToBoolean(p *bool) (v bool) {
+	if p == nil {
+		return v
+	}
+
+	return *p
 }
 
 // Long converts a Go int64 into a long pointer.
@@ -21,9 +39,27 @@ func Long(v int64) *int64 {
 	return &v
 }
 
+// ToLong converts a long pointer into a int64.
+func ToLong(p *int64) (v int64) {
+	if p == nil {
+		return v
+	}
+
+	return *p
+}
+
 // Double converts a Go float64 into a double pointer.
 func Double(v float64) *float64 {
 	return &v
+}
+
+// ToDouble converts a double pointer into a float64.
+func ToDouble(p *float64) (v float64) {
+	if p == nil {
+		return v
+	}
+
+	return *p
 }
 
 // Time converts a Go Time into a Time pointer

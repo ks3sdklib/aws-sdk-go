@@ -1442,7 +1442,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketACLWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(s3.GetBucketAcl(*resp), Equals, s3.PublicRead)
+	c.Assert(s3.GetBucketAcl(*resp), Equals, s3.ACLPublicRead)
 	// put,通过context取消
 	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
 	defer cancelFunc()
@@ -1455,7 +1455,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketACLWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(s3.GetBucketAcl(*resp), Equals, s3.PublicRead)
+	c.Assert(s3.GetBucketAcl(*resp), Equals, s3.ACLPublicRead)
 }
 
 // GET Bucket ACL
@@ -1471,7 +1471,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketACLWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(s3.GetBucketAcl(*resp), Equals, s3.PublicRead)
+	c.Assert(s3.GetBucketAcl(*resp), Equals, s3.ACLPublicRead)
 	// get,通过context取消
 	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
 	defer cancelFunc()

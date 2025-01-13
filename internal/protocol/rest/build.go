@@ -128,7 +128,11 @@ func buildHeaderMap(r *aws.Request, v reflect.Value, prefix string) {
 		if err != nil {
 			r.Error = apierr.New("Marshal", "failed to encode REST request", err)
 		} else if str != nil {
-			r.HTTPRequest.Header.Add(prefix+key.String(), *str)
+			if strings.HasPrefix(strings.ToLower(key.String()), strings.ToLower(prefix)) {
+				r.HTTPRequest.Header.Add(key.String(), *str)
+			} else {
+				r.HTTPRequest.Header.Add(prefix+key.String(), *str)
+			}
 		}
 	}
 }

@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -2324,6 +2325,9 @@ type CompleteMultipartUploadInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Specifies whether the object is forbidden to overwrite.
+	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
+
 	metadataCompleteMultipartUploadInput `json:"-" xml:"-"`
 }
 
@@ -2344,6 +2348,8 @@ type CompleteMultipartUploadOutput struct {
 	Key *string `type:"string"`
 
 	Location *string `type:"string"`
+
+	ChecksumCRC64ECMA *string `type:"string"`
 
 	// If present, indicates that the requester was successfully charged for the
 	// request.
@@ -2550,9 +2556,19 @@ type CopyObjectInput struct {
 	// the value of this header in the object metadata.
 	WebsiteRedirectLocation *string `location:"header" locationName:"x-amz-website-redirect-location" type:"string"`
 
-	XAmzTaggingDirective *string `location:"header" locationName:"x-kss-tagging-Directive" type:"string"`
+	// Specifies the object tag of the object. Multiple tags can be set at the same time, such as: TagA=A&TagB=B.
+	// Note: Key and Value need to be URL-encoded first. If an item does not have "=", the Value is considered to be an empty string.
+	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
 
-	XAmzTagging *string `location:"header" locationName:"x-kss-tagging" type:"string"`
+	// Specifies how to set the object tag of the target object.
+	// Default value: COPY
+	// Valid values:
+	// COPY (default value): Copies the object tag of the source object to the target object.
+	// REPLACE: Ignores the object tag of the source object and directly uses the object tag specified in the request.
+	TaggingDirective *string `location:"header" locationName:"x-amz-tagging-directive" type:"string"`
+
+	// Specifies whether the object is forbidden to overwrite.
+	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
 
 	metadataCopyObjectInput `json:"-" xml:"-"`
 }
@@ -2607,6 +2623,9 @@ type CopyObjectResult struct {
 
 	LastModified *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
+	// CRC64 value of a single part
+	ChecksumCRC64ECMA *string `type:"string"`
+
 	metadataCopyObjectResult `json:"-" xml:"-"`
 }
 
@@ -2620,6 +2639,9 @@ type CopyPartResult struct {
 
 	// Date and time at which the object was uploaded.
 	LastModified *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// CRC64 value of a single part
+	ChecksumCRC64ECMA *string `type:"string"`
 
 	metadataCopyPartResult `json:"-" xml:"-"`
 }
@@ -2695,7 +2717,9 @@ type CreateMultipartUploadInput struct {
 	// The canned ACL to apply to the object.
 	ACL *string `location:"header" locationName:"x-amz-acl" type:"string"`
 
-	XAmzTagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
+	// Specifies the object tag of the object. Multiple tags can be set at the same time, such as: TagA=A&TagB=B.
+	// Note: Key and Value need to be URL-encoded first. If an item does not have "=", the Value is considered to be an empty string.
+	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
 
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -2775,6 +2799,9 @@ type CreateMultipartUploadInput struct {
 	// to another object in the same bucket or to an external URL. Amazon S3 stores
 	// the value of this header in the object metadata.
 	WebsiteRedirectLocation *string `location:"header" locationName:"x-amz-website-redirect-location" type:"string"`
+
+	// Specifies whether the object is forbidden to overwrite.
+	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
 
 	metadataCreateMultipartUploadInput `json:"-" xml:"-"`
 }
@@ -3438,6 +3465,14 @@ type GetObjectInput struct {
 
 	// Sets the Expires header of the response.
 	ResponseExpires *time.Time `location:"querystring" locationName:"response-expires" type:"timestamp" timestampFormat:"iso8601"`
+
+	// Specify the encoding type of the client.
+	// If you want to compress and transmit the returned content using gzip,
+	// you need to add a request header: Accept-Encoding:gzip。
+	// KS3 will determine whether to return gzip compressed data based on the
+	// Content-Type and Object size (not less than 1 KB) of the object.
+	// Value: gzip、br、deflate
+	AcceptEncoding *string `location:"header" locationName:"Accept-Encoding" type:"string"`
 
 	// Specifies the algorithm to use to when encrypting the object (e.g., AES256,
 	// aws:kms).
@@ -4768,7 +4803,13 @@ type PutObjectInput struct {
 	// A map of metadata to store with the object in S3.
 	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
 
-	XAmzTagging *string `location:"header" locationName:"X-Amz-Tagging" type:"string"`
+	// Specifies the object tag of the object. Multiple tags can be set at the same time, such as: TagA=A&TagB=B.
+	// Note: Key and Value need to be URL-encoded first. If an item does not have "=", the Value is considered to be an empty string.
+	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
+
+	// Specifies whether the object is forbidden to overwrite.
+	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
+
 	// Confirms that the requester knows that she or he will be charged for the
 	// request. Bucket owners need not specify this parameter in their requests.
 	// Documentation on downloading objects from requester pays buckets can be found
@@ -5147,6 +5188,27 @@ type Tagging struct {
 	TagSet []*Tag `locationNameList:"Tag" type:"list" required:"true"`
 
 	metadataTagging `json:"-" xml:"-"`
+}
+
+func (t *Tagging) ToString() string {
+	if t == nil || t.TagSet == nil || len(t.TagSet) == 0 {
+		return ""
+	}
+
+	var builder strings.Builder
+	for i := 0; i < len(t.TagSet); i++ {
+		if i > 0 {
+			builder.WriteString("&")
+		}
+		tag := t.TagSet[i]
+		encodedKey := url.QueryEscape(aws.ToString(tag.Key))
+		encodedValue := url.QueryEscape(aws.ToString(tag.Value))
+		builder.WriteString(encodedKey)
+		builder.WriteString("=")
+		builder.WriteString(encodedValue)
+	}
+
+	return builder.String()
 }
 
 type metadataTagging struct {
@@ -5809,7 +5871,9 @@ type FetchObjectInput struct {
 	// the value of this header in the object metadata.
 	WebsiteRedirectLocation *string `location:"header" locationName:"x-amz-website-redirect-location" type:"string"`
 
-	XAmzTagging *string `location:"header" locationName:"X-Amz-Tagging" type:"string"`
+	// Specifies the object tag of the object. Multiple tags can be set at the same time, such as: TagA=A&TagB=B.
+	// Note: Key and Value need to be URL-encoded first. If an item does not have "=", the Value is considered to be an empty string.
+	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
 
 	metadataFetchObjectInput `json:"-" xml:"-"`
 }

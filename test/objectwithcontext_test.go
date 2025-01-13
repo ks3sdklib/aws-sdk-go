@@ -1197,7 +1197,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectACLWithContext(c *C) {
 		Key:    aws.String(object),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(s3.GetAcl(*resp), Equals, s3.Private)
+	c.Assert(s3.GetObjectAcl(*resp), Equals, s3.ACLPrivate)
 	// put acl，通过context取消
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Microsecond*10)
 	defer cancelFunc()
@@ -1213,7 +1213,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectACLWithContext(c *C) {
 		Key:    aws.String(object),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(s3.GetAcl(*resp), Equals, s3.Private)
+	c.Assert(s3.GetObjectAcl(*resp), Equals, s3.ACLPrivate)
 	// put acl，不通过context取消
 	_, err = client.PutObjectACLWithContext(context.Background(), &s3.PutObjectACLInput{
 		Bucket: aws.String(bucket),
@@ -1227,7 +1227,7 @@ func (s *Ks3utilCommandSuite) TestPutObjectACLWithContext(c *C) {
 		Key:    aws.String(object),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(s3.GetAcl(*resp), Equals, s3.PublicRead)
+	c.Assert(s3.GetObjectAcl(*resp), Equals, s3.ACLPublicRead)
 	// delete
 	_, err = client.DeleteObjectWithContext(context.Background(), &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
@@ -1264,7 +1264,7 @@ func (s *Ks3utilCommandSuite) TestGetObjectACLWithContext(c *C) {
 		Key:    aws.String(object),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(s3.GetAcl(*resp), Equals, s3.PublicRead)
+	c.Assert(s3.GetObjectAcl(*resp), Equals, s3.ACLPublicRead)
 	// delete
 	_, err = client.DeleteObjectWithContext(context.Background(), &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),

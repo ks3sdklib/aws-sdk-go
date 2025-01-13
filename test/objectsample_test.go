@@ -36,7 +36,7 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 	v := url.Values{}
 	v.Add("name", "yz")
 	v.Add("age", "11")
-	XAmzTagging := v.Encode()
+	Tagging := v.Encode()
 
 	object := randLowStr(10)
 	createFile(object, 1024*1024*1)
@@ -48,7 +48,7 @@ func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 		ACL:         aws.String("private"),
 		Body:        fd,
 		ContentType: aws.String("application/octet-stream"),
-		XAmzTagging: aws.String(XAmzTagging),
+		Tagging:     aws.String(Tagging),
 		ContentMD5:  aws.String(md5),
 	})
 	c.Assert(err, IsNil)
@@ -175,7 +175,7 @@ func (s *Ks3utilCommandSuite) TestGetObjectAcl(c *C) {
 		Key:    aws.String(key),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(s3.GetAcl(*resp), Equals, s3.PublicRead)
+	c.Assert(s3.GetObjectAcl(*resp), Equals, s3.ACLPublicRead)
 }
 
 // TestPutObjectAcl 设置对象Acl
@@ -196,7 +196,7 @@ func (s *Ks3utilCommandSuite) TestCopyObject(c *C) {
 	v := url.Values{}
 	v.Add("school", "yz")
 	v.Add("class", "11")
-	XAmzTagging := v.Encode()
+	Tagging := v.Encode()
 
 	//设置对象元素头
 	metadata := make(map[string]*string)
@@ -204,13 +204,13 @@ func (s *Ks3utilCommandSuite) TestCopyObject(c *C) {
 	metadata["yourmetakey2"] = aws.String("yourmetavalue2")
 
 	_, err := client.CopyObject(&s3.CopyObjectInput{
-		Bucket:               aws.String(bucket),
-		Key:                  aws.String("copy_" + key),
-		CopySource:           aws.String("/" + bucket + "/" + key),
-		MetadataDirective:    aws.String("REPLACE"),
-		Metadata:             metadata,
-		XAmzTagging:          aws.String(XAmzTagging),
-		XAmzTaggingDirective: aws.String("REPLACE"),
+		Bucket:            aws.String(bucket),
+		Key:               aws.String("copy_" + key),
+		CopySource:        aws.String("/" + bucket + "/" + key),
+		MetadataDirective: aws.String("REPLACE"),
+		Metadata:          metadata,
+		Tagging:           aws.String(Tagging),
+		TaggingDirective:  aws.String("REPLACE"),
 	})
 	c.Assert(err, IsNil)
 }
@@ -387,17 +387,17 @@ func (s *Ks3utilCommandSuite) TestHeadObject(c *C) {
 	v := url.Values{}
 	v.Add("name", "yz")
 	v.Add("age", "11")
-	XAmzTagging := v.Encode()
+	Tagging := v.Encode()
 
 	object := randLowStr(10)
 	createFile(object, 1024*1024*1)
 	fd, _ := os.Open(content)
 	resp, err := client.PutObject(&s3.PutObjectInput{
-		Bucket:      aws.String(bucket),
-		Key:         aws.String(key),
-		ACL:         aws.String("public-read"),
-		Body:        fd,
-		XAmzTagging: aws.String(XAmzTagging),
+		Bucket:  aws.String(bucket),
+		Key:     aws.String(key),
+		ACL:     aws.String("public-read"),
+		Body:    fd,
+		Tagging: aws.String(Tagging),
 	})
 	c.Assert(err, IsNil)
 	os.Remove(object)
@@ -987,6 +987,338 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartCopy(c *C) {
 	headResp, err := http.DefaultClient.Do(headRequest)
 	c.Assert(err, IsNil)
 	c.Assert(headResp.StatusCode, Equals, 200)
+
+	os.Remove(object)
+}
+
+func (s *Ks3utilCommandSuite) TestUploadFile(c *C) {
+	object := randLowStr(10)
+	createFile(object, 1024*1024*10)
+	// 高级上传
+	_, err := client.UploadFile(&s3.UploadFileInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		UploadFile: aws.String(object),
+	})
+	c.Assert(err, IsNil)
+
+	// 高级上传，设置块大小
+	_, err = client.UploadFile(&s3.UploadFileInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		UploadFile: aws.String(object),
+		PartSize:   aws.Long(20 * 1024 * 1024),
+	})
+	c.Assert(err, IsNil)
+
+	// 高级上传，开启断点续传
+	_, err = client.UploadFile(&s3.UploadFileInput{
+		Bucket:           aws.String(bucket),
+		Key:              aws.String(object),
+		UploadFile:       aws.String(object),
+		EnableCheckpoint: aws.Boolean(true),
+		CheckpointDir:    aws.String("./checkpoint/"),
+	})
+	c.Assert(err, IsNil)
+
+	// 高级上传，设置进度回调
+	_, err = client.UploadFile(&s3.UploadFileInput{
+		Bucket:           aws.String(bucket),
+		Key:              aws.String(object),
+		UploadFile:       aws.String(object),
+		EnableCheckpoint: aws.Boolean(true),
+		CheckpointFile:   aws.String(object + s3.CheckpointFileSuffixUploader),
+		PartSize:         aws.Long(1024 * 1024),
+		ProgressFn: func(increment, completed, total int64) {
+			fmt.Printf("percent:%.2f%%\n", float64(completed)/float64(total)*100)
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 高级上传，设置加密
+	_, err = client.UploadFile(&s3.UploadFileInput{
+		Bucket:               aws.String(bucket),
+		Key:                  aws.String(object),
+		UploadFile:           aws.String(object),
+		SSECustomerAlgorithm: aws.String("AES256"),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
+	})
+	c.Assert(err, IsNil)
+
+	os.Remove(object)
+}
+
+func (s *Ks3utilCommandSuite) TestDownloadFile(c *C) {
+	object := randLowStr(10)
+	createFile(object, 1024*1024*10)
+	// 高级上传
+	_, err := client.UploadFile(&s3.UploadFileInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		UploadFile: aws.String(object),
+	})
+	c.Assert(err, IsNil)
+
+	// 高级下载
+	_, err = client.DownloadFile(&s3.DownloadFileInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(object),
+		DownloadFile: aws.String("./" + object),
+	})
+	c.Assert(err, IsNil)
+
+	// 高级下载，开启断点续传
+	_, err = client.DownloadFile(&s3.DownloadFileInput{
+		Bucket:           aws.String(bucket),
+		Key:              aws.String(object),
+		DownloadFile:     aws.String("./" + object),
+		EnableCheckpoint: aws.Boolean(true),
+		CheckpointDir:    aws.String("./checkpoint/"),
+	})
+	c.Assert(err, IsNil)
+
+	// 高级下载，设置进度回调
+	_, err = client.DownloadFile(&s3.DownloadFileInput{
+		Bucket:           aws.String(bucket),
+		Key:              aws.String(object),
+		DownloadFile:     aws.String("./" + object),
+		EnableCheckpoint: aws.Boolean(true),
+		CheckpointFile:   aws.String(object + s3.CheckpointFileSuffixDownloader),
+		ProgressFn: func(increment, completed, total int64) {
+			fmt.Printf("percent:%.2f%%\n", float64(completed)/float64(total)*100)
+		},
+	})
+	c.Assert(err, IsNil)
+
+	s.DeleteObject(object, c)
+
+	// 高级上传，设置加密
+	_, err = client.UploadFile(&s3.UploadFileInput{
+		Bucket:               aws.String(bucket),
+		Key:                  aws.String(object),
+		UploadFile:           aws.String(object),
+		SSECustomerAlgorithm: aws.String("AES256"),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
+	})
+	c.Assert(err, IsNil)
+
+	// 高级下载，下载加密文件
+	_, err = client.DownloadFile(&s3.DownloadFileInput{
+		Bucket:               aws.String(bucket),
+		Key:                  aws.String(object),
+		DownloadFile:         aws.String(object),
+		SSECustomerAlgorithm: aws.String("AES256"),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
+	})
+	c.Assert(err, IsNil)
+
+	s.DeleteObject(object, c)
+	os.Remove(object)
+}
+
+func (s *Ks3utilCommandSuite) TestCopyFile(c *C) {
+	object := randLowStr(10)
+	dstObject := object + "_copy"
+	createFile(object, 1024*1024*10)
+	// 高级上传
+	_, err := client.UploadFile(&s3.UploadFileInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		UploadFile: aws.String(object),
+	})
+	c.Assert(err, IsNil)
+
+	// 高级复制
+	_, err = client.CopyFile(&s3.CopyFileInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(dstObject),
+		SourceBucket: aws.String(bucket),
+		SourceKey:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	s.DeleteObject(dstObject, c)
+
+	// 高级复制，设置分块大小
+	_, err = client.CopyFile(&s3.CopyFileInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(dstObject),
+		SourceBucket: aws.String(bucket),
+		SourceKey:    aws.String(object),
+		PartSize:     aws.Long(20 * 1024 * 1024),
+	})
+	c.Assert(err, IsNil)
+	s.DeleteObject(dstObject, c)
+
+	// 高级复制，开启断点续传
+	_, err = client.CopyFile(&s3.CopyFileInput{
+		Bucket:           aws.String(bucket),
+		Key:              aws.String(dstObject),
+		SourceBucket:     aws.String(bucket),
+		SourceKey:        aws.String(object),
+		EnableCheckpoint: aws.Boolean(true),
+		CheckpointDir:    aws.String("./checkpoint/"),
+	})
+	c.Assert(err, IsNil)
+	s.DeleteObject(dstObject, c)
+
+	// 高级复制，设置进度回调
+	_, err = client.CopyFile(&s3.CopyFileInput{
+		Bucket:           aws.String(bucket),
+		Key:              aws.String(dstObject),
+		SourceBucket:     aws.String(bucket),
+		SourceKey:        aws.String(object),
+		EnableCheckpoint: aws.Boolean(true),
+		CheckpointFile:   aws.String(object + s3.CheckpointFileSuffixCopier),
+		ProgressFn: func(increment, completed, total int64) {
+			fmt.Printf("percent:%.2f%%\n", float64(completed)/float64(total)*100)
+		},
+	})
+	c.Assert(err, IsNil)
+	s.DeleteObject(dstObject, c)
+
+	// 高级复制，设置加密
+	_, err = client.CopyFile(&s3.CopyFileInput{
+		Bucket:               aws.String(bucket),
+		Key:                  aws.String(dstObject),
+		SourceBucket:         aws.String(bucket),
+		SourceKey:            aws.String(object),
+		SSECustomerAlgorithm: aws.String("AES256"),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
+	})
+	c.Assert(err, IsNil)
+	s.DeleteObject(dstObject, c)
+
+	s.DeleteObject(object, c)
+	// 高级上传，设置加密
+	_, err = client.UploadFile(&s3.UploadFileInput{
+		Bucket:               aws.String(bucket),
+		Key:                  aws.String(object),
+		UploadFile:           aws.String(object),
+		SSECustomerAlgorithm: aws.String("AES256"),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
+	})
+	c.Assert(err, IsNil)
+
+	// 高级复制，复制加密文件
+	_, err = client.CopyFile(&s3.CopyFileInput{
+		Bucket:                         aws.String(bucket),
+		Key:                            aws.String(dstObject),
+		SourceBucket:                   aws.String(bucket),
+		SourceKey:                      aws.String(object),
+		CopySourceSSECustomerAlgorithm: aws.String("AES256"),
+		CopySourceSSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		CopySourceSSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
+	})
+	c.Assert(err, IsNil)
+	s.DeleteObject(dstObject, c)
+	s.DeleteObject(object, c)
+
+	os.Remove(object)
+}
+
+func (s *Ks3utilCommandSuite) TestCopyFileAcrossRegion(c *C) {
+	object := randLowStr(10)
+	dstObject := object + "_copy"
+	createFile(object, 1024*1024*10)
+	// 高级上传
+	_, err := client.UploadFile(&s3.UploadFileInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		UploadFile: aws.String(object),
+	})
+	c.Assert(err, IsNil)
+
+	// 高级复制（跨region）
+	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(dstObject),
+		SourceBucket: aws.String(bucket),
+		SourceKey:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	s.DeleteObject(dstObject, c)
+
+	// 高级复制（跨region），设置分块大小
+	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(dstObject),
+		SourceBucket: aws.String(bucket),
+		SourceKey:    aws.String(object),
+		PartSize:     aws.Long(20 * 1024 * 1024),
+	})
+	c.Assert(err, IsNil)
+	s.DeleteObject(dstObject, c)
+
+	// 高级复制（跨region），开启断点续传
+	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
+		Bucket:           aws.String(bucket),
+		Key:              aws.String(dstObject),
+		SourceBucket:     aws.String(bucket),
+		SourceKey:        aws.String(object),
+		EnableCheckpoint: aws.Boolean(true),
+		CheckpointDir:    aws.String("./checkpoint/"),
+	})
+	c.Assert(err, IsNil)
+	s.DeleteObject(dstObject, c)
+
+	// 高级复制（跨region），设置进度回调
+	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
+		Bucket:           aws.String(bucket),
+		Key:              aws.String(dstObject),
+		SourceBucket:     aws.String(bucket),
+		SourceKey:        aws.String(object),
+		EnableCheckpoint: aws.Boolean(true),
+		CheckpointFile:   aws.String(object + s3.CheckpointFileSuffixCopier),
+		ProgressFn: func(increment, completed, total int64) {
+			fmt.Printf("percent:%.2f%%\n", float64(completed)/float64(total)*100)
+		},
+	})
+	c.Assert(err, IsNil)
+	s.DeleteObject(dstObject, c)
+
+	// 高级复制（跨region），设置加密
+	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
+		Bucket:               aws.String(bucket),
+		Key:                  aws.String(dstObject),
+		SourceBucket:         aws.String(bucket),
+		SourceKey:            aws.String(object),
+		SSECustomerAlgorithm: aws.String("AES256"),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
+	})
+	c.Assert(err, IsNil)
+	s.DeleteObject(dstObject, c)
+
+	s.DeleteObject(object, c)
+	// 高级上传，设置加密
+	_, err = client.UploadFile(&s3.UploadFileInput{
+		Bucket:               aws.String(bucket),
+		Key:                  aws.String(object),
+		UploadFile:           aws.String(object),
+		SSECustomerAlgorithm: aws.String("AES256"),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
+	})
+	c.Assert(err, IsNil)
+
+	// 高级复制（跨region），复制加密文件
+	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
+		Bucket:                         aws.String(bucket),
+		Key:                            aws.String(dstObject),
+		SourceBucket:                   aws.String(bucket),
+		SourceKey:                      aws.String(object),
+		CopySourceSSECustomerAlgorithm: aws.String("AES256"),
+		CopySourceSSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		CopySourceSSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
+	})
+	c.Assert(err, IsNil)
+	s.DeleteObject(dstObject, c)
+	s.DeleteObject(object, c)
 
 	os.Remove(object)
 }

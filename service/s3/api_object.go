@@ -62,8 +62,9 @@ type AppendObjectInput struct {
 	// Set the maximum allowed size for a single addition of content
 	ContentMaxLength *int64 `location:"header" locationName:"x-amz-content-maxlength" type:"integer"`
 
-	// Object labels, multiple labels can be set simultaneously
-	XAmzTagging *string `location:"header" locationName:"X-Amz-Tagging" type:"string"`
+	// Specifies the object tag of the object. Multiple tags can be set at the same time, such as: TagA=A&TagB=B.
+	// Note: Key and Value need to be URL-encoded first. If an item does not have "=", the Value is considered to be an empty string.
+	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
 
 	// Allows grantee to read the object data and its metadata.
 	GrantRead *string `location:"header" locationName:"x-amz-grant-read" type:"string"`
