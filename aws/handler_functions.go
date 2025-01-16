@@ -3,6 +3,7 @@ package aws
 import (
 	"bytes"
 	"fmt"
+	"github.com/ks3sdklib/aws-sdk-go/aws/retry"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -16,7 +17,7 @@ import (
 )
 
 var sleepDelay = func(delay time.Duration) {
-	time.Sleep(delay)
+	time.Sleep(delay * time.Millisecond)
 }
 
 // Interface for matching types which also have a Len method.
@@ -109,25 +110,25 @@ func AfterRetryHandler(r *Request) {
 	// If one of the other handlers already set the retry state
 	// we don't want to override it based on the service's state
 	if !r.Retryable.IsSet() {
-		r.Retryable.Set(r.Service.ShouldRetry(r))
+		r.Retryable.Set(r.Service.ShouldRetry(r.Error))
 	}
 
 	if r.WillRetry() {
-		r.RetryDelay = r.Service.RetryRules(r)
+		r.RetryCount++
+		r.RetryDelay = r.Service.RetryDelay(int(r.RetryCount))
 		sleepDelay(r.RetryDelay)
 
-		// when the expired token exception occurs the credentials
+		r.Config.LogWarn("Tried %d times, will retry in %d ms.", r.RetryCount, r.RetryDelay)
 		// need to be expired locally so that the next request to
 		// get credentials will trigger a credentials refresh.
 		if r.Error != nil {
 			if err, ok := r.Error.(awserr.Error); ok {
-				if isCodeExpiredCreds(err.Code()) {
+				if retry.IsCodeExpiredCreds(err.Code()) {
 					r.Config.Credentials.Expire()
 				}
 			}
 		}
 
-		r.RetryCount++
 		r.Error = nil
 	}
 }

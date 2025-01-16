@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/credentials"
+	"github.com/ks3sdklib/aws-sdk-go/aws/retry"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	. "gopkg.in/check.v1"
 	"math/rand"
@@ -47,20 +48,22 @@ var (
 func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 	fmt.Printf("set up Ks3utilCommandSuite\n")
 	var cre = credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "") //online
+	var exponentialRetry = retry.NewExponentialRetry(3, 100)
 	client = s3.New(&aws.Config{
-		Credentials:      cre,      // 访问凭证
-		Region:           region,   // 填写您的Region
-		Endpoint:         endpoint, // 填写您的Endpoint
-		DisableSSL:       false,    // 禁用HTTPS，默认值为false
-		LogLevel:         aws.Off,  // 日志等级，默认关闭日志，可选值：Off, Error, Warn, Info, Debug
-		LogHTTPBody:      false,    // 把HTTP请求body打入日志，默认值为false
-		Logger:           nil,      // 日志输出位置，可设置指定文件
-		S3ForcePathStyle: false,    // 使用二级域名，默认值为false
-		DomainMode:       false,    // 开启自定义Bucket绑定域名，当开启时S3ForcePathStyle参数不生效，默认值为false
-		SignerVersion:    "V2",     // 签名方式可选值有：V2 OR V4 OR V4_UNSIGNED_PAYLOAD_SIGNER，默认值为V2
-		MaxRetries:       1,        // 请求失败时最大重试次数，默认请求失败时不重试
-		CrcCheckEnabled:  true,     // 开启CRC64校验，默认值为false
-		HTTPClient:       nil,      // HTTP请求的Client对象，若为空则使用默认值
+		Credentials:      cre,              // 访问凭证
+		Region:           region,           // 填写您的Region
+		Endpoint:         endpoint,         // 填写您的Endpoint
+		DisableSSL:       false,            // 禁用HTTPS，默认值为false
+		LogLevel:         aws.Off,          // 日志等级，默认关闭日志，可选值：Off, Error, Warn, Info, Debug
+		LogHTTPBody:      false,            // 把HTTP请求body打入日志，默认值为false
+		Logger:           nil,              // 日志输出位置，可设置指定文件
+		S3ForcePathStyle: false,            // 使用二级域名，默认值为false
+		DomainMode:       false,            // 开启自定义Bucket绑定域名，当开启时S3ForcePathStyle参数不生效，默认值为false
+		SignerVersion:    "V2",             // 签名方式可选值有：V2 OR V4 OR V4_UNSIGNED_PAYLOAD_SIGNER，默认值为V2
+		MaxRetries:       3,                // 请求失败时最大重试次数，值小于等于0时不重试
+		CrcCheckEnabled:  true,             // 开启CRC64校验，默认值为false
+		HTTPClient:       nil,              // HTTP请求的Client对象，若为空则使用默认值
+		Retry:            exponentialRetry, // 重试策略
 	})
 
 	s.SetUpBucketEnv(c)

@@ -3,6 +3,7 @@ package aws
 import (
 	"bytes"
 	"fmt"
+	"github.com/ks3sdklib/aws-sdk-go/aws/retry"
 	"io"
 	"net/http"
 	"os"
@@ -23,10 +24,6 @@ var DefaultChainCredentials = credentials.NewChainCredentials(
 		&credentials.EC2RoleProvider{ExpiryWindow: 5 * time.Minute},
 	})
 
-// DefaultRetries The default number of retries for a service. The value of -1 indicates that
-// the service specific retry default will be used.
-const DefaultRetries = -1
-
 // DefaultConfig is the default all service configuration will be based off of.
 var DefaultConfig = &Config{
 	Credentials:                    DefaultChainCredentials,
@@ -38,7 +35,7 @@ var DefaultConfig = &Config{
 	LogHTTPBody:                    false,
 	LogLevel:                       Off,
 	Logger:                         os.Stdout,
-	MaxRetries:                     DefaultRetries,
+	MaxRetries:                     0,
 	DisableParamValidation:         false,
 	DisableComputeChecksums:        false,
 	S3ForcePathStyle:               false,
@@ -46,6 +43,7 @@ var DefaultConfig = &Config{
 	SignerVersion:                  "V2",
 	CrcCheckEnabled:                false,
 	DisableRestProtocolURICleaning: true,
+	Retry:                          retry.DefaultRetry,
 }
 
 // A Config provides service configuration
@@ -65,8 +63,9 @@ type Config struct {
 	S3ForcePathStyle               bool
 	DomainMode                     bool
 	SignerVersion                  string
-	CrcCheckEnabled                bool // 允许crc64校验，默认为false
-	DisableRestProtocolURICleaning bool // 禁用path clean，默认为true
+	CrcCheckEnabled                bool        // 允许crc64校验，默认为false
+	DisableRestProtocolURICleaning bool        // 禁用path clean，默认为true
+	Retry                          retry.Retry // 重试策略
 }
 
 // Copy will return a shallow copy of the Config object.
@@ -89,6 +88,7 @@ func (c Config) Copy() Config {
 	dst.SignerVersion = c.SignerVersion
 	dst.CrcCheckEnabled = c.CrcCheckEnabled
 	dst.DisableRestProtocolURICleaning = c.DisableRestProtocolURICleaning
+	dst.Retry = c.Retry
 	return dst
 }
 
@@ -159,7 +159,7 @@ func (c Config) Merge(newcfg *Config) *Config {
 		cfg.Logger = c.Logger
 	}
 
-	if newcfg.MaxRetries != DefaultRetries {
+	if newcfg.MaxRetries != 0 {
 		cfg.MaxRetries = newcfg.MaxRetries
 	} else {
 		cfg.MaxRetries = c.MaxRetries
@@ -202,6 +202,19 @@ func (c Config) Merge(newcfg *Config) *Config {
 		cfg.DisableRestProtocolURICleaning = newcfg.DisableRestProtocolURICleaning
 	} else {
 		cfg.DisableRestProtocolURICleaning = c.DisableRestProtocolURICleaning
+	}
+
+	// 如果配置项中设置了重试策略，则使用该重试策略
+	// 如果设置重试策略，但设置了重试次数，则根据重试次数创建新的重试策略
+	// 如果都没有设置，则使用默认的重试策略
+	if newcfg.Retry != nil {
+		cfg.Retry = newcfg.Retry
+	} else {
+		if newcfg.MaxRetries != 0 {
+			cfg.Retry = retry.NewExponentialRetry(newcfg.MaxRetries, 10)
+		} else {
+			cfg.Retry = c.Retry
+		}
 	}
 	return &cfg
 }
