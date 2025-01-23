@@ -587,6 +587,9 @@ func (u *Uploader) isUploadIdValid() bool {
 
 func (u *Uploader) normalizeUploadPath() error {
 	uploadPath := aws.ToString(u.uploadFileRequest.UploadFile)
+	if uploadPath == "" {
+		return nil
+	}
 	// 规范化路径
 	normalizedPath := filepath.Clean(uploadPath)
 	// 获取绝对路径
