@@ -8,6 +8,7 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/internal/crc"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -176,6 +177,11 @@ func (u *Uploader) validate() error {
 
 	if aws.ToString(request.Key) == "" {
 		return errors.New("key is required")
+	}
+
+	err := u.normalizeUploadPath()
+	if err != nil {
+		return err
 	}
 
 	filePath := aws.ToString(request.UploadFile)
@@ -577,4 +583,18 @@ func (u *Uploader) isUploadIdValid() bool {
 		return false
 	}
 	return true
+}
+
+func (u *Uploader) normalizeUploadPath() error {
+	uploadPath := aws.ToString(u.uploadFileRequest.UploadFile)
+	// 规范化路径
+	normalizedPath := filepath.Clean(uploadPath)
+	// 获取绝对路径
+	absPath, err := filepath.Abs(normalizedPath)
+	if err != nil {
+		return err
+	}
+	u.uploadFileRequest.UploadFile = aws.String(absPath)
+
+	return nil
 }

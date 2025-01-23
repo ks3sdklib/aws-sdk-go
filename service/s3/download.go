@@ -165,11 +165,6 @@ func (d *Downloader) downloadFile() (*DownloadFileOutput, error) {
 		return nil, err
 	}
 
-	err = d.normalizedDownloadPath()
-	if err != nil {
-		return nil, err
-	}
-
 	d.downloadFileMeta, err = d.headObject()
 	if err != nil {
 		return nil, err
@@ -273,6 +268,11 @@ func (d *Downloader) validate() error {
 
 	if aws.ToString(request.Key) == "" {
 		return errors.New("key is required")
+	}
+
+	err := d.normalizeDownloadPath()
+	if err != nil {
+		return err
 	}
 
 	if request.PartSize == nil {
@@ -524,20 +524,19 @@ func (d *Downloader) isValidRange(objectRange []int64, objectSize int64) bool {
 	return objectStart < objectSize
 }
 
-func (d *Downloader) normalizedDownloadPath() error {
+func (d *Downloader) normalizeDownloadPath() error {
 	downloadPath := aws.ToString(d.downloadFileRequest.DownloadFile)
 	if downloadPath == "" {
 		downloadPath = aws.ToString(d.downloadFileRequest.Key)
 	}
+	// 规范化路径
+	normalizedPath := filepath.Clean(downloadPath)
 	// 获取绝对路径
-	absPath, err := filepath.Abs(downloadPath)
+	absPath, err := filepath.Abs(normalizedPath)
 	if err != nil {
 		return err
 	}
-
-	// 规范化路径
-	normalizedPath := filepath.Clean(absPath)
-	d.downloadFileRequest.DownloadFile = aws.String(normalizedPath)
+	d.downloadFileRequest.DownloadFile = aws.String(absPath)
 
 	return nil
 }
