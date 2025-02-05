@@ -17,7 +17,7 @@ type AppendObjectInput struct {
 
 	// The starting position of the AppendObject operation.
 	// When the AppendObject operation is successful, the x-kss-next-append-position header describes the starting position of the next operation.
-	Position *int64 `location:"querystring" locationName:"position" type:"integer"`
+	Position *int64 `location:"querystring" locationName:"position" type:"integer" required:"true"`
 
 	// The readable body payload to send to KS3.
 	Body io.Reader `type:"blob"`
