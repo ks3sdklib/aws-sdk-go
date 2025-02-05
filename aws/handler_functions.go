@@ -3,7 +3,6 @@ package aws
 import (
 	"bytes"
 	"fmt"
-	"github.com/ks3sdklib/aws-sdk-go/aws/retry"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -115,7 +114,7 @@ func AfterRetryHandler(r *Request) {
 
 	if r.WillRetry() {
 		r.RetryCount++
-		r.RetryDelay = r.Service.RetryDelay(int(r.RetryCount))
+		r.RetryDelay = r.Service.RetryRules(int(r.RetryCount))
 		sleepDelay(r.RetryDelay)
 
 		r.Config.LogWarn("Tried %d times, will retry in %d ms.", r.RetryCount, r.RetryDelay)
@@ -123,7 +122,7 @@ func AfterRetryHandler(r *Request) {
 		// get credentials will trigger a credentials refresh.
 		if r.Error != nil {
 			if err, ok := r.Error.(awserr.Error); ok {
-				if retry.IsCodeExpiredCreds(err.Code()) {
+				if isCodeExpiredCreds(err.Code()) {
 					r.Config.Credentials.Expire()
 				}
 			}

@@ -3,7 +3,6 @@ package aws
 import (
 	"bytes"
 	"fmt"
-	"github.com/ks3sdklib/aws-sdk-go/aws/retry"
 	"io"
 	"net/http"
 	"os"
@@ -36,6 +35,8 @@ var DefaultConfig = &Config{
 	LogLevel:                       Off,
 	Logger:                         os.Stdout,
 	MaxRetries:                     0,
+	RetryRules:                     ExponentialRetryRules,
+	ShouldRetry:                    ShouldRetry,
 	DisableParamValidation:         false,
 	DisableComputeChecksums:        false,
 	S3ForcePathStyle:               false,
@@ -43,7 +44,6 @@ var DefaultConfig = &Config{
 	SignerVersion:                  "V2",
 	CrcCheckEnabled:                false,
 	DisableRestProtocolURICleaning: true,
-	Retry:                          retry.DefaultRetry,
 }
 
 // A Config provides service configuration
@@ -57,15 +57,16 @@ type Config struct {
 	LogHTTPBody                    bool
 	LogLevel                       uint
 	Logger                         io.Writer
-	MaxRetries                     int
+	MaxRetries                     int                     // 重试次数
+	RetryRules                     func(int) time.Duration // 重试等待时间
+	ShouldRetry                    func(error) bool        // 是否需要重试
 	DisableParamValidation         bool
 	DisableComputeChecksums        bool
 	S3ForcePathStyle               bool
 	DomainMode                     bool
 	SignerVersion                  string
-	CrcCheckEnabled                bool        // 允许crc64校验，默认为false
-	DisableRestProtocolURICleaning bool        // 禁用path clean，默认为true
-	Retry                          retry.Retry // 重试策略
+	CrcCheckEnabled                bool // 允许crc64校验，默认为false
+	DisableRestProtocolURICleaning bool // 禁用path clean，默认为true
 }
 
 // Copy will return a shallow copy of the Config object.
@@ -81,6 +82,8 @@ func (c Config) Copy() Config {
 	dst.LogLevel = c.LogLevel
 	dst.Logger = c.Logger
 	dst.MaxRetries = c.MaxRetries
+	dst.RetryRules = c.RetryRules
+	dst.ShouldRetry = c.ShouldRetry
 	dst.DisableParamValidation = c.DisableParamValidation
 	dst.DisableComputeChecksums = c.DisableComputeChecksums
 	dst.S3ForcePathStyle = c.S3ForcePathStyle
@@ -88,7 +91,6 @@ func (c Config) Copy() Config {
 	dst.SignerVersion = c.SignerVersion
 	dst.CrcCheckEnabled = c.CrcCheckEnabled
 	dst.DisableRestProtocolURICleaning = c.DisableRestProtocolURICleaning
-	dst.Retry = c.Retry
 	return dst
 }
 
@@ -165,6 +167,18 @@ func (c Config) Merge(newcfg *Config) *Config {
 		cfg.MaxRetries = c.MaxRetries
 	}
 
+	if newcfg.RetryRules != nil {
+		cfg.RetryRules = newcfg.RetryRules
+	} else {
+		cfg.RetryRules = c.RetryRules
+	}
+
+	if newcfg.ShouldRetry != nil {
+		cfg.ShouldRetry = newcfg.ShouldRetry
+	} else {
+		cfg.ShouldRetry = c.ShouldRetry
+	}
+
 	if newcfg.DisableParamValidation {
 		cfg.DisableParamValidation = newcfg.DisableParamValidation
 	} else {
@@ -204,18 +218,6 @@ func (c Config) Merge(newcfg *Config) *Config {
 		cfg.DisableRestProtocolURICleaning = c.DisableRestProtocolURICleaning
 	}
 
-	// 如果配置项中设置了重试策略，则使用该重试策略
-	// 如果设置重试策略，但设置了重试次数，则根据重试次数创建新的重试策略
-	// 如果都没有设置，则使用默认的重试策略
-	if newcfg.Retry != nil {
-		cfg.Retry = newcfg.Retry
-	} else {
-		if newcfg.MaxRetries != 0 {
-			cfg.Retry = retry.NewExponentialRetry(newcfg.MaxRetries, 10)
-		} else {
-			cfg.Retry = c.Retry
-		}
-	}
 	return &cfg
 }
 

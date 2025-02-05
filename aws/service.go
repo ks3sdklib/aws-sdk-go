@@ -22,7 +22,7 @@ type Service struct {
 	SigningRegion string
 	JSONVersion   string
 	TargetPrefix  string
-	RetryDelay    func(int) time.Duration
+	RetryRules    func(int) time.Duration
 	ShouldRetry   func(error) bool
 	MaxRetryTimes int
 }
@@ -45,15 +45,15 @@ func (s *Service) Initialize() {
 		s.Config.HTTPClient = http.DefaultClient
 	}
 
-	if s.RetryDelay == nil {
-		s.RetryDelay = s.Config.Retry.RetryDelay
+	if s.RetryRules == nil {
+		s.RetryRules = s.Config.RetryRules
 	}
 
 	if s.ShouldRetry == nil {
-		s.ShouldRetry = s.Config.Retry.ShouldRetry
+		s.ShouldRetry = s.Config.ShouldRetry
 	}
 
-	s.MaxRetryTimes = s.Config.Retry.MaxRetryTimes()
+	s.MaxRetryTimes = s.Config.MaxRetries
 	s.Handlers.Validate.PushBack(ValidateEndpointHandler)
 	s.Handlers.Build.PushBack(UserAgentHandler)
 	s.Handlers.Sign.PushBack(BuildContentLength)

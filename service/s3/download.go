@@ -385,7 +385,7 @@ func (d *Downloader) downloadPart(task DownloadPartTask) (CompletedPart, error) 
 	}
 	defer fd.Close()
 
-	_, err = fd.Seek(task.start, io.SeekStart)
+	_, err = fd.Seek((task.partNumber-1)*task.actualPartSize, io.SeekStart)
 	if err != nil {
 		return completedPart, err
 	}
