@@ -105,7 +105,7 @@ func NewRequestV2(service *Service, method string, params interface{}) *Request 
 
 // WillRetry returns if the request's can be retried.
 func (r *Request) WillRetry() bool {
-	return r.Error != nil && r.Retryable.Get() && int(r.RetryCount) < r.Service.MaxRetryTimes
+	return r.Error != nil && r.Retryable.Get() && r.RetryCount < r.Service.MaxRetries
 }
 
 // ParamsFilled returns if the request's parameters have been populated

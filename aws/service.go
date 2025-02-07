@@ -24,7 +24,7 @@ type Service struct {
 	TargetPrefix  string
 	RetryRules    func(int) time.Duration
 	ShouldRetry   func(error) bool
-	MaxRetryTimes int
+	MaxRetries    uint
 }
 
 var schemeRE = regexp.MustCompile("^([^:]+)://")
@@ -53,7 +53,7 @@ func (s *Service) Initialize() {
 		s.ShouldRetry = s.Config.ShouldRetry
 	}
 
-	s.MaxRetryTimes = s.Config.MaxRetries
+	s.MaxRetries = uint(s.Config.MaxRetries)
 	s.Handlers.Validate.PushBack(ValidateEndpointHandler)
 	s.Handlers.Build.PushBack(UserAgentHandler)
 	s.Handlers.Sign.PushBack(BuildContentLength)
