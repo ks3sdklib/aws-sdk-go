@@ -10,7 +10,9 @@ import (
 )
 
 const (
-	DefaultMaxDelay  = 20 * time.Second
+	// DefaultMaxDelay 默认最大等待时间
+	DefaultMaxDelay = 20 * time.Second
+	// DefaultBaseDelay 默认基础等待时间
 	DefaultBaseDelay = 200 * time.Millisecond
 )
 

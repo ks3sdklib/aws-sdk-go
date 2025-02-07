@@ -23,7 +23,7 @@ var DefaultChainCredentials = credentials.NewChainCredentials(
 		&credentials.EC2RoleProvider{ExpiryWindow: 5 * time.Minute},
 	})
 
-// DefaultMaxRetries is the default number of maximum retries the service client
+// DefaultMaxRetries is the default number of retries for a service.
 const DefaultMaxRetries = 3
 
 // DefaultConfig is the default all service configuration will be based off of.
