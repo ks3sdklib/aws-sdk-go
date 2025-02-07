@@ -9,24 +9,45 @@ import (
 	"time"
 )
 
+const (
+	DefaultMaxDelay  = 20 * time.Second
+	DefaultBaseDelay = 200 * time.Millisecond
+)
+
 // ExponentialRetryRules 指数级增长等待时间重试策略
 func ExponentialRetryRules(attempts int) time.Duration {
-	return time.Duration(10 * int(math.Pow(2, float64(attempts-1))))
+	delay := DefaultBaseDelay * time.Duration(math.Pow(2, float64(attempts-1)))
+	if delay > DefaultMaxDelay {
+		return DefaultMaxDelay
+	}
+	return delay
 }
 
 // LinearRetryRules 线性增长等待时间重试策略
 func LinearRetryRules(attempts int) time.Duration {
-	return time.Duration(10 * attempts)
+	delay := DefaultBaseDelay * time.Duration(attempts)
+	if delay > DefaultMaxDelay {
+		return DefaultMaxDelay
+	}
+	return delay
 }
 
 // FixedRetryRules 固定等待时间重试策略
 func FixedRetryRules(attempts int) time.Duration {
-	return time.Duration(10)
+	delay := DefaultBaseDelay
+	if delay > DefaultMaxDelay {
+		return DefaultMaxDelay
+	}
+	return delay
 }
 
 // RandomRetryRules 随机等待时间重试策略
 func RandomRetryRules(attempts int) time.Duration {
-	return time.Duration(rand.Intn(10))
+	delay := time.Duration(rand.Intn(int(DefaultBaseDelay)))
+	if delay > DefaultMaxDelay {
+		return DefaultMaxDelay
+	}
+	return delay
 }
 
 // NoRetryRules 不等待

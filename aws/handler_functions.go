@@ -16,7 +16,7 @@ import (
 )
 
 var sleepDelay = func(delay time.Duration) {
-	time.Sleep(delay * time.Millisecond)
+	time.Sleep(delay)
 }
 
 // Interface for matching types which also have a Len method.
