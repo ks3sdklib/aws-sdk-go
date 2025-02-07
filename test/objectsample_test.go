@@ -1114,9 +1114,106 @@ func (s *Ks3utilCommandSuite) TestDownloadFile(c *C) {
 		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
 	})
 	c.Assert(err, IsNil)
-
 	s.DeleteObject(object, c)
 	os.Remove(object)
+
+	// 高级下载，Range下载
+	uploadRangeFile := randLowStr(10)
+	downloadRangeFile := randLowStr(10)
+	createFileWithContent(uploadRangeFile, "123456789")
+
+	// 高级上传
+	_, err = client.UploadFile(&s3.UploadFileInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(uploadRangeFile),
+		UploadFile: aws.String(uploadRangeFile),
+	})
+	c.Assert(err, IsNil)
+	os.Remove(uploadRangeFile)
+
+	// 高级下载，Range=[0, 1]，下载前两个字节
+	_, err = client.DownloadFile(&s3.DownloadFileInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(uploadRangeFile),
+		DownloadFile: aws.String(downloadRangeFile),
+		Range:        []int64{0, 1},
+	})
+	c.Assert(err, IsNil)
+
+	rangeContent, err := os.ReadFile(downloadRangeFile)
+	c.Assert(err, IsNil)
+	c.Assert(string(rangeContent), Equals, "12")
+	os.Remove(downloadRangeFile)
+
+	// 高级下载，Range=[2, 6]，下载第3到7个字节
+	_, err = client.DownloadFile(&s3.DownloadFileInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(uploadRangeFile),
+		DownloadFile: aws.String(downloadRangeFile),
+		Range:        []int64{2, 6},
+	})
+	c.Assert(err, IsNil)
+
+	rangeContent, err = os.ReadFile(downloadRangeFile)
+	c.Assert(err, IsNil)
+	c.Assert(string(rangeContent), Equals, "34567")
+	os.Remove(downloadRangeFile)
+
+	// 高级下载，Range=[6, -1]，下载第7个字节至文件末尾
+	_, err = client.DownloadFile(&s3.DownloadFileInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(uploadRangeFile),
+		DownloadFile: aws.String(downloadRangeFile),
+		Range:        []int64{6, -1},
+	})
+	c.Assert(err, IsNil)
+
+	rangeContent, err = os.ReadFile(downloadRangeFile)
+	c.Assert(err, IsNil)
+	c.Assert(string(rangeContent), Equals, "789")
+	os.Remove(downloadRangeFile)
+
+	// 高级下载，Range=[-1, 2]，下载最后2个字节
+	_, err = client.DownloadFile(&s3.DownloadFileInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(uploadRangeFile),
+		DownloadFile: aws.String(downloadRangeFile),
+		Range:        []int64{-1, 2},
+	})
+	c.Assert(err, IsNil)
+
+	rangeContent, err = os.ReadFile(downloadRangeFile)
+	c.Assert(err, IsNil)
+	c.Assert(string(rangeContent), Equals, "89")
+	os.Remove(downloadRangeFile)
+
+	// 高级下载，Range=[-1, -1]，下载整个文件
+	_, err = client.DownloadFile(&s3.DownloadFileInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(uploadRangeFile),
+		DownloadFile: aws.String(downloadRangeFile),
+		Range:        []int64{-1, -1},
+	})
+	c.Assert(err, IsNil)
+
+	rangeContent, err = os.ReadFile(downloadRangeFile)
+	c.Assert(err, IsNil)
+	c.Assert(string(rangeContent), Equals, "123456789")
+	os.Remove(downloadRangeFile)
+
+	// 高级下载，Range=[2, 1]，下载整个文件
+	_, err = client.DownloadFile(&s3.DownloadFileInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(uploadRangeFile),
+		DownloadFile: aws.String(downloadRangeFile),
+		Range:        []int64{-1, -1},
+	})
+	c.Assert(err, IsNil)
+
+	rangeContent, err = os.ReadFile(downloadRangeFile)
+	c.Assert(err, IsNil)
+	c.Assert(string(rangeContent), Equals, "123456789")
+	os.Remove(downloadRangeFile)
 }
 
 func (s *Ks3utilCommandSuite) TestCopyFile(c *C) {
