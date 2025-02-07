@@ -115,9 +115,10 @@ func AfterRetryHandler(r *Request) {
 	if r.WillRetry() {
 		r.RetryCount++
 		r.RetryDelay = r.Service.RetryRules(int(r.RetryCount))
+
+		r.Config.LogWarn("Tried %d times, will retry in %d ms.", r.RetryCount, r.RetryDelay.Milliseconds())
 		sleepDelay(r.RetryDelay)
 
-		r.Config.LogWarn("Tried %d times, will retry in %d ms.", r.RetryCount, r.RetryDelay)
 		// need to be expired locally so that the next request to
 		// get credentials will trigger a credentials refresh.
 		if r.Error != nil {
