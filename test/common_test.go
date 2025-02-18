@@ -243,6 +243,14 @@ func (s *Ks3utilCommandSuite) DeleteObject(key string, c *C) {
 	c.Assert(err, IsNil)
 }
 
+func (s *Ks3utilCommandSuite) DeleteObjectWithClient(client *s3.S3, bucket string, key string, c *C) {
+	_, err := client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	c.Assert(err, IsNil)
+}
+
 func (s *Ks3utilCommandSuite) CreateBucket(bucketName string, c *C) {
 	_, err := client.CreateBucket(&s3.CreateBucketInput{
 		Bucket: aws.String(bucketName),

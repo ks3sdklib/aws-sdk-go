@@ -1353,7 +1353,7 @@ func (s *Ks3utilCommandSuite) TestCopyFileAcrossRegion(c *C) {
 		SourceKey:    aws.String(object),
 	}, dstClient)
 	c.Assert(err, IsNil)
-	s.DeleteObject(dstObject, c)
+	s.DeleteObjectWithClient(dstClient, dstBucket, dstObject, c)
 
 	// 高级复制（跨region），设置分块大小
 	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
@@ -1364,7 +1364,7 @@ func (s *Ks3utilCommandSuite) TestCopyFileAcrossRegion(c *C) {
 		PartSize:     aws.Long(20 * 1024 * 1024),
 	}, dstClient)
 	c.Assert(err, IsNil)
-	s.DeleteObject(dstObject, c)
+	s.DeleteObjectWithClient(dstClient, dstBucket, dstObject, c)
 
 	// 高级复制（跨region），开启断点续传
 	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
@@ -1376,7 +1376,7 @@ func (s *Ks3utilCommandSuite) TestCopyFileAcrossRegion(c *C) {
 		CheckpointDir:    aws.String("./checkpoint/"),
 	}, dstClient)
 	c.Assert(err, IsNil)
-	s.DeleteObject(dstObject, c)
+	s.DeleteObjectWithClient(dstClient, dstBucket, dstObject, c)
 
 	// 高级复制（跨region），设置进度回调
 	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
@@ -1391,7 +1391,7 @@ func (s *Ks3utilCommandSuite) TestCopyFileAcrossRegion(c *C) {
 		},
 	}, dstClient)
 	c.Assert(err, IsNil)
-	s.DeleteObject(dstObject, c)
+	s.DeleteObjectWithClient(dstClient, dstBucket, dstObject, c)
 
 	// 高级复制（跨region），设置加密
 	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
@@ -1404,7 +1404,7 @@ func (s *Ks3utilCommandSuite) TestCopyFileAcrossRegion(c *C) {
 		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
 	}, dstClient)
 	c.Assert(err, IsNil)
-	s.DeleteObject(dstObject, c)
+	s.DeleteObjectWithClient(dstClient, dstBucket, dstObject, c)
 
 	s.DeleteObject(object, c)
 	// 高级上传，设置加密
@@ -1429,7 +1429,8 @@ func (s *Ks3utilCommandSuite) TestCopyFileAcrossRegion(c *C) {
 		CopySourceSSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
 	}, dstClient)
 	c.Assert(err, IsNil)
-	s.DeleteObject(dstObject, c)
+
+	s.DeleteObjectWithClient(dstClient, dstBucket, dstObject, c)
 	s.DeleteObject(object, c)
 
 	os.Remove(object)
