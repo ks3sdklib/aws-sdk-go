@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/awserr"
+	"github.com/ks3sdklib/aws-sdk-go/aws/credentials"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3/s3manager"
 	. "gopkg.in/check.v1"
@@ -1319,11 +1320,25 @@ func (s *Ks3utilCommandSuite) TestCopyFile(c *C) {
 }
 
 func (s *Ks3utilCommandSuite) TestCopyFileAcrossRegion(c *C) {
+	// 目标桶client
+	var cre = credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "")
+	dstClient := s3.New(&aws.Config{
+		Credentials: cre,                           // 访问凭证
+		Region:      "SHANGHAI",                    // 填写您的Region
+		Endpoint:    "ks3-cn-shanghai.ksyuncs.com", // 填写您的Endpoint
+	})
+
+	// 创建上海的桶
+	dstBucket := commonNamePrefix + randLowStr(10)
+	_, err := dstClient.CreateBucket(&s3.CreateBucketInput{
+		Bucket: aws.String(dstBucket),
+	})
+
 	object := randLowStr(10)
 	dstObject := object + "_copy"
 	createFile(object, 1024*1024*10)
 	// 高级上传
-	_, err := client.UploadFile(&s3.UploadFileInput{
+	_, err = client.UploadFile(&s3.UploadFileInput{
 		Bucket:     aws.String(bucket),
 		Key:        aws.String(object),
 		UploadFile: aws.String(object),
@@ -1332,40 +1347,40 @@ func (s *Ks3utilCommandSuite) TestCopyFileAcrossRegion(c *C) {
 
 	// 高级复制（跨region）
 	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
-		Bucket:       aws.String(bucket),
+		Bucket:       aws.String(dstBucket),
 		Key:          aws.String(dstObject),
 		SourceBucket: aws.String(bucket),
 		SourceKey:    aws.String(object),
-	})
+	}, dstClient)
 	c.Assert(err, IsNil)
 	s.DeleteObject(dstObject, c)
 
 	// 高级复制（跨region），设置分块大小
 	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
-		Bucket:       aws.String(bucket),
+		Bucket:       aws.String(dstBucket),
 		Key:          aws.String(dstObject),
 		SourceBucket: aws.String(bucket),
 		SourceKey:    aws.String(object),
 		PartSize:     aws.Long(20 * 1024 * 1024),
-	})
+	}, dstClient)
 	c.Assert(err, IsNil)
 	s.DeleteObject(dstObject, c)
 
 	// 高级复制（跨region），开启断点续传
 	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
-		Bucket:           aws.String(bucket),
+		Bucket:           aws.String(dstBucket),
 		Key:              aws.String(dstObject),
 		SourceBucket:     aws.String(bucket),
 		SourceKey:        aws.String(object),
 		EnableCheckpoint: aws.Boolean(true),
 		CheckpointDir:    aws.String("./checkpoint/"),
-	})
+	}, dstClient)
 	c.Assert(err, IsNil)
 	s.DeleteObject(dstObject, c)
 
 	// 高级复制（跨region），设置进度回调
 	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
-		Bucket:           aws.String(bucket),
+		Bucket:           aws.String(dstBucket),
 		Key:              aws.String(dstObject),
 		SourceBucket:     aws.String(bucket),
 		SourceKey:        aws.String(object),
@@ -1374,20 +1389,20 @@ func (s *Ks3utilCommandSuite) TestCopyFileAcrossRegion(c *C) {
 		ProgressFn: func(increment, completed, total int64) {
 			fmt.Printf("percent:%.2f%%\n", float64(completed)/float64(total)*100)
 		},
-	})
+	}, dstClient)
 	c.Assert(err, IsNil)
 	s.DeleteObject(dstObject, c)
 
 	// 高级复制（跨region），设置加密
 	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
-		Bucket:               aws.String(bucket),
+		Bucket:               aws.String(dstBucket),
 		Key:                  aws.String(dstObject),
 		SourceBucket:         aws.String(bucket),
 		SourceKey:            aws.String(object),
 		SSECustomerAlgorithm: aws.String("AES256"),
 		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
 		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
-	})
+	}, dstClient)
 	c.Assert(err, IsNil)
 	s.DeleteObject(dstObject, c)
 
@@ -1405,17 +1420,23 @@ func (s *Ks3utilCommandSuite) TestCopyFileAcrossRegion(c *C) {
 
 	// 高级复制（跨region），复制加密文件
 	_, err = client.CopyFileAcrossRegion(&s3.CopyFileInput{
-		Bucket:                         aws.String(bucket),
+		Bucket:                         aws.String(dstBucket),
 		Key:                            aws.String(dstObject),
 		SourceBucket:                   aws.String(bucket),
 		SourceKey:                      aws.String(object),
 		CopySourceSSECustomerAlgorithm: aws.String("AES256"),
 		CopySourceSSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
 		CopySourceSSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
-	})
+	}, dstClient)
 	c.Assert(err, IsNil)
 	s.DeleteObject(dstObject, c)
 	s.DeleteObject(object, c)
 
 	os.Remove(object)
+
+	// 删除上海的桶
+	_, err = dstClient.DeleteBucket(&s3.DeleteBucketInput{
+		Bucket: aws.String(dstBucket),
+	})
+	c.Assert(err, IsNil)
 }
