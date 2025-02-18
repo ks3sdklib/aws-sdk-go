@@ -152,17 +152,17 @@ func (c *S3) CopyFileWithContext(ctx context.Context, request *CopyFileInput) (*
 	return newCopier(c, ctx, request).copyFile()
 }
 
-func (c *S3) CopyFileAcrossRegion(request *CopyFileInput) (*UploadFileOutput, error) {
-	return c.CopyFileAcrossRegionWithContext(context.Background(), request)
+func (c *S3) CopyFileAcrossRegion(request *CopyFileInput, dstClient *S3) (*UploadFileOutput, error) {
+	return c.CopyFileAcrossRegionWithContext(context.Background(), request, dstClient)
 }
 
-func (c *S3) CopyFileAcrossRegionWithContext(ctx context.Context, request *CopyFileInput) (*UploadFileOutput, error) {
+func (c *S3) CopyFileAcrossRegionWithContext(ctx context.Context, request *CopyFileInput, dstClient *S3) (*UploadFileOutput, error) {
 	uploadFileRequest, err := c.buildUploadFileRequest(ctx, request)
 	if err != nil {
 		return nil, err
 	}
 
-	return c.UploadFileWithContext(ctx, uploadFileRequest)
+	return dstClient.UploadFileWithContext(ctx, uploadFileRequest)
 }
 
 func (c *S3) buildUploadFileRequest(ctx context.Context, request *CopyFileInput) (*UploadFileInput, error) {
