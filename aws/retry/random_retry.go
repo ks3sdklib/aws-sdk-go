@@ -34,6 +34,6 @@ func NewRandomRetryRule(minDelay time.Duration, maxDelay time.Duration) RandomRe
 }
 
 func (r RandomRetryRule) GetDelay(attempts int) time.Duration {
-	delay := r.minDelay + time.Duration(rand.Intn(int(r.maxDelay-r.minDelay+1)))
+	delay := r.minDelay + time.Duration(rand.Int63n(int64(r.maxDelay-r.minDelay+1)))
 	return delay
 }
