@@ -28,7 +28,7 @@ var copyTestConfig = Config{
 	LogHTTPBody:             true,
 	LogLevel:                2,
 	Logger:                  os.Stdout,
-	MaxRetries:              DefaultRetries,
+	MaxRetries:              DefaultMaxRetries,
 	DisableParamValidation:  true,
 	DisableComputeChecksums: true,
 	S3ForcePathStyle:        true,
@@ -51,7 +51,7 @@ func TestCopyReturnsNewInstance(t *testing.T) {
 	}
 }
 
-var mergeTestZeroValueConfig = Config{MaxRetries: DefaultRetries}
+var mergeTestZeroValueConfig = Config{MaxRetries: DefaultMaxRetries}
 
 var mergeTestConfig = Config{
 	Credentials:             testCredentials,

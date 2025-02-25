@@ -1,12 +1,11 @@
 package aws
 
 import (
+	"github.com/ks3sdklib/aws-sdk-go/aws/retry"
+	"github.com/ks3sdklib/aws-sdk-go/internal/endpoints"
 	"net/http"
 	"net/http/httputil"
 	"regexp"
-	"time"
-
-	"github.com/ks3sdklib/aws-sdk-go/internal/endpoints"
 )
 
 // A Service implements the base service request and response handling
@@ -22,9 +21,9 @@ type Service struct {
 	SigningRegion string
 	JSONVersion   string
 	TargetPrefix  string
-	RetryRules    func(int) time.Duration
+	RetryRule     retry.RetryRule
 	ShouldRetry   func(error) bool
-	MaxRetries    uint
+	MaxRetries    int
 }
 
 var schemeRE = regexp.MustCompile("^([^:]+)://")
@@ -45,15 +44,15 @@ func (s *Service) Initialize() {
 		s.Config.HTTPClient = http.DefaultClient
 	}
 
-	if s.RetryRules == nil {
-		s.RetryRules = s.Config.RetryRules
+	if s.RetryRule == nil {
+		s.RetryRule = s.Config.RetryRule
 	}
 
 	if s.ShouldRetry == nil {
 		s.ShouldRetry = s.Config.ShouldRetry
 	}
 
-	s.MaxRetries = uint(s.Config.MaxRetries)
+	s.MaxRetries = s.Config.MaxRetries
 	s.Handlers.Validate.PushBack(ValidateEndpointHandler)
 	s.Handlers.Build.PushBack(UserAgentHandler)
 	s.Handlers.Sign.PushBack(BuildContentLength)

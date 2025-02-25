@@ -3,6 +3,7 @@ package aws
 import (
 	"bytes"
 	"fmt"
+	"github.com/ks3sdklib/aws-sdk-go/aws/retry"
 	"io"
 	"net/http"
 	"os"
@@ -38,8 +39,8 @@ var DefaultConfig = &Config{
 	LogLevel:                       Off,
 	Logger:                         os.Stdout,
 	MaxRetries:                     DefaultMaxRetries,
-	RetryRules:                     ExponentialRetryRules,
-	ShouldRetry:                    ShouldRetry,
+	RetryRule:                      retry.DefaultExponentialRetryRule,
+	ShouldRetry:                    retry.ShouldRetry,
 	DisableParamValidation:         false,
 	DisableComputeChecksums:        false,
 	S3ForcePathStyle:               false,
@@ -60,9 +61,9 @@ type Config struct {
 	LogHTTPBody                    bool
 	LogLevel                       uint
 	Logger                         io.Writer
-	MaxRetries                     int                     // 重试次数
-	RetryRules                     func(int) time.Duration // 重试等待时间
-	ShouldRetry                    func(error) bool        // 是否需要重试
+	MaxRetries                     int              // 重试次数
+	RetryRule                      retry.RetryRule  // 重试规则
+	ShouldRetry                    func(error) bool // 是否需要重试
 	DisableParamValidation         bool
 	DisableComputeChecksums        bool
 	S3ForcePathStyle               bool
@@ -85,7 +86,7 @@ func (c Config) Copy() Config {
 	dst.LogLevel = c.LogLevel
 	dst.Logger = c.Logger
 	dst.MaxRetries = c.MaxRetries
-	dst.RetryRules = c.RetryRules
+	dst.RetryRule = c.RetryRule
 	dst.ShouldRetry = c.ShouldRetry
 	dst.DisableParamValidation = c.DisableParamValidation
 	dst.DisableComputeChecksums = c.DisableComputeChecksums
@@ -170,10 +171,10 @@ func (c Config) Merge(newcfg *Config) *Config {
 		cfg.MaxRetries = c.MaxRetries
 	}
 
-	if newcfg.RetryRules != nil {
-		cfg.RetryRules = newcfg.RetryRules
+	if newcfg.RetryRule != nil {
+		cfg.RetryRule = newcfg.RetryRule
 	} else {
-		cfg.RetryRules = c.RetryRules
+		cfg.RetryRule = c.RetryRule
 	}
 
 	if newcfg.ShouldRetry != nil {
