@@ -729,7 +729,7 @@ func (s *Ks3utilCommandSuite) TestUploadPartProgress(c *C) {
 // TestPutObject10GB 上传10GB文件，报413 Request Entity Too Large错误，错误类型为html
 func (s *Ks3utilCommandSuite) TestPutObject10GB(c *C) {
 	object := randLowStr(10)
-	createFile(object, 1024*1024*1)
+	createFile(object, 1024*1024*10)
 	fd, _ := os.Open(object)
 	_, err := client.PutObject(&s3.PutObjectInput{
 		Bucket:        aws.String(bucket),
