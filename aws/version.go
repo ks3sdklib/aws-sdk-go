@@ -1,7 +1,6 @@
-// Package aws provides core functionality for making requests to AWS services.
 package aws
 
-// SDKName is the name of this AWS SDK
+// SDKName is the name of this KS3 SDK
 const SDKName = "ks3-sdk-go"
 
 // SDKVersion is the version of this SDK
