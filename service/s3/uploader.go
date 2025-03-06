@@ -288,7 +288,7 @@ func (u *Uploader) uploadMultiPart() (*UploadFileOutput, error) {
 			return nil, err
 		}
 
-		if !u.isUploadIdValid() {
+		if ucp.UploadId != "" && !u.isUploadIdValid() {
 			ucp.UploadId = ""
 			ucp.PartETagList = make([]*CompletedPart, 0)
 			ucp.remove()

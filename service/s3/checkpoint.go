@@ -386,12 +386,6 @@ func newCopyCheckpoint(c *Copier) (*CopyCheckpoint, error) {
 		PartETagList:          make([]*CompletedPart, 0),
 	}
 
-	uploadId, err := c.initUploadId()
-	if err != nil {
-		return nil, err
-	}
-	cp.UploadId = uploadId
-
 	return cp, nil
 }
 
