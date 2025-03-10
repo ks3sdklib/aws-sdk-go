@@ -117,32 +117,38 @@ func (cp *UploadCheckpoint) load() error {
 		return nil
 	}
 
-	if !cp.isValid() {
+	// 读取断点文件
+	contents, err := os.ReadFile(cp.CpFilePath)
+	if err != nil {
+		return err
+	}
+
+	ucp := UploadCheckpoint{}
+	if err = json.Unmarshal(contents, &ucp); err != nil {
+		return err
+	}
+
+	md5sum := ucp.checksum()
+	if CheckpointMagic != ucp.Magic || md5sum != ucp.MD5 {
+		return err
+	}
+
+	// 判断断点文件是否有效
+	if !cp.isValid(ucp) {
 		err := cp.remove()
 		if err != nil {
 			return err
 		}
 	}
 
+	// 读取断点文件成功，将断点文件中的信息赋值给当前对象
+	cp.UploadId = ucp.UploadId
+	cp.PartETagList = ucp.PartETagList
+
 	return nil
 }
 
-func (cp *UploadCheckpoint) isValid() bool {
-	contents, err := os.ReadFile(cp.CpFilePath)
-	if err != nil {
-		return false
-	}
-
-	ucp := UploadCheckpoint{}
-	if err = json.Unmarshal(contents, &ucp); err != nil {
-		return false
-	}
-
-	md5sum := ucp.checksum()
-	if CheckpointMagic != ucp.Magic || md5sum != ucp.MD5 {
-		return false
-	}
-
+func (cp *UploadCheckpoint) isValid(ucp UploadCheckpoint) bool {
 	if cp.BucketName != ucp.BucketName ||
 		cp.ObjectKey != ucp.ObjectKey ||
 		cp.PartSize != ucp.PartSize ||
@@ -155,9 +161,6 @@ func (cp *UploadCheckpoint) isValid() bool {
 	if len(ucp.UploadId) == 0 {
 		return false
 	}
-
-	cp.UploadId = ucp.UploadId
-	cp.PartETagList = ucp.PartETagList
 
 	return true
 }
@@ -271,31 +274,35 @@ func (cp *DownloadCheckpoint) load() error {
 		return nil
 	}
 
-	if !cp.isValid() {
-		cp.remove()
-		return nil
-	}
-
-	return nil
-}
-
-func (cp *DownloadCheckpoint) isValid() bool {
+	// 读取断点文件
 	contents, err := os.ReadFile(cp.CpFilePath)
 	if err != nil {
-		return false
+		return err
 	}
 
 	dcp := DownloadCheckpoint{}
 	if err = json.Unmarshal(contents, &dcp); err != nil {
-		return false
+		return err
 	}
 
 	md5sum := dcp.checksum()
-	if CheckpointMagic != dcp.Magic ||
-		md5sum != dcp.MD5 {
-		return false
+	if CheckpointMagic != dcp.Magic || md5sum != dcp.MD5 {
+		return err
 	}
 
+	// 判断断点文件是否有效
+	if !cp.isValid(dcp) {
+		cp.remove()
+		return nil
+	}
+
+	// 读取断点文件成功，将断点文件中的信息赋值给当前对象
+	cp.PartETagList = dcp.PartETagList
+
+	return nil
+}
+
+func (cp *DownloadCheckpoint) isValid(dcp DownloadCheckpoint) bool {
 	if cp.BucketName != dcp.BucketName ||
 		cp.ObjectKey != dcp.ObjectKey ||
 		cp.PartSize != dcp.PartSize ||
@@ -304,8 +311,6 @@ func (cp *DownloadCheckpoint) isValid() bool {
 		cp.ObjectLastModified != dcp.ObjectLastModified {
 		return false
 	}
-
-	cp.PartETagList = dcp.PartETagList
 
 	return true
 }
@@ -423,48 +428,51 @@ func (cp *CopyCheckpoint) load() error {
 		return nil
 	}
 
-	if !cp.isValid() {
+	// 读取断点文件
+	contents, err := os.ReadFile(cp.CpFilePath)
+	if err != nil {
+		return err
+	}
+
+	ccp := CopyCheckpoint{}
+	if err = json.Unmarshal(contents, &ccp); err != nil {
+		return err
+	}
+
+	md5sum := ccp.checksum()
+	if CheckpointMagic != ccp.Magic || md5sum != ccp.MD5 {
+		return err
+	}
+
+	// 判断断点文件是否有效
+	if !cp.isValid(ccp) {
 		err := cp.remove()
 		if err != nil {
 			return err
 		}
 	}
 
+	// 读取断点文件成功，将断点文件中的信息赋值给当前对象
+	cp.UploadId = ccp.UploadId
+	cp.PartETagList = ccp.PartETagList
+
 	return nil
 }
 
-func (cp *CopyCheckpoint) isValid() bool {
-	contents, err := os.ReadFile(cp.CpFilePath)
-	if err != nil {
+func (cp *CopyCheckpoint) isValid(ccp CopyCheckpoint) bool {
+	if cp.BucketName != ccp.BucketName ||
+		cp.ObjectKey != ccp.ObjectKey ||
+		cp.SrcBucketName != ccp.SrcBucketName ||
+		cp.SrcObjectKey != ccp.SrcObjectKey ||
+		cp.SrcObjectSize != ccp.SrcObjectSize ||
+		cp.SrcObjectLastModified != ccp.SrcObjectLastModified ||
+		cp.PartSize != ccp.PartSize {
 		return false
 	}
 
-	ucp := CopyCheckpoint{}
-	if err = json.Unmarshal(contents, &ucp); err != nil {
+	if len(ccp.UploadId) == 0 {
 		return false
 	}
-
-	md5sum := ucp.checksum()
-	if CheckpointMagic != ucp.Magic || md5sum != ucp.MD5 {
-		return false
-	}
-
-	if cp.BucketName != ucp.BucketName ||
-		cp.ObjectKey != ucp.ObjectKey ||
-		cp.SrcBucketName != ucp.SrcBucketName ||
-		cp.SrcObjectKey != ucp.SrcObjectKey ||
-		cp.SrcObjectSize != ucp.SrcObjectSize ||
-		cp.SrcObjectLastModified != ucp.SrcObjectLastModified ||
-		cp.PartSize != ucp.PartSize {
-		return false
-	}
-
-	if len(ucp.UploadId) == 0 {
-		return false
-	}
-
-	cp.UploadId = ucp.UploadId
-	cp.PartETagList = ucp.PartETagList
 
 	return true
 }
