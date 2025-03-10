@@ -278,7 +278,7 @@ func (c *S3) buildUploadFileRequest(ctx context.Context, request *CopyFileInput)
 			return nil, err
 		}
 
-		input.ACL = aws.String(GetObjectAcl(*aclResp))
+		input.ACL = aws.String(GetCannedACL(aclResp.Grants))
 	}
 	if input.StorageClass == nil {
 		input.StorageClass = resp.Metadata[HTTPHeaderAmzStorageClass]
@@ -778,7 +778,7 @@ func (c *Copier) initUploadId() (string, error) {
 			return "", err
 		}
 
-		input.ACL = aws.String(GetObjectAcl(*aclResp))
+		input.ACL = aws.String(GetCannedACL(aclResp.Grants))
 	}
 	if c.copyFileRequest.StorageClass == nil {
 		input.StorageClass = c.copyObjectMeta[HTTPHeaderAmzStorageClass]

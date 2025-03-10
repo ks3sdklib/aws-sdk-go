@@ -176,7 +176,7 @@ func (s *Ks3utilCommandSuite) TestGetObjectAcl(c *C) {
 		Key:    aws.String(key),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(s3.GetObjectAcl(*resp), Equals, s3.ACLPublicRead)
+	c.Assert(s3.GetCannedACL(resp.Grants), Equals, s3.ACLPublicRead)
 }
 
 // TestPutObjectAcl 设置对象Acl

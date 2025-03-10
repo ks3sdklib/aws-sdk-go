@@ -54,7 +54,7 @@ func (s *Ks3utilCommandSuite) TestBucketAcl(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(s3.GetBucketAcl(*resp), Equals, s3.ACLPublicRead)
+	c.Assert(s3.GetCannedACL(resp.Grants), Equals, s3.ACLPublicRead)
 }
 
 // TestBucketLifecycle bucket lifecycle

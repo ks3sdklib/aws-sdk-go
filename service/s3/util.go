@@ -57,29 +57,10 @@ func BuildCopySource(bucket *string, key *string) string {
 	return "/" + *bucket + "/" + url.QueryEscape(*key)
 }
 
-// GetObjectAcl 获取对象的访问控制权限
-func GetObjectAcl(resp GetObjectACLOutput) string {
+// GetCannedACL 获取访问控制权限
+func GetCannedACL(Grants []*Grant) string {
 	allUsersPermissions := map[string]*string{}
-	for _, value := range resp.Grants {
-		if value.Grantee.URI != nil && *value.Grantee.URI == AllUsersUri {
-			allUsersPermissions[*value.Permission] = value.Permission
-		}
-	}
-	_, read := allUsersPermissions["READ"]
-	_, write := allUsersPermissions["WRITE"]
-	if read && write {
-		return ACLPublicReadWrite
-	} else if read {
-		return ACLPublicRead
-	} else {
-		return ACLPrivate
-	}
-}
-
-// GetBucketAcl 获取存储空间的访问控制权限
-func GetBucketAcl(resp GetBucketACLOutput) string {
-	allUsersPermissions := map[string]*string{}
-	for _, value := range resp.Grants {
+	for _, value := range Grants {
 		if value.Grantee.URI != nil && *value.Grantee.URI == AllUsersUri {
 			allUsersPermissions[*value.Permission] = value.Permission
 		}
