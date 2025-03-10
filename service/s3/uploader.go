@@ -159,10 +159,10 @@ func (u *Uploader) uploadFile() (*UploadFileOutput, error) {
 	}
 
 	if aws.ToString(u.uploadFileRequest.UploadFile) != "" && aws.ToLong(u.uploadFileRequest.FileSize) <= aws.ToLong(u.uploadFileRequest.PartSize) {
-		return u.uploadSinglePart()
+		return u.putObject()
 	}
 
-	return u.uploadMultiPart()
+	return u.multipartUpload()
 }
 
 func (u *Uploader) validate() error {
@@ -224,7 +224,7 @@ func (u *Uploader) validate() error {
 	return nil
 }
 
-func (u *Uploader) uploadSinglePart() (*UploadFileOutput, error) {
+func (u *Uploader) putObject() (*UploadFileOutput, error) {
 	request := u.uploadFileRequest
 	fd, err := os.Open(aws.ToString(request.UploadFile))
 	if err != nil {
@@ -266,7 +266,7 @@ func (u *Uploader) uploadSinglePart() (*UploadFileOutput, error) {
 	}, nil
 }
 
-func (u *Uploader) uploadMultiPart() (*UploadFileOutput, error) {
+func (u *Uploader) multipartUpload() (*UploadFileOutput, error) {
 	ucp, err := newUploadCheckpoint(u)
 	if err != nil {
 		return nil, err

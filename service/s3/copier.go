@@ -359,9 +359,9 @@ func (c *Copier) copyFile() (*CopyFileOutput, error) {
 
 	var resp *CopyFileOutput
 	if fileSize <= aws.ToLong(c.copyFileRequest.PartSize) {
-		resp, err = c.copySinglePart()
+		resp, err = c.copyObject()
 	} else {
-		resp, err = c.copyMultiPart()
+		resp, err = c.multipartCopy()
 	}
 	if err != nil {
 		return nil, err
@@ -416,7 +416,7 @@ func (c *Copier) validate() error {
 	return nil
 }
 
-func (c *Copier) copySinglePart() (*CopyFileOutput, error) {
+func (c *Copier) copyObject() (*CopyFileOutput, error) {
 	request := c.copyFileRequest
 	input := &CopyObjectInput{
 		Bucket:                         request.Bucket,
@@ -466,7 +466,7 @@ func (c *Copier) copySinglePart() (*CopyFileOutput, error) {
 	}, nil
 }
 
-func (c *Copier) copyMultiPart() (*CopyFileOutput, error) {
+func (c *Copier) multipartCopy() (*CopyFileOutput, error) {
 	ccp, err := newCopyCheckpoint(c)
 	if err != nil {
 		return nil, err
