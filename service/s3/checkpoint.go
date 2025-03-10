@@ -128,11 +128,6 @@ func (cp *UploadCheckpoint) load() error {
 		return err
 	}
 
-	md5sum := ucp.checksum()
-	if CheckpointMagic != ucp.Magic || md5sum != ucp.MD5 {
-		return err
-	}
-
 	// 判断断点文件是否有效
 	if !cp.isValid(ucp) {
 		err := cp.remove()
@@ -149,6 +144,11 @@ func (cp *UploadCheckpoint) load() error {
 }
 
 func (cp *UploadCheckpoint) isValid(ucp UploadCheckpoint) bool {
+	md5sum := ucp.checksum()
+	if CheckpointMagic != ucp.Magic || md5sum != ucp.MD5 {
+		return false
+	}
+
 	if cp.BucketName != ucp.BucketName ||
 		cp.ObjectKey != ucp.ObjectKey ||
 		cp.PartSize != ucp.PartSize ||
@@ -285,11 +285,6 @@ func (cp *DownloadCheckpoint) load() error {
 		return err
 	}
 
-	md5sum := dcp.checksum()
-	if CheckpointMagic != dcp.Magic || md5sum != dcp.MD5 {
-		return err
-	}
-
 	// 判断断点文件是否有效
 	if !cp.isValid(dcp) {
 		cp.remove()
@@ -303,6 +298,11 @@ func (cp *DownloadCheckpoint) load() error {
 }
 
 func (cp *DownloadCheckpoint) isValid(dcp DownloadCheckpoint) bool {
+	md5sum := dcp.checksum()
+	if CheckpointMagic != dcp.Magic || md5sum != dcp.MD5 {
+		return false
+	}
+
 	if cp.BucketName != dcp.BucketName ||
 		cp.ObjectKey != dcp.ObjectKey ||
 		cp.PartSize != dcp.PartSize ||
@@ -439,11 +439,6 @@ func (cp *CopyCheckpoint) load() error {
 		return err
 	}
 
-	md5sum := ccp.checksum()
-	if CheckpointMagic != ccp.Magic || md5sum != ccp.MD5 {
-		return err
-	}
-
 	// 判断断点文件是否有效
 	if !cp.isValid(ccp) {
 		err := cp.remove()
@@ -460,6 +455,11 @@ func (cp *CopyCheckpoint) load() error {
 }
 
 func (cp *CopyCheckpoint) isValid(ccp CopyCheckpoint) bool {
+	md5sum := ccp.checksum()
+	if CheckpointMagic != ccp.Magic || md5sum != ccp.MD5 {
+		return false
+	}
+
 	if cp.BucketName != ccp.BucketName ||
 		cp.ObjectKey != ccp.ObjectKey ||
 		cp.SrcBucketName != ccp.SrcBucketName ||
