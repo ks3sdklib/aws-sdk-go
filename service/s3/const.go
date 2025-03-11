@@ -2,24 +2,23 @@ package s3
 
 // HTTP headers
 const (
-	HTTPHeaderAcceptEncoding     string = "Accept-Encoding"
-	HTTPHeaderAuthorization             = "Authorization"
-	HTTPHeaderCacheControl              = "Cache-Control"
-	HTTPHeaderContentDisposition        = "Content-Disposition"
-	HTTPHeaderContentEncoding           = "Content-Encoding"
-	HTTPHeaderContentLength             = "Content-Length"
-	HTTPHeaderContentMD5                = "Content-MD5"
-	HTTPHeaderContentType               = "Content-Type"
-	HTTPHeaderContentLanguage           = "Content-Language"
-	HTTPHeaderDate                      = "Date"
-	HTTPHeaderEtag                      = "ETag"
-	HTTPHeaderExpires                   = "Expires"
-	HTTPHeaderHost                      = "Host"
-	HTTPHeaderkssACL                    = "X-kss-Acl"
-
-	ChannelBuf  int = 1000
-	PartSize5MB     = 5 * 1024 * 1024 // part size, 5MB
-	MinPartSize     = 100 * 1024      // Min part size, 100KB
+	HTTPHeaderAcceptEncoding       string = "Accept-Encoding"
+	HTTPHeaderAuthorization               = "Authorization"
+	HTTPHeaderCacheControl                = "Cache-Control"
+	HTTPHeaderContentDisposition          = "Content-Disposition"
+	HTTPHeaderContentEncoding             = "Content-Encoding"
+	HTTPHeaderContentLength               = "Content-Length"
+	HTTPHeaderContentMD5                  = "Content-MD5"
+	HTTPHeaderContentType                 = "Content-Type"
+	HTTPHeaderContentLanguage             = "Content-Language"
+	HTTPHeaderLastModified                = "Last-Modified"
+	HTTPHeaderDate                        = "Date"
+	HTTPHeaderEtag                        = "Etag"
+	HTTPHeaderExpires                     = "Expires"
+	HTTPHeaderHost                        = "Host"
+	HTTPHeaderAmzACL                      = "X-Amz-Acl"
+	HTTPHeaderAmzChecksumCrc64ecma        = "X-Amz-Checksum-Crc64ecma"
+	HTTPHeaderAmzStorageClass             = "X-Amz-Storage-Class"
 )
 
 // ACL
@@ -62,12 +61,7 @@ const (
 	POST   HTTPMethod = "POST"
 )
 
-const AllUsersUri = "http://acs.amazonaws.com/groups/global/AllUsers"
-
-type CannedAccessControlType int32
-
 const (
-	PublicReadWrite CannedAccessControlType = 0
-	PublicRead      CannedAccessControlType = 1
-	Private         CannedAccessControlType = 2
+	AllUsersUri = "http://acs.amazonaws.com/groups/global/AllUsers"
+	MetaPrefix  = "x-amz-meta-"
 )

@@ -58,8 +58,8 @@ func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 		S3ForcePathStyle: false,    // 使用二级域名，默认值为false
 		DomainMode:       false,    // 开启自定义Bucket绑定域名，当开启时S3ForcePathStyle参数不生效，默认值为false
 		SignerVersion:    "V2",     // 签名方式可选值有：V2 OR V4 OR V4_UNSIGNED_PAYLOAD_SIGNER，默认值为V2
-		MaxRetries:       1,        // 请求失败时最大重试次数，默认请求失败时不重试
-		CrcCheckEnabled:  false,    // 开启CRC64校验，默认值为false
+		MaxRetries:       3,        // 请求失败时最大重试次数，值小于0时不重试
+		CrcCheckEnabled:  true,     // 开启CRC64校验，默认值为false
 		HTTPClient:       nil,      // HTTP请求的Client对象，若为空则使用默认值
 	})
 
@@ -188,6 +188,21 @@ func createFile(filePath string, size int64) error {
 	return nil
 }
 
+// createFileWithContent 创建文件并写入内容
+func createFileWithContent(filePath, content string) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(content)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // PutObject 上传单个文件
 func (s *Ks3utilCommandSuite) PutObject(key string, c *C) {
 	_, err := client.PutObject(&s3.PutObjectInput{
@@ -221,6 +236,14 @@ func (s *Ks3utilCommandSuite) HeadObject(key string, c *C) {
 
 // DeleteObject 删除单个文件
 func (s *Ks3utilCommandSuite) DeleteObject(key string, c *C) {
+	_, err := client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) DeleteObjectWithClient(client *s3.S3, bucket string, key string, c *C) {
 	_, err := client.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),

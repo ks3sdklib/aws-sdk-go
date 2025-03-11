@@ -57,10 +57,10 @@ func BuildCopySource(bucket *string, key *string) string {
 	return "/" + *bucket + "/" + url.QueryEscape(*key)
 }
 
-// GetAcl 获取对象的访问控制权限
-func GetAcl(resp GetObjectACLOutput) CannedAccessControlType {
+// GetCannedACL 获取访问控制权限
+func GetCannedACL(Grants []*Grant) string {
 	allUsersPermissions := map[string]*string{}
-	for _, value := range resp.Grants {
+	for _, value := range Grants {
 		if value.Grantee.URI != nil && *value.Grantee.URI == AllUsersUri {
 			allUsersPermissions[*value.Permission] = value.Permission
 		}
@@ -68,29 +68,36 @@ func GetAcl(resp GetObjectACLOutput) CannedAccessControlType {
 	_, read := allUsersPermissions["READ"]
 	_, write := allUsersPermissions["WRITE"]
 	if read && write {
-		return PublicReadWrite
+		return ACLPublicReadWrite
 	} else if read {
-		return PublicRead
+		return ACLPublicRead
 	} else {
-		return Private
+		return ACLPrivate
 	}
 }
 
-// GetBucketAcl 获取存储空间的访问控制权限
-func GetBucketAcl(resp GetBucketACLOutput) CannedAccessControlType {
-	allUsersPermissions := map[string]*string{}
-	for _, value := range resp.Grants {
-		if value.Grantee.URI != nil && *value.Grantee.URI == AllUsersUri {
-			allUsersPermissions[*value.Permission] = value.Permission
-		}
+// FileExists returns whether the given file exists or not
+func FileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
 	}
-	_, read := allUsersPermissions["READ"]
-	_, write := allUsersPermissions["WRITE"]
-	if read && write {
-		return PublicReadWrite
-	} else if read {
-		return PublicRead
-	} else {
-		return Private
+	return !info.IsDir()
+}
+
+// DirExists returns whether the given directory exists or not
+func DirExists(dir string) bool {
+	info, err := os.Stat(dir)
+	if os.IsNotExist(err) {
+		return false
 	}
+	return info.IsDir()
+}
+
+// Min returns the smaller of two integers
+func Min(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+	return b
 }

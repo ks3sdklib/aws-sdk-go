@@ -3,6 +3,7 @@ package aws
 import (
 	"bytes"
 	"fmt"
+	"github.com/ks3sdklib/aws-sdk-go/aws/retry"
 	"io"
 	"net/http"
 	"os"
@@ -23,9 +24,8 @@ var DefaultChainCredentials = credentials.NewChainCredentials(
 		&credentials.EC2RoleProvider{ExpiryWindow: 5 * time.Minute},
 	})
 
-// DefaultRetries The default number of retries for a service. The value of -1 indicates that
-// the service specific retry default will be used.
-const DefaultRetries = -1
+// DefaultMaxRetries is the default number of retries for a service.
+const DefaultMaxRetries = 3
 
 // DefaultConfig is the default all service configuration will be based off of.
 var DefaultConfig = &Config{
@@ -38,7 +38,9 @@ var DefaultConfig = &Config{
 	LogHTTPBody:                    false,
 	LogLevel:                       Off,
 	Logger:                         os.Stdout,
-	MaxRetries:                     DefaultRetries,
+	MaxRetries:                     DefaultMaxRetries,
+	RetryRule:                      retry.DefaultExponentialRetryRule,
+	ShouldRetry:                    retry.ShouldRetry,
 	DisableParamValidation:         false,
 	DisableComputeChecksums:        false,
 	S3ForcePathStyle:               false,
@@ -59,7 +61,9 @@ type Config struct {
 	LogHTTPBody                    bool
 	LogLevel                       uint
 	Logger                         io.Writer
-	MaxRetries                     int
+	MaxRetries                     int              // 重试次数
+	RetryRule                      retry.RetryRule  // 重试规则
+	ShouldRetry                    func(error) bool // 是否需要重试
 	DisableParamValidation         bool
 	DisableComputeChecksums        bool
 	S3ForcePathStyle               bool
@@ -82,6 +86,8 @@ func (c Config) Copy() Config {
 	dst.LogLevel = c.LogLevel
 	dst.Logger = c.Logger
 	dst.MaxRetries = c.MaxRetries
+	dst.RetryRule = c.RetryRule
+	dst.ShouldRetry = c.ShouldRetry
 	dst.DisableParamValidation = c.DisableParamValidation
 	dst.DisableComputeChecksums = c.DisableComputeChecksums
 	dst.S3ForcePathStyle = c.S3ForcePathStyle
@@ -159,10 +165,22 @@ func (c Config) Merge(newcfg *Config) *Config {
 		cfg.Logger = c.Logger
 	}
 
-	if newcfg.MaxRetries != DefaultRetries {
+	if newcfg.MaxRetries != 0 {
 		cfg.MaxRetries = newcfg.MaxRetries
 	} else {
 		cfg.MaxRetries = c.MaxRetries
+	}
+
+	if newcfg.RetryRule != nil {
+		cfg.RetryRule = newcfg.RetryRule
+	} else {
+		cfg.RetryRule = c.RetryRule
+	}
+
+	if newcfg.ShouldRetry != nil {
+		cfg.ShouldRetry = newcfg.ShouldRetry
+	} else {
+		cfg.ShouldRetry = c.ShouldRetry
 	}
 
 	if newcfg.DisableParamValidation {
@@ -203,6 +221,7 @@ func (c Config) Merge(newcfg *Config) *Config {
 	} else {
 		cfg.DisableRestProtocolURICleaning = c.DisableRestProtocolURICleaning
 	}
+
 	return &cfg
 }
 
