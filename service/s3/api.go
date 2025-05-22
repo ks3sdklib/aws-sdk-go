@@ -2260,6 +2260,9 @@ type Bucket struct {
 
 	Type *string `type:"string"`
 
+	// The bucket data redundancy type.
+	DataRedundancyType *string `type:"string"`
+
 	metadataBucket `json:"-" xml:"-"`
 }
 
@@ -2654,6 +2657,13 @@ type CreateBucketConfiguration struct {
 	// Specifies the region where the bucket will be created. If you don't specify
 	// a region, the bucket will be created in US Standard.
 	LocationConstraint *string `type:"string"`
+
+	// The bucket data redundancy type.
+	// Default value: LRS
+	// Valid value: LRS丨ZRS
+	// LRS: local redundancy storage
+	// ZRS: zone redundancy storage
+	DataRedundancyType *string `type:"string"`
 
 	metadataCreateBucketConfiguration `json:"-" xml:"-"`
 }
@@ -4355,6 +4365,9 @@ type Object struct {
 
 	// The class of storage used to store the object.
 	StorageClass *string `type:"string"`
+
+	// The redundancy type of the object.
+	Redundancy *string `type:"string"`
 
 	metadataObject `json:"-" xml:"-"`
 }

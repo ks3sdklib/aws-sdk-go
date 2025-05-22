@@ -4,6 +4,7 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	. "gopkg.in/check.v1"
+	"time"
 )
 
 // TestBucket 创建bucket
@@ -446,4 +447,132 @@ func (s *Ks3utilCommandSuite) TestBucketInventory(c *C) {
 		Id:     aws.String(id),
 	})
 	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestCreateBucketDataRedundancy(c *C) {
+	// 创建bucket，使用数据冗余类型LRS
+	bucketName1 := commonNamePrefix + randLowStr(10)
+	_, err := client.CreateBucket(&s3.CreateBucketInput{
+		Bucket: aws.String(bucketName1),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			DataRedundancyType: aws.String(s3.DataRedundancyTypeLRS),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取bucket信息
+	resp, err := client.HeadBucket(&s3.HeadBucketInput{
+		Bucket: aws.String(bucketName1),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzDataRedundancyType], Equals, s3.DataRedundancyTypeLRS)
+	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzZRSSwitchEnable], Equals, "none")
+
+	// 创建bucket，使用数据冗余类型ZRS
+	bucketName2 := commonNamePrefix + randLowStr(10)
+	_, err = client.CreateBucket(&s3.CreateBucketInput{
+		Bucket: aws.String(bucketName2),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			DataRedundancyType: aws.String(s3.DataRedundancyTypeZRS),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取bucket信息
+	resp, err = client.HeadBucket(&s3.HeadBucketInput{
+		Bucket: aws.String(bucketName2),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzDataRedundancyType], Equals, s3.DataRedundancyTypeZRS)
+	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzZRSSwitchEnable], Equals, "none")
+
+	// 获取bucket列表
+	listResp, err := client.ListBuckets(&s3.ListBucketsInput{})
+	c.Assert(err, IsNil)
+	for _, bucketInfo := range listResp.Buckets {
+		if *bucketInfo.Name == bucketName1 {
+			c.Assert(*bucketInfo.DataRedundancyType, Equals, s3.DataRedundancyTypeLRS)
+		}
+
+		if *bucketInfo.Name == bucketName2 {
+			c.Assert(*bucketInfo.DataRedundancyType, Equals, s3.DataRedundancyTypeZRS)
+		}
+	}
+
+	// 删除bucket
+	s.DeleteBucket(bucketName1, c)
+	s.DeleteBucket(bucketName2, c)
+}
+
+func (s *Ks3utilCommandSuite) TestBucketDataRedundancySwitch(c *C) {
+	// 创建bucket，使用数据冗余类型ZRS
+	bucketName := commonNamePrefix + randLowStr(10)
+	_, err := client.CreateBucket(&s3.CreateBucketInput{
+		Bucket: aws.String(bucketName),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			DataRedundancyType: aws.String(s3.DataRedundancyTypeZRS),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取bucket信息
+	resp, err := client.HeadBucket(&s3.HeadBucketInput{
+		Bucket: aws.String(bucketName),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzDataRedundancyType], Equals, s3.DataRedundancyTypeZRS)
+	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzZRSSwitchEnable], Equals, "none")
+
+	// 修改数据冗余类型为LRS
+	_, err = client.PutBucketDataRedundancySwitch(&s3.PutBucketDataRedundancySwitchInput{
+		Bucket:             aws.String(bucketName),
+		DataRedundancyType: aws.String(s3.DataRedundancyTypeLRS),
+	})
+	c.Assert(err, IsNil)
+
+	// 等待数据冗余类型切换完成
+	time.Sleep(time.Second * 120)
+
+	// 获取数据冗余类型
+	switchResp, err := client.GetBucketDataRedundancySwitch(&s3.GetBucketDataRedundancySwitchInput{
+		Bucket: aws.String(bucketName),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*switchResp.DataRedundancySwitch.DataRedundancyType, Equals, s3.DataRedundancyTypeLRS)
+
+	// 获取bucket信息
+	resp, err = client.HeadBucket(&s3.HeadBucketInput{
+		Bucket: aws.String(bucketName),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzDataRedundancyType], Equals, s3.DataRedundancyTypeZRS)
+	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzZRSSwitchEnable], Equals, "false")
+
+	// 修改数据冗余类型为ZRS
+	_, err = client.PutBucketDataRedundancySwitch(&s3.PutBucketDataRedundancySwitchInput{
+		Bucket:             aws.String(bucketName),
+		DataRedundancyType: aws.String(s3.DataRedundancyTypeZRS),
+	})
+	c.Assert(err, IsNil)
+
+	// 等待数据冗余类型切换完成
+	time.Sleep(time.Second * 120)
+
+	// 获取数据冗余类型
+	switchResp, err = client.GetBucketDataRedundancySwitch(&s3.GetBucketDataRedundancySwitchInput{
+		Bucket: aws.String(bucketName),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*switchResp.DataRedundancySwitch.DataRedundancyType, Equals, s3.DataRedundancyTypeZRS)
+
+	// 获取bucket信息
+	resp, err = client.HeadBucket(&s3.HeadBucketInput{
+		Bucket: aws.String(bucketName),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzDataRedundancyType], Equals, s3.DataRedundancyTypeZRS)
+	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzZRSSwitchEnable], Equals, "true")
+
+	// 删除bucket
+	s.DeleteBucket(bucketName, c)
 }
