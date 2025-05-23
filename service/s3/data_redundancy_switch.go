@@ -73,7 +73,7 @@ type GetBucketDataRedundancySwitchOutput struct {
 	// The HTTP status code of the response.
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 
-	metadataGetGetBucketDataRedundancySwitchOutput `json:"-" xml:"-"`
+	metadataGetBucketDataRedundancySwitchOutput `json:"-" xml:"-"`
 }
 
 type DataRedundancySwitch struct {
@@ -83,7 +83,7 @@ type DataRedundancySwitch struct {
 	SwitchTime *time.Time `locationName:"SwitchTime" type:"timestamp" timestampFormat:"iso8601"`
 }
 
-type metadataGetGetBucketDataRedundancySwitchOutput struct {
+type metadataGetBucketDataRedundancySwitchOutput struct {
 	SDKShapeTraits bool `type:"structure" payload:"DataRedundancySwitch"`
 }
 
