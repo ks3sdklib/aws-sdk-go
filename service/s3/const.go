@@ -2,23 +2,25 @@ package s3
 
 // HTTP headers
 const (
-	HTTPHeaderAcceptEncoding       string = "Accept-Encoding"
-	HTTPHeaderAuthorization               = "Authorization"
-	HTTPHeaderCacheControl                = "Cache-Control"
-	HTTPHeaderContentDisposition          = "Content-Disposition"
-	HTTPHeaderContentEncoding             = "Content-Encoding"
-	HTTPHeaderContentLength               = "Content-Length"
-	HTTPHeaderContentMD5                  = "Content-MD5"
-	HTTPHeaderContentType                 = "Content-Type"
-	HTTPHeaderContentLanguage             = "Content-Language"
-	HTTPHeaderLastModified                = "Last-Modified"
-	HTTPHeaderDate                        = "Date"
-	HTTPHeaderEtag                        = "Etag"
-	HTTPHeaderExpires                     = "Expires"
-	HTTPHeaderHost                        = "Host"
-	HTTPHeaderAmzACL                      = "X-Amz-Acl"
-	HTTPHeaderAmzChecksumCrc64ecma        = "X-Amz-Checksum-Crc64ecma"
-	HTTPHeaderAmzStorageClass             = "X-Amz-Storage-Class"
+	HTTPHeaderAcceptEncoding        string = "Accept-Encoding"
+	HTTPHeaderAuthorization                = "Authorization"
+	HTTPHeaderCacheControl                 = "Cache-Control"
+	HTTPHeaderContentDisposition           = "Content-Disposition"
+	HTTPHeaderContentEncoding              = "Content-Encoding"
+	HTTPHeaderContentLength                = "Content-Length"
+	HTTPHeaderContentMD5                   = "Content-MD5"
+	HTTPHeaderContentType                  = "Content-Type"
+	HTTPHeaderContentLanguage              = "Content-Language"
+	HTTPHeaderLastModified                 = "Last-Modified"
+	HTTPHeaderDate                         = "Date"
+	HTTPHeaderEtag                         = "Etag"
+	HTTPHeaderExpires                      = "Expires"
+	HTTPHeaderHost                         = "Host"
+	HTTPHeaderAmzACL                       = "X-Amz-Acl"
+	HTTPHeaderAmzChecksumCrc64ecma         = "X-Amz-Checksum-Crc64ecma"
+	HTTPHeaderAmzStorageClass              = "X-Amz-Storage-Class"
+	HTTPHeaderAmzDataRedundancyType        = "X-Amz-Data-Redundancy-Type"
+	HTTPHeaderAmzZRSSwitchEnable           = "X-Amz-Zrs-Switch-Enable"
 )
 
 // ACL
@@ -64,4 +66,9 @@ const (
 const (
 	AllUsersUri = "http://acs.amazonaws.com/groups/global/AllUsers"
 	MetaPrefix  = "x-amz-meta-"
+)
+
+const (
+	DataRedundancyTypeLRS string = "LRS"
+	DataRedundancyTypeZRS string = "ZRS"
 )
