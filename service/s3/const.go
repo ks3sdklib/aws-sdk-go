@@ -72,3 +72,8 @@ const (
 	DataRedundancyTypeLRS string = "LRS"
 	DataRedundancyTypeZRS string = "ZRS"
 )
+
+const (
+	StorageMediumNormal  string = "Normal"
+	StorageMediumExtreme string = "Extreme"
+)

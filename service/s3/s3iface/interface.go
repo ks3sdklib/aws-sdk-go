@@ -41,6 +41,10 @@ type S3API interface {
 
 	DeleteBucketInventory(*s3.DeleteBucketInventoryInput) (*s3.DeleteBucketInventoryOutput, error)
 
+	DeleteBucketQos(*s3.DeleteBucketQosInput) (*s3.DeleteBucketQosOutput, error)
+
+	DeleteRequesterQos(*s3.DeleteRequesterQosInput) (*s3.DeleteRequesterQosOutput, error)
+
 	DeleteObject(*s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 
 	DeleteObjects(*s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
@@ -76,6 +80,12 @@ type S3API interface {
 	GetBucketRetention(*s3.GetBucketRetentionInput) (*s3.GetBucketRetentionOutput, error)
 
 	GetBucketInventory(*s3.GetBucketInventoryInput) (*s3.GetBucketInventoryOutput, error)
+
+	GetBucketDataRedundancySwitch(*s3.GetBucketDataRedundancySwitchInput) (*s3.GetBucketDataRedundancySwitchOutput, error)
+
+	GetBucketQos(*s3.GetBucketQosInput) (*s3.GetBucketQosOutput, error)
+
+	GetRequesterQos(*s3.GetRequesterQosInput) (*s3.GetRequesterQosOutput, error)
 
 	GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error)
 
@@ -130,6 +140,12 @@ type S3API interface {
 	PutBucketRetention(*s3.PutBucketRetentionInput) (*s3.PutBucketRetentionOutput, error)
 
 	PutBucketInventory(*s3.PutBucketInventoryInput) (*s3.PutBucketInventoryOutput, error)
+
+	PutBucketDataRedundancySwitch(*s3.PutBucketDataRedundancySwitchInput) (*s3.PutBucketDataRedundancySwitchOutput, error)
+
+	PutBucketQos(*s3.PutBucketQosInput) (*s3.PutBucketQosOutput, error)
+
+	PutRequesterQos(*s3.PutRequesterQosInput) (*s3.PutRequesterQosOutput, error)
 
 	PutObject(*s3.PutObjectInput) (*s3.PutObjectOutput, error)
 
