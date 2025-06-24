@@ -22,10 +22,10 @@ type metadataPutBucketQosInput struct {
 
 type BucketQosConfiguration struct {
 	// Set the bucket flow control quota.
-	Quotas []*Quota `locationName:"Quota" type:"list" flattened:"true" required:"true"`
+	Quotas []*BucketQosQuota `locationName:"Quota" type:"list" flattened:"true" required:"true"`
 }
 
-type Quota struct {
+type BucketQosQuota struct {
 	// Specify the storage medium type that needs flow control. Options: Extreme/Normal (default)
 	// Extreme: SSD type storage medium
 	// Normal (default): HDD type storage medium

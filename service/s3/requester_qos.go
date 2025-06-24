@@ -35,7 +35,7 @@ type RequesterQosRule struct {
 	Krn *string `locationName:"Krn" type:"string" required:"true"`
 
 	// Set access account flow control quota.
-	Quotas []*Quota `locationName:"Quota" type:"list" flattened:"true" required:"true"`
+	Quotas []*BucketQosQuota `locationName:"Quota" type:"list" flattened:"true" required:"true"`
 }
 
 type PutRequesterQosOutput struct {
