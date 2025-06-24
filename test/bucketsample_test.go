@@ -583,7 +583,7 @@ func (s *Ks3utilCommandSuite) TestBucketQos(c *C) {
 	_, err := client.PutBucketQos(&s3.PutBucketQosInput{
 		Bucket: aws.String(bucket),
 		BucketQosConfiguration: &s3.BucketQosConfiguration{
-			Quotas: []*s3.Quota{
+			Quotas: []*s3.BucketQosQuota{
 				{
 					StorageMedium:             aws.String(s3.StorageMediumNormal),
 					ExtranetUploadBandwidth:   aws.Long(10),
@@ -637,7 +637,7 @@ func (s *Ks3utilCommandSuite) TestRequesterQos(c *C) {
 				{
 					UserType: aws.String("User"),
 					Krn:      aws.String("12345678/user1"),
-					Quotas: []*s3.Quota{
+					Quotas: []*s3.BucketQosQuota{
 						{
 							StorageMedium:             aws.String(s3.StorageMediumNormal),
 							ExtranetUploadBandwidth:   aws.Long(1),
@@ -650,7 +650,7 @@ func (s *Ks3utilCommandSuite) TestRequesterQos(c *C) {
 				{
 					UserType: aws.String("Role"),
 					Krn:      aws.String("12345678/role1"),
-					Quotas: []*s3.Quota{
+					Quotas: []*s3.BucketQosQuota{
 						{
 							StorageMedium:             aws.String(s3.StorageMediumExtreme),
 							ExtranetUploadBandwidth:   aws.Long(1),
