@@ -49,8 +49,6 @@ type SyncMirrorRules struct {
 	SavingSetting        *SavingSetting        `json:"saving_setting,omitempty" locationName:"saving_setting"`
 }
 
-var opPutBucketMirror *aws.Operation
-
 type PutBucketMirrorInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -71,8 +69,6 @@ type PutBucketMirrorOutput struct {
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
-var opGetBucketMirror *aws.Operation
-
 type GetBucketMirrorInput struct {
 	Bucket      *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
@@ -91,8 +87,6 @@ type metadataGetBucketMirrorInput struct {
 	SDKShapeTraits bool `type:"structure" payload:"BucketMirror"`
 }
 
-var opDeleteBucketMirror *aws.Operation
-
 type DeleteBucketMirrorInput struct {
 	Bucket      *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
@@ -104,19 +98,17 @@ type DeleteBucketMirrorOutput struct {
 }
 
 func (c *S3) PutBucketMirrorRequest(input *PutBucketMirrorInput) (req *aws.Request, output *PutBucketMirrorOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opPutBucketMirror == nil {
-		opPutBucketMirror = &aws.Operation{
-			Name:       "PutBucketMirror",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?mirror",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketMirror",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?mirror",
 	}
+
 	if input == nil {
 		input = &PutBucketMirrorInput{}
 	}
-	req = c.newRequest(opPutBucketMirror, input, output)
+
+	req = c.newRequest(op, input, output)
 	req.ContentType = "application/json"
 	output = &PutBucketMirrorOutput{}
 	req.Data = output
@@ -137,19 +129,17 @@ func (c *S3) PutBucketMirrorWithContext(ctx aws.Context, input *PutBucketMirrorI
 }
 
 func (c *S3) GetBucketMirrorRequest(input *GetBucketMirrorInput) (req *aws.Request, output *GetBucketMirrorOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opGetBucketMirror == nil {
-		opGetBucketMirror = &aws.Operation{
-			Name:       "GetBucketMirror",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?mirror",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketMirror",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?mirror",
 	}
+
 	if input == nil {
 		input = &GetBucketMirrorInput{}
 	}
-	req = c.newRequest(opGetBucketMirror, input, output)
+
+	req = c.newRequest(op, input, output)
 	req.ContentType = "application/json"
 	output = &GetBucketMirrorOutput{
 		BucketMirror: &BucketMirror{},
@@ -172,19 +162,17 @@ func (c *S3) GetBucketMirrorWithContext(ctx aws.Context, input *GetBucketMirrorI
 }
 
 func (c *S3) DeleteBucketMirrorRequest(input *DeleteBucketMirrorInput) (req *aws.Request, output *DeleteBucketMirrorOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opDeleteBucketMirror == nil {
-		opDeleteBucketMirror = &aws.Operation{
-			Name:       "DeleteBucketMirror",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?mirror",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteBucketMirror",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}?mirror",
 	}
+
 	if input == nil {
 		input = &DeleteBucketMirrorInput{}
 	}
-	req = c.newRequest(opDeleteBucketMirror, input, output)
+
+	req = c.newRequest(op, input, output)
 	output = &DeleteBucketMirrorOutput{}
 	req.Data = output
 	return

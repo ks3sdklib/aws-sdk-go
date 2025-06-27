@@ -4,15 +4,10 @@ import "github.com/ks3sdklib/aws-sdk-go/aws"
 
 // PutBucketReplicationRequest generates a request for the PutBucketReplication operation.
 func (c *S3) PutBucketReplicationRequest(input *PutBucketReplicationInput) (req *aws.Request, output *PutBucketReplicationOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketReplication == nil {
-		opPutBucketReplication = &aws.Operation{
-			Name:       "PutBucketReplication",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?crr",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketReplication",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?crr",
 	}
 
 	if input == nil {
@@ -20,7 +15,7 @@ func (c *S3) PutBucketReplicationRequest(input *PutBucketReplicationInput) (req 
 	}
 
 	input.AutoFillMD5 = true
-	req = c.newRequest(opPutBucketReplication, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketReplicationOutput{}
 	req.Data = output
 	return
@@ -39,8 +34,6 @@ func (c *S3) PutBucketReplicationWithContext(ctx aws.Context, input *PutBucketRe
 	err := req.Send()
 	return out, err
 }
-
-var opPutBucketReplication *aws.Operation
 
 type PutBucketReplicationInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
@@ -89,22 +82,17 @@ type ReplicationConfiguration struct {
 
 // GetBucketReplicationRequest generates a request for the GetBucketReplication operation.
 func (c *S3) GetBucketReplicationRequest(input *GetBucketReplicationInput) (req *aws.Request, output *GetBucketReplicationOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketReplication == nil {
-		opGetBucketReplication = &aws.Operation{
-			Name:       "GetBucketReplication",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?crr",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketReplication",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?crr",
 	}
 
 	if input == nil {
 		input = &GetBucketReplicationInput{}
 	}
 
-	req = c.newRequest(opGetBucketReplication, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetBucketReplicationOutput{}
 	req.Data = output
 	return
@@ -123,8 +111,6 @@ func (c *S3) GetBucketReplicationWithContext(ctx aws.Context, input *GetBucketRe
 	err := req.Send()
 	return out, err
 }
-
-var opGetBucketReplication *aws.Operation
 
 type GetBucketReplicationInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
@@ -146,22 +132,17 @@ type metadataGetBucketReplicationOutput struct {
 
 // DeleteBucketReplicationRequest generates a request for the DeleteBucketReplication operation.
 func (c *S3) DeleteBucketReplicationRequest(input *DeleteBucketReplicationInput) (req *aws.Request, output *DeleteBucketReplicationOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteBucketReplication == nil {
-		opDeleteBucketReplication = &aws.Operation{
-			Name:       "DeleteBucketReplication",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?crr",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteBucketReplication",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}?crr",
 	}
 
 	if input == nil {
 		input = &DeleteBucketReplicationInput{}
 	}
 
-	req = c.newRequest(opDeleteBucketReplication, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DeleteBucketReplicationOutput{}
 	req.Data = output
 	return
@@ -180,8 +161,6 @@ func (c *S3) DeleteBucketReplicationWithContext(ctx aws.Context, input *DeleteBu
 	err := req.Send()
 	return out, err
 }
-
-var opDeleteBucketReplication *aws.Operation
 
 type DeleteBucketReplicationInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`

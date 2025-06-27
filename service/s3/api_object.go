@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-var opAppendObject *aws.Operation
-
 type AppendObjectInput struct {
 	// The name of the bucket.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
@@ -129,22 +127,17 @@ type metadataAppendObjectOutput struct {
 
 // AppendObjectRequest generates a request for the AppendObject operation.
 func (c *S3) AppendObjectRequest(input *AppendObjectInput) (req *aws.Request, output *AppendObjectOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opAppendObject == nil {
-		opAppendObject = &aws.Operation{
-			Name:       "AppendObject",
-			HTTPMethod: "POST",
-			HTTPPath:   "/{Bucket}/{Key+}?append",
-		}
+	op := &aws.Operation{
+		Name:       "AppendObject",
+		HTTPMethod: "POST",
+		HTTPPath:   "/{Bucket}/{Key+}?append",
 	}
 
 	if input == nil {
 		input = &AppendObjectInput{}
 	}
 
-	req = c.newRequest(opAppendObject, input, output)
+	req = c.newRequest(op, input, output)
 
 	if input.ProgressFn != nil {
 		req.ProgressFn = input.ProgressFn

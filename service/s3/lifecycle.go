@@ -216,22 +216,17 @@ type metadataGetBucketLifecycleOutput struct {
 
 // DeleteBucketLifecycleRequest generates a request for the DeleteBucketLifecycle operation.
 func (c *S3) DeleteBucketLifecycleRequest(input *DeleteBucketLifecycleInput) (req *aws.Request, output *DeleteBucketLifecycleOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteBucketLifecycle == nil {
-		opDeleteBucketLifecycle = &aws.Operation{
-			Name:       "DeleteBucketLifecycle",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?lifecycle",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteBucketLifecycle",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}?lifecycle",
 	}
 
 	if input == nil {
 		input = &DeleteBucketLifecycleInput{}
 	}
 
-	req = c.newRequest(opDeleteBucketLifecycle, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DeleteBucketLifecycleOutput{}
 	req.Data = output
 	return
@@ -251,26 +246,19 @@ func (c *S3) DeleteBucketLifecycleWithContext(ctx aws.Context, input *DeleteBuck
 	return out, err
 }
 
-var opDeleteBucketLifecycle *aws.Operation
-
 // GetBucketLifecycleRequest generates a request for the GetBucketLifecycle operation.
 func (c *S3) GetBucketLifecycleRequest(input *GetBucketLifecycleInput) (req *aws.Request, output *GetBucketLifecycleOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketLifecycle == nil {
-		opGetBucketLifecycle = &aws.Operation{
-			Name:       "GetBucketLifecycle",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?lifecycle",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketLifecycle",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?lifecycle",
 	}
 
 	if input == nil {
 		input = &GetBucketLifecycleInput{}
 	}
 
-	req = c.newRequest(opGetBucketLifecycle, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetBucketLifecycleOutput{}
 	req.Data = output
 	return
@@ -290,26 +278,20 @@ func (c *S3) GetBucketLifecycleWithContext(ctx aws.Context, input *GetBucketLife
 	return out, err
 }
 
-var opGetBucketLifecycle *aws.Operation
-
 // PutBucketLifecycleRequest generates a request for the PutBucketLifecycle operation.
 func (c *S3) PutBucketLifecycleRequest(input *PutBucketLifecycleInput) (req *aws.Request, output *PutBucketLifecycleOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketLifecycle == nil {
-		opPutBucketLifecycle = &aws.Operation{
-			Name:       "PutBucketLifecycle",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?lifecycle",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketLifecycle",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?lifecycle",
 	}
 
 	if input == nil {
 		input = &PutBucketLifecycleInput{}
 	}
+
 	input.AutoFillMD5 = true
-	req = c.newRequest(opPutBucketLifecycle, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketLifecycleOutput{}
 	req.Data = output
 	return
@@ -329,5 +311,3 @@ func (c *S3) PutBucketLifecycleWithContext(ctx aws.Context, input *PutBucketLife
 	err := req.Send()
 	return out, err
 }
-
-var opPutBucketLifecycle *aws.Operation

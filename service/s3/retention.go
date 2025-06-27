@@ -7,15 +7,10 @@ import (
 
 // PutBucketRetentionRequest generates a request for the PutBucketRetention operation.
 func (c *S3) PutBucketRetentionRequest(input *PutBucketRetentionInput) (req *aws.Request, output *PutBucketRetentionOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketRetention == nil {
-		opPutBucketRetention = &aws.Operation{
-			Name:       "PutBucketRetention",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?retention",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketRetention",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?retention",
 	}
 
 	if input == nil {
@@ -23,7 +18,7 @@ func (c *S3) PutBucketRetentionRequest(input *PutBucketRetentionInput) (req *aws
 	}
 
 	input.AutoFillMD5 = true
-	req = c.newRequest(opPutBucketRetention, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketRetentionOutput{}
 	req.Data = output
 	return
@@ -42,8 +37,6 @@ func (c *S3) PutBucketRetentionWithContext(ctx aws.Context, input *PutBucketRete
 	err := req.Send()
 	return out, err
 }
-
-var opPutBucketRetention *aws.Operation
 
 type PutBucketRetentionInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
@@ -85,22 +78,17 @@ type PutBucketRetentionOutput struct {
 
 // GetBucketRetentionRequest generates a request for the GetBucketRetention operation.
 func (c *S3) GetBucketRetentionRequest(input *GetBucketRetentionInput) (req *aws.Request, output *GetBucketRetentionOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketRetention == nil {
-		opGetBucketRetention = &aws.Operation{
-			Name:       "GetBucketRetention",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?retention",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketRetention",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?retention",
 	}
 
 	if input == nil {
 		input = &GetBucketRetentionInput{}
 	}
 
-	req = c.newRequest(opGetBucketRetention, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetBucketRetentionOutput{
 		RetentionConfiguration: &BucketRetentionConfiguration{},
 	}
@@ -122,8 +110,6 @@ func (c *S3) GetBucketRetentionWithContext(ctx aws.Context, input *GetBucketRete
 	return out, err
 }
 
-var opGetBucketRetention *aws.Operation
-
 type GetBucketRetentionInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 }
@@ -144,22 +130,17 @@ type metadataGetBucketRetentionInput struct {
 
 // ListRetentionRequest generates a request for the ListRetention operation.
 func (c *S3) ListRetentionRequest(input *ListRetentionInput) (req *aws.Request, output *ListRetentionOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opListRetention == nil {
-		opListRetention = &aws.Operation{
-			Name:       "ListRetention",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?recycle",
-		}
+	op := &aws.Operation{
+		Name:       "ListRetention",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?recycle",
 	}
 
 	if input == nil {
 		input = &ListRetentionInput{}
 	}
 
-	req = c.newRequest(opListRetention, input, output)
+	req = c.newRequest(op, input, output)
 	output = &ListRetentionOutput{}
 	req.Data = output
 	return
@@ -178,8 +159,6 @@ func (c *S3) ListRetentionWithContext(ctx aws.Context, input *ListRetentionInput
 	err := req.Send()
 	return out, err
 }
-
-var opListRetention *aws.Operation
 
 type ListRetentionInput struct {
 	// The name of the bucket.
@@ -270,22 +249,17 @@ type RetentionObject struct {
 
 // RecoverObjectRequest generates a request for the RecoverObject operation.
 func (c *S3) RecoverObjectRequest(input *RecoverObjectInput) (req *aws.Request, output *RecoverObjectOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opRecoverObject == nil {
-		opRecoverObject = &aws.Operation{
-			Name:       "RecoverObject",
-			HTTPMethod: "POST",
-			HTTPPath:   "/{Bucket}/{Key+}?recover",
-		}
+	op := &aws.Operation{
+		Name:       "RecoverObject",
+		HTTPMethod: "POST",
+		HTTPPath:   "/{Bucket}/{Key+}?recover",
 	}
 
 	if input == nil {
 		input = &RecoverObjectInput{}
 	}
 
-	req = c.newRequest(opRecoverObject, input, output)
+	req = c.newRequest(op, input, output)
 	output = &RecoverObjectOutput{}
 	req.Data = output
 	return
@@ -304,8 +278,6 @@ func (c *S3) RecoverObjectWithContext(ctx aws.Context, input *RecoverObjectInput
 	err := req.Send()
 	return out, err
 }
-
-var opRecoverObject *aws.Operation
 
 type RecoverObjectInput struct {
 	// The name of the bucket.
@@ -332,22 +304,17 @@ type RecoverObjectOutput struct {
 
 // ClearObjectRequest generates a request for the ClearObject operation.
 func (c *S3) ClearObjectRequest(input *ClearObjectInput) (req *aws.Request, output *ClearObjectOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opClearObject == nil {
-		opClearObject = &aws.Operation{
-			Name:       "ClearObject",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}/{Key+}?clear",
-		}
+	op := &aws.Operation{
+		Name:       "ClearObject",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}/{Key+}?clear",
 	}
 
 	if input == nil {
 		input = &ClearObjectInput{}
 	}
 
-	req = c.newRequest(opClearObject, input, output)
+	req = c.newRequest(op, input, output)
 	output = &ClearObjectOutput{}
 	req.Data = output
 	return
@@ -366,8 +333,6 @@ func (c *S3) ClearObjectWithContext(ctx aws.Context, input *ClearObjectInput) (*
 	err := req.Send()
 	return out, err
 }
-
-var opClearObject *aws.Operation
 
 type ClearObjectInput struct {
 	// The name of the bucket.

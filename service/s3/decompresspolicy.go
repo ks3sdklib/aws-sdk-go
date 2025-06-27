@@ -4,19 +4,17 @@ import "github.com/ks3sdklib/aws-sdk-go/aws"
 
 // PutBucketDecompressPolicyRequest generates a request for the PutBucketDecompressPolicy operation.
 func (c *S3) PutBucketDecompressPolicyRequest(input *PutBucketDecompressPolicyInput) (req *aws.Request, output *PutBucketDecompressPolicyOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opPutBucketDecompressPolicy == nil {
-		opPutBucketDecompressPolicy = &aws.Operation{
-			Name:       "PutBucketDecompressPolicy",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?decompresspolicy",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketDecompressPolicy",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?decompresspolicy",
 	}
+
 	if input == nil {
 		input = &PutBucketDecompressPolicyInput{}
 	}
-	req = c.newRequest(opPutBucketDecompressPolicy, input, output)
+
+	req = c.newRequest(op, input, output)
 	req.ContentType = "application/json"
 	output = &PutBucketDecompressPolicyOutput{}
 	req.Data = output
@@ -36,8 +34,6 @@ func (c *S3) PutBucketDecompressPolicyWithContext(ctx aws.Context, input *PutBuc
 	err := req.Send()
 	return out, err
 }
-
-var opPutBucketDecompressPolicy *aws.Operation
 
 type PutBucketDecompressPolicyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
@@ -112,19 +108,17 @@ type PutBucketDecompressPolicyOutput struct {
 
 // GetBucketDecompressPolicyRequest generates a request for the GetBucketDecompressPolicy operation.
 func (c *S3) GetBucketDecompressPolicyRequest(input *GetBucketDecompressPolicyInput) (req *aws.Request, output *GetBucketDecompressPolicyOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opGetBucketDecompressPolicy == nil {
-		opGetBucketDecompressPolicy = &aws.Operation{
-			Name:       "GetBucketDecompressPolicy",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?decompresspolicy",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketDecompressPolicy",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?decompresspolicy",
 	}
+
 	if input == nil {
 		input = &GetBucketDecompressPolicyInput{}
 	}
-	req = c.newRequest(opGetBucketDecompressPolicy, input, output)
+
+	req = c.newRequest(op, input, output)
 	req.ContentType = "application/json"
 	output = &GetBucketDecompressPolicyOutput{
 		BucketDecompressPolicy: &BucketDecompressPolicy{},
@@ -147,8 +141,6 @@ func (c *S3) GetBucketDecompressPolicyWithContext(ctx aws.Context, input *GetBuc
 	return out, err
 }
 
-var opGetBucketDecompressPolicy *aws.Operation
-
 type GetBucketDecompressPolicyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 }
@@ -169,19 +161,17 @@ type metadataGetBucketDecompressPolicyOutput struct {
 
 // DeleteBucketDecompressPolicyRequest generates a request for the DeleteBucketDecompressPolicy operation.
 func (c *S3) DeleteBucketDecompressPolicyRequest(input *DeleteBucketDecompressPolicyInput) (req *aws.Request, output *DeleteBucketDecompressPolicyOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opDeleteBucketDecompressPolicy == nil {
-		opDeleteBucketDecompressPolicy = &aws.Operation{
-			Name:       "DeleteBucketDecompressPolicy",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?decompresspolicy",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteBucketDecompressPolicy",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}?decompresspolicy",
 	}
+
 	if input == nil {
 		input = &DeleteBucketDecompressPolicyInput{}
 	}
-	req = c.newRequest(opDeleteBucketDecompressPolicy, input, output)
+
+	req = c.newRequest(op, input, output)
 	output = &DeleteBucketDecompressPolicyOutput{}
 	req.Data = output
 	return
@@ -200,8 +190,6 @@ func (c *S3) DeleteBucketDecompressPolicyWithContext(ctx aws.Context, input *Del
 	err := req.Send()
 	return out, err
 }
-
-var opDeleteBucketDecompressPolicy *aws.Operation
 
 type DeleteBucketDecompressPolicyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`

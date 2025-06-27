@@ -4,8 +4,6 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 )
 
-var opPutBucketQos *aws.Operation
-
 type PutBucketQosInput struct {
 	// The name of the bucket.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
@@ -49,19 +47,17 @@ type PutBucketQosOutput struct {
 
 // PutBucketQosRequest generates a request for the PutBucketQos operation.
 func (c *S3) PutBucketQosRequest(input *PutBucketQosInput) (req *aws.Request, output *PutBucketQosOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opPutBucketQos == nil {
-		opPutBucketQos = &aws.Operation{
-			Name:       "PutBucketQos",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?bucketqos",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketQos",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?bucketqos",
 	}
+
 	if input == nil {
 		input = &PutBucketQosInput{}
 	}
-	req = c.newRequest(opPutBucketQos, input, output)
+
+	req = c.newRequest(op, input, output)
 	output = &PutBucketQosOutput{}
 	req.Data = output
 	return
@@ -80,8 +76,6 @@ func (c *S3) PutBucketQosWithContext(ctx aws.Context, input *PutBucketQosInput) 
 	err := req.Send()
 	return out, err
 }
-
-var opGetBucketQos *aws.Operation
 
 type GetBucketQosInput struct {
 	// The name of the bucket.
@@ -105,19 +99,17 @@ type metadataGetBucketQosOutput struct {
 
 // GetBucketQosRequest generates a request for the GetBucketQos operation.
 func (c *S3) GetBucketQosRequest(input *GetBucketQosInput) (req *aws.Request, output *GetBucketQosOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opGetBucketQos == nil {
-		opGetBucketQos = &aws.Operation{
-			Name:       "GetBucketQos",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?bucketqos",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketQos",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?bucketqos",
 	}
+
 	if input == nil {
 		input = &GetBucketQosInput{}
 	}
-	req = c.newRequest(opGetBucketQos, input, output)
+
+	req = c.newRequest(op, input, output)
 	output = &GetBucketQosOutput{}
 	req.Data = output
 	return
@@ -137,8 +129,6 @@ func (c *S3) GetBucketQosWithContext(ctx aws.Context, input *GetBucketQosInput) 
 	return out, err
 }
 
-var opDeleteBucketQos *aws.Operation
-
 type DeleteBucketQosInput struct {
 	// The name of the bucket.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
@@ -153,19 +143,17 @@ type DeleteBucketQosOutput struct {
 
 // DeleteBucketQosRequest generates a request for the DeleteBucketQos operation.
 func (c *S3) DeleteBucketQosRequest(input *DeleteBucketQosInput) (req *aws.Request, output *DeleteBucketQosOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opDeleteBucketQos == nil {
-		opDeleteBucketQos = &aws.Operation{
-			Name:       "DeleteBucketQos",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?bucketqos",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteBucketQos",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}?bucketqos",
 	}
+
 	if input == nil {
 		input = &DeleteBucketQosInput{}
 	}
-	req = c.newRequest(opDeleteBucketQos, input, output)
+
+	req = c.newRequest(op, input, output)
 	output = &DeleteBucketQosOutput{}
 	req.Data = output
 	return
