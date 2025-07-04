@@ -45,6 +45,12 @@ type PutBucketRetentionInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
+
 	metadataPutBucketRetentionInput `json:"-" xml:"-"`
 }
 
@@ -112,6 +118,12 @@ func (c *S3) GetBucketRetentionWithContext(ctx aws.Context, input *GetBucketRete
 
 type GetBucketRetentionInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
 }
 
 type GetBucketRetentionOutput struct {
@@ -173,6 +185,12 @@ type ListRetentionInput struct {
 
 	// Limits the response to keys that begin with the specified prefix.
 	Prefix *string `location:"querystring" locationName:"prefix" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
 }
 
 type ListRetentionOutput struct {
@@ -294,6 +312,12 @@ type RecoverObjectInput struct {
 	// Specify the deletion ID of the recovered object. When the request header is not included,
 	// only the latest version is restored by default.
 	RetentionId *string `location:"header" locationName:"x-kss-retention-id" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
 }
 
 type RecoverObjectOutput struct {
@@ -343,6 +367,12 @@ type ClearObjectInput struct {
 
 	// Specify the deletion ID of the deleted object.
 	RetentionId *string `location:"header" locationName:"x-kss-retention-id" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
 }
 
 type ClearObjectOutput struct {

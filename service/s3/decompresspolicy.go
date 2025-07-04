@@ -42,6 +42,12 @@ type PutBucketDecompressPolicyInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
+
 	metadataPutBucketDecompressPolicyInput `json:"-" xml:"-"`
 }
 
@@ -143,6 +149,12 @@ func (c *S3) GetBucketDecompressPolicyWithContext(ctx aws.Context, input *GetBuc
 
 type GetBucketDecompressPolicyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
 }
 
 type GetBucketDecompressPolicyOutput struct {
@@ -193,6 +205,12 @@ func (c *S3) DeleteBucketDecompressPolicyWithContext(ctx aws.Context, input *Del
 
 type DeleteBucketDecompressPolicyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
 }
 type DeleteBucketDecompressPolicyOutput struct {
 	Metadata map[string]*string `location:"headers" type:"map"`

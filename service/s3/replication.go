@@ -42,6 +42,12 @@ type PutBucketReplicationInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
+
 	metadataPutBucketReplicationInput `json:"-" xml:"-"`
 }
 
@@ -114,6 +120,12 @@ func (c *S3) GetBucketReplicationWithContext(ctx aws.Context, input *GetBucketRe
 
 type GetBucketReplicationInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
 }
 
 type GetBucketReplicationOutput struct {
@@ -164,6 +176,12 @@ func (c *S3) DeleteBucketReplicationWithContext(ctx aws.Context, input *DeleteBu
 
 type DeleteBucketReplicationInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
 }
 type DeleteBucketReplicationOutput struct {
 	Metadata map[string]*string `location:"headers"  type:"map"`

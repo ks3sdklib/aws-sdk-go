@@ -11,6 +11,12 @@ type PutRequesterQosInput struct {
 	// Requester flow control configuration container.
 	RequesterQosConfiguration *RequesterQosConfiguration `locationName:"RequesterQosConfiguration" type:"structure" required:"true"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
+
 	metadataPutRequesterQosInput `json:"-" xml:"-"`
 }
 
@@ -78,6 +84,12 @@ func (c *S3) PutRequesterQosWithContext(ctx aws.Context, input *PutRequesterQosI
 type GetRequesterQosInput struct {
 	// The name of the bucket.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
 }
 
 type GetRequesterQosOutput struct {
@@ -130,6 +142,12 @@ func (c *S3) GetRequesterQosWithContext(ctx aws.Context, input *GetRequesterQosI
 type DeleteRequesterQosInput struct {
 	// The name of the bucket.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
 }
 
 type DeleteRequesterQosOutput struct {

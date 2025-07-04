@@ -13,6 +13,12 @@ type PutBucketDataRedundancySwitchInput struct {
 	// LRS: local redundancy storage
 	// ZRS: zone redundancy storage
 	DataRedundancyType *string `location:"header" locationName:"x-amz-data-redundancy-type" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
 }
 
 type PutBucketDataRedundancySwitchOutput struct {
@@ -57,6 +63,12 @@ func (c *S3) PutBucketDataRedundancySwitchWithContext(ctx aws.Context, input *Pu
 type GetBucketDataRedundancySwitchInput struct {
 	// The name of the bucket.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `type:"map"`
 }
 
 type GetBucketDataRedundancySwitchOutput struct {

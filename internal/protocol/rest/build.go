@@ -35,6 +35,98 @@ func init() {
 	}
 }
 
+var isTokenTable = [256]bool{
+	'!':  true,
+	'#':  true,
+	'$':  true,
+	'%':  true,
+	'&':  true,
+	'\'': true,
+	'*':  true,
+	'+':  true,
+	'-':  true,
+	'.':  true,
+	'0':  true,
+	'1':  true,
+	'2':  true,
+	'3':  true,
+	'4':  true,
+	'5':  true,
+	'6':  true,
+	'7':  true,
+	'8':  true,
+	'9':  true,
+	'A':  true,
+	'B':  true,
+	'C':  true,
+	'D':  true,
+	'E':  true,
+	'F':  true,
+	'G':  true,
+	'H':  true,
+	'I':  true,
+	'J':  true,
+	'K':  true,
+	'L':  true,
+	'M':  true,
+	'N':  true,
+	'O':  true,
+	'P':  true,
+	'Q':  true,
+	'R':  true,
+	'S':  true,
+	'T':  true,
+	'U':  true,
+	'W':  true,
+	'V':  true,
+	'X':  true,
+	'Y':  true,
+	'Z':  true,
+	'^':  true,
+	'_':  true,
+	'`':  true,
+	'a':  true,
+	'b':  true,
+	'c':  true,
+	'd':  true,
+	'e':  true,
+	'f':  true,
+	'g':  true,
+	'h':  true,
+	'i':  true,
+	'j':  true,
+	'k':  true,
+	'l':  true,
+	'm':  true,
+	'n':  true,
+	'o':  true,
+	'p':  true,
+	'q':  true,
+	'r':  true,
+	's':  true,
+	't':  true,
+	'u':  true,
+	'v':  true,
+	'w':  true,
+	'x':  true,
+	'y':  true,
+	'z':  true,
+	'|':  true,
+	'~':  true,
+}
+
+func ValidHeaderFieldName(v string) bool {
+	if len(v) == 0 {
+		return false
+	}
+	for i := 0; i < len(v); i++ {
+		if !isTokenTable[v[i]] {
+			return false
+		}
+	}
+	return true
+}
+
 // Build builds the REST component of a service request.
 func Build(r *aws.Request) {
 	if r.ParamsFilled() {
@@ -75,14 +167,15 @@ func buildLocationElements(r *aws.Request, v reflect.Value) {
 				buildURI(r, m, name)
 			case "querystring":
 				buildQueryString(r, m, name, query)
-			case "parameters":
-				buildParameters(r, m, query)
 			}
 		}
 		if r.Error != nil {
 			return
 		}
 	}
+
+	buildExtendHeaders(r, v)
+	buildExtendQueryParams(v, query)
 
 	r.HTTPRequest.URL.RawQuery = query.Encode()
 	updatePath(r.HTTPRequest.URL, r.Config)
@@ -137,6 +230,38 @@ func buildHeaderMap(r *aws.Request, v reflect.Value, prefix string) {
 	}
 }
 
+func buildExtendHeaders(r *aws.Request, v reflect.Value) {
+	extendHeaders := v.FieldByName("ExtendHeaders")
+	if extendHeaders.IsValid() {
+		iter := extendHeaders.MapRange()
+		for iter.Next() {
+			key := iter.Key().String()
+			value := iter.Value()
+			if ValidHeaderFieldName(key) {
+				if !value.IsNil() {
+					r.HTTPRequest.Header.Set(key, value.Elem().String())
+				}
+			} else {
+				r.Error = apierr.New("Marshal", fmt.Sprintf("invalid extend header field name \"%s\"", key), nil)
+			}
+		}
+	}
+}
+
+func buildExtendQueryParams(v reflect.Value, query url.Values) {
+	extendQueryParams := v.FieldByName("ExtendQueryParams")
+	if extendQueryParams.IsValid() {
+		iter := extendQueryParams.MapRange()
+		for iter.Next() {
+			key := iter.Key().String()
+			value := iter.Value()
+			if !value.IsNil() {
+				query.Set(key, value.Elem().String())
+			}
+		}
+	}
+}
+
 func buildURI(r *aws.Request, v reflect.Value, name string) {
 	value, err := convertType(v)
 	if err != nil {
@@ -157,17 +282,6 @@ func buildQueryString(r *aws.Request, v reflect.Value, name string, query url.Va
 		query.Set(name, *str)
 	} else if str == nil {
 		query.Set(name, "")
-	}
-}
-
-func buildParameters(r *aws.Request, v reflect.Value, query url.Values) {
-	for _, key := range v.MapKeys() {
-		str, err := convertType(v.MapIndex(key))
-		if err != nil {
-			r.Error = apierr.New("Marshal", "failed to encode REST request", err)
-		} else {
-			buildQueryString(r, reflect.ValueOf(str), key.String(), query)
-		}
 	}
 }
 
