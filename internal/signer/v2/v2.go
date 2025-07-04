@@ -68,6 +68,8 @@ var signQuerys = map[string]bool{
 	"id":                           true,
 	"continuation-token":           true,
 	"dataRedundancySwitch":         true,
+	"bucketqos":                    true,
+	"requesterqos":                 true,
 }
 
 type signer struct {
