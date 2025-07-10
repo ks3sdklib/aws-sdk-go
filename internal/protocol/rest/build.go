@@ -240,9 +240,12 @@ func buildExtendHeaders(r *aws.Request, v reflect.Value) {
 			if ValidHeaderFieldName(key) {
 				if !value.IsNil() {
 					r.HTTPRequest.Header.Set(key, value.Elem().String())
+				} else {
+					r.HTTPRequest.Header.Set(key, "")
 				}
 			} else {
 				r.Error = apierr.New("Marshal", fmt.Sprintf("invalid extend header field name \"%s\"", key), nil)
+				return
 			}
 		}
 	}
@@ -254,9 +257,14 @@ func buildExtendQueryParams(v reflect.Value, query url.Values) {
 		iter := extendQueryParams.MapRange()
 		for iter.Next() {
 			key := iter.Key().String()
+			if key == "" {
+				continue
+			}
 			value := iter.Value()
 			if !value.IsNil() {
 				query.Set(key, value.Elem().String())
+			} else {
+				query.Set(key, "")
 			}
 		}
 	}

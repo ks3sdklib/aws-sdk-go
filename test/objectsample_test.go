@@ -136,29 +136,27 @@ func (s *Ks3utilCommandSuite) TestGeneratePUTPresignedUrl(c *C) {
 	text := "test content"
 	md5 := s3.GetBase64MD5Str(text)
 	url, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
-		Bucket:      aws.String(bucket),       // 设置 bucket 名称
-		Key:         aws.String(key),          // 设置 object key
-		ContentType: aws.String("text/plain"), //如果是PUT方法，需要设置content-type
-		ContentMd5:  aws.String(md5),          // 文件的MD5
-		Expires:     3600,                     // 过期时间
-		HTTPMethod:  s3.PUT,                   //可选值有 PUT, GET, DELETE, HEAD
+		HTTPMethod:  s3.PUT,                    // 请求方法，可选值有 PUT, GET, DELETE, HEAD，必填
+		Bucket:      aws.String(bucket),        // 存储空间名称，必填
+		Key:         aws.String(key),           // 对象的key，必填
+		Expires:     3600,                      // 过期时间，例如，3600（表示1小时），必填
+		ACL:         aws.String("public-read"), // 对象访问权限，非必填
+		ContentType: aws.String("text/plain"),  // 文件类型，非必填
+		ContentMd5:  aws.String(md5),           // 文件的MD5
 	})
 	c.Assert(err, IsNil)
-	// 通过外链上传
+	// 通过外链上传，此处以Golang代码为例，也可以通过其他方式上传
 	httpReq, err := http.NewRequest("PUT", url, strings.NewReader(text))
-	if err != nil {
-		panic(err)
-	}
-	// 生成外链时传入的请求头参数需要与此处保持一致
+	c.Assert(err, IsNil)
+	// 实际上传时的请求头必须与生成链接时的请求头一致，否则会有签名不一致的问题
+	httpReq.Header.Add("x-amz-acl", "public-read")
 	httpReq.Header.Add("Content-Type", "text/plain")
 	httpReq.Header.Add("Content-MD5", md5)
-	_, err = http.DefaultClient.Do(httpReq)
+	resp, err := http.DefaultClient.Do(httpReq)
 	c.Assert(err, IsNil)
-	_, err = client.DeleteObject(&s3.DeleteObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	})
-	c.Assert(err, IsNil)
+	c.Assert(resp.StatusCode, Equals, http.StatusOK)
+
+	s.DeleteObject(key, c)
 }
 
 // TestGetObjectAcl 获取对象Acl
@@ -1489,6 +1487,42 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithExtendHeaders(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(*headResp.Metadata["X-Amz-Storage-Class"], Equals, s3.StorageClassIA)
 
+	// 设置值为空的扩展头部
+	_, err = client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		Body:   fd,
+		ExtendHeaders: map[string]*string{
+			"header1": nil,
+			"header2": aws.String(""),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 设置非法扩展头部
+	_, err = client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		Body:   fd,
+		ExtendHeaders: map[string]*string{
+			"": aws.String("value1"),
+		},
+	})
+	c.Assert(err, NotNil)
+	c.Assert(strings.Contains(err.Error(), "invalid extend header field name"), Equals, true)
+
+	// 设置非法扩展头部
+	_, err = client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		Body:   fd,
+		ExtendHeaders: map[string]*string{
+			"\n": aws.String("value1"),
+		},
+	})
+	c.Assert(err, NotNil)
+	c.Assert(strings.Contains(err.Error(), "invalid extend header field name"), Equals, true)
+
 	// 删除对象
 	s.DeleteObject(object, c)
 	os.Remove(object)
@@ -1503,7 +1537,58 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithExtendQueryParams(c *C) {
 		},
 	})
 	c.Assert(err, IsNil)
-
-	// 验证扩展查询参数是否生效
 	c.Assert(*resp.MaxKeys, Equals, int64(10))
+
+	// 测试扩展查询参数包含多个键值对
+	req, _ := client.ListObjectsRequest(&s3.ListObjectsInput{
+		Bucket: aws.String(bucket),
+		ExtendQueryParams: map[string]*string{
+			"param1": aws.String("value1"),
+			"param2": aws.String("value2"),
+		},
+	})
+	err = req.Send()
+	c.Assert(err, IsNil)
+	c.Assert(req.HTTPRequest.URL.Query().Encode(), Equals, "param1=value1&param2=value2")
+
+	// 测试扩展查询参数的值为空或nil的情况
+	req, _ = client.ListObjectsRequest(&s3.ListObjectsInput{
+		Bucket: aws.String(bucket),
+		ExtendQueryParams: map[string]*string{
+			"param1": nil,
+			"param2": aws.String(""),
+		},
+	})
+	err = req.Send()
+	c.Assert(err, IsNil)
+	c.Assert(req.HTTPRequest.URL.Query().Encode(), Equals, "param1=&param2=")
+
+	// 测试扩展查询参数的键为空字符串或特殊字符的情况
+	req, _ = client.ListObjectsRequest(&s3.ListObjectsInput{
+		Bucket: aws.String(bucket),
+		ExtendQueryParams: map[string]*string{
+			"":   aws.String("value1"),
+			"\n": aws.String("value2"),
+		},
+	})
+	err = req.Send()
+	c.Assert(err, IsNil)
+	c.Assert(req.HTTPRequest.URL.Query().Encode(), Equals, "%0A=value2")
+
+	// 测试扩展查询参数包含子资源
+	object := randLowStr(10)
+	s.PutObject(object, c)
+	getResp, err := client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		ExtendQueryParams: map[string]*string{
+			"acl": aws.String(""),
+		},
+	})
+	c.Assert(err, IsNil)
+	body, err := io.ReadAll(getResp.Body)
+	c.Assert(err, IsNil)
+	c.Assert(strings.Contains(string(body), "AccessControlPolicy"), Equals, true)
+	s.DeleteObject(object, c)
+	os.Remove(object)
 }

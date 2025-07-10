@@ -52,20 +52,21 @@ go get github.com/ks3sdklib/aws-sdk-go
 // 创建访问凭证，请将<AccessKeyID>与<SecretAccessKey>替换成真正的值
 cre := credentials.NewStaticCredentials("<AccessKeyID>", "<SecretAccessKey>", "")
 // 创建S3Client
-client := s3.New(&aws.Config{
-    Credentials:      cre,                          // 访问凭证
-    Region:           "BEIJING",                    // 填写您的Region
-    Endpoint:         "ks3-cn-beijing.ksyuncs.com", // 填写您的Endpoint
-    DisableSSL:       false,                        // 是否禁用HTTPS，默认值为false
-    LogLevel:         aws.Off,                      // 日志等级，默认关闭日志，可选值：Off, Error, Warn, Info, Debug
-    LogHTTPBody:      false,                        // 是否把HTTP请求body打入日志，默认值为false
-    Logger:           nil,                          // 日志输出位置，可设置指定文件
-    S3ForcePathStyle: false,                        // 是否使用二级域名，默认值为false
-    DomainMode:       false,                        // 是否开启自定义Bucket绑定域名，当开启时S3ForcePathStyle参数不生效，默认值为false
-    SignerVersion:    "V2",                         // 签名方式可选值有：V2 OR V4 OR V4_UNSIGNED_PAYLOAD_SIGNER，默认值为V2
-    MaxRetries:       1,                            // 请求失败时最大重试次数，默认请求失败时不重试
-    CrcCheckEnabled:  false,                        // 是否开启CRC64校验，默认值为false
-    HTTPClient:       nil,                          // HTTP请求的Client对象，可用于并发控制、超时控制等，若为空则使用Go语言定义的默认值
+client = s3.New(&aws.Config{
+    Credentials:      cre,      // 访问凭证，必填
+    Region:           region,   // 访问的地域，必填
+    Endpoint:         endpoint, // 访问的域名，必填
+    DisableSSL:       false,    // 禁用HTTPS，默认值为false
+    LogLevel:         aws.Off,  // 日志等级，默认关闭日志，可选值：Off, Error, Warn, Info, Debug
+    LogHTTPBody:      false,    // 把HTTP请求body打入日志，默认值为false
+    Logger:           nil,      // 日志输出位置，可设置指定文件
+    S3ForcePathStyle: false,    // 使用二级域名，默认值为false
+    DomainMode:       false,    // 开启自定义Bucket绑定域名，当开启时S3ForcePathStyle参数不生效，默认值为false
+    SignerVersion:    "V2",     // 签名方式可选值有：V2 OR V4 OR V4_UNSIGNED_PAYLOAD_SIGNER，默认值为V2
+    MaxRetries:       3,        // 请求失败时最大重试次数，默认值为3，值小于0时不重试，如-1表示不重试
+    CrcCheckEnabled:  true,     // 开启CRC64校验，默认值为false
+    HTTPClient:       nil,      // HTTP请求的Client对象，若为空则使用默认值
+    DnsCache:         true,     // 启用DNS缓存，默认值为true
 })
 ```
 
