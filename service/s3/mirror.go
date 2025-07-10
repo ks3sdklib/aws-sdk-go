@@ -57,10 +57,10 @@ type PutBucketMirrorInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketMirrorInput `json:"-" xml:"-"`
 }
@@ -80,10 +80,10 @@ type GetBucketMirrorInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 type GetBucketMirrorOutput struct {
 	BucketMirror *BucketMirror `locationName:"BucketMirror" type:"structure"`
@@ -104,10 +104,10 @@ type DeleteBucketMirrorInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 type DeleteBucketMirrorOutput struct {
 	Metadata map[string]*string `location:"headers"  type:"map"`

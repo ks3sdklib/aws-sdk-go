@@ -310,7 +310,6 @@ func (s *Ks3utilCommandSuite) TestMultipartUpload(c *C) {
 	c.Assert(err, IsNil)
 	//获取分块Id
 	uploadId := *initRet.UploadID
-	fmt.Printf("%s%s\n", "uploadId=", uploadId)
 
 	f, err := os.Open(object)
 	c.Assert(err, IsNil)
@@ -639,7 +638,6 @@ func (s *Ks3utilCommandSuite) TestPutObjectProgress(c *C) {
 		Key:    aws.String(object),
 		Body:   fd,
 		ProgressFn: func(increment, completed, total int64) {
-			fmt.Printf("percent: %.2f%%\n", float64(completed)/float64(total)*100)
 		},
 	})
 	c.Assert(err, IsNil)
@@ -661,7 +659,6 @@ func (s *Ks3utilCommandSuite) TestGetObjectToFileProgress(c *C) {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
 		ProgressFn: func(increment, completed, total int64) {
-			fmt.Printf("percent: %.2f%%\n", float64(completed)/float64(total)*100)
 		},
 	}, filePath)
 	c.Assert(err, IsNil)
@@ -679,7 +676,6 @@ func (s *Ks3utilCommandSuite) TestAppendObjectProgress(c *C) {
 		Position: aws.Long(0),
 		Body:     fd,
 		ProgressFn: func(increment, completed, total int64) {
-			fmt.Printf("percent: %.2f%%\n", float64(completed)/float64(total)*100)
 		},
 	})
 	c.Assert(err, IsNil)
@@ -704,7 +700,6 @@ func (s *Ks3utilCommandSuite) TestUploadPartProgress(c *C) {
 		PartNumber: aws.Long(1),
 		Body:       fd,
 		ProgressFn: func(increment, completed, total int64) {
-			fmt.Printf("percent: %.2f%%\n", float64(completed)/float64(total)*100)
 		},
 	})
 	c.Assert(err, IsNil)
@@ -764,12 +759,10 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartUpload(c *C) {
 		Bucket:     aws.String(bucket),
 		Key:        aws.String(object),
 		Expires:    3600,
-		Parameters: map[string]*string{
+		ExtendQueryParams: map[string]*string{
 			"uploads": nil,
 		},
 	})
-
-	fmt.Println(initUrl)
 
 	initRequest, err := http.NewRequest("POST", initUrl, nil)
 	c.Assert(err, IsNil)
@@ -786,21 +779,18 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartUpload(c *C) {
 	err = xml.Unmarshal(body, &initXml)
 	c.Assert(err, IsNil)
 
-	fmt.Println(initXml.UploadId)
-
 	// 生成upload part外链
 	uploadPartUrl, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
 		HTTPMethod: s3.PUT,
 		Bucket:     aws.String(bucket),
 		Key:        aws.String(object),
 		Expires:    3600,
-		Parameters: map[string]*string{
+		ExtendQueryParams: map[string]*string{
 			"partNumber": aws.String("1"),
 			"uploadId":   aws.String(initXml.UploadId),
 		},
 	})
 	c.Assert(err, IsNil)
-	fmt.Println(uploadPartUrl)
 
 	uploadPartRequest, err := http.NewRequest("PUT", uploadPartUrl, fd)
 	c.Assert(err, IsNil)
@@ -809,7 +799,6 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartUpload(c *C) {
 	c.Assert(err, IsNil)
 
 	etag := uploadPartResp.Header.Get("ETag")
-	fmt.Println(etag)
 
 	// 生成complete外链
 	completeUrl, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
@@ -817,12 +806,11 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartUpload(c *C) {
 		Bucket:     aws.String(bucket),
 		Key:        aws.String(object),
 		Expires:    3600,
-		Parameters: map[string]*string{
+		ExtendQueryParams: map[string]*string{
 			"uploadId": aws.String(initXml.UploadId),
 		},
 	})
 	c.Assert(err, IsNil)
-	fmt.Println(completeUrl)
 
 	completeParts := `<CompleteMultipartUpload>
 		<Part>
@@ -830,7 +818,6 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartUpload(c *C) {
 			<ETag>` + etag + `</ETag>
 		</Part>	
 	</CompleteMultipartUpload>`
-	fmt.Println(completeParts)
 
 	completeRequest, err := http.NewRequest("POST", completeUrl, strings.NewReader(completeParts))
 	c.Assert(err, IsNil)
@@ -841,8 +828,6 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartUpload(c *C) {
 	body, err = io.ReadAll(completeResp.Body)
 	c.Assert(err, IsNil)
 
-	fmt.Println(string(body))
-
 	// 获取head外链
 	headUrl, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
 		HTTPMethod: s3.HEAD,
@@ -851,7 +836,6 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartUpload(c *C) {
 		Expires:    3600,
 	})
 	c.Assert(err, IsNil)
-	fmt.Println(headUrl)
 
 	headRequest, err := http.NewRequest("HEAD", headUrl, nil)
 	c.Assert(err, IsNil)
@@ -875,12 +859,11 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartCopy(c *C) {
 		Bucket:     aws.String(bucket),
 		Key:        aws.String(object + "copy"),
 		Expires:    3600,
-		Parameters: map[string]*string{
+		ExtendQueryParams: map[string]*string{
 			"uploads": nil,
 		},
 	})
 	c.Assert(err, IsNil)
-	fmt.Println(initUrl)
 
 	initRequest, err := http.NewRequest("POST", initUrl, nil)
 	c.Assert(err, IsNil)
@@ -898,24 +881,21 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartCopy(c *C) {
 	err = xml.Unmarshal(body, &initXml)
 	c.Assert(err, IsNil)
 
-	fmt.Println(initXml.UploadId)
-
 	// 生成upload part外链
 	uploadPartUrl, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
 		HTTPMethod: s3.PUT,
 		Bucket:     aws.String(bucket),
 		Key:        aws.String(object + "copy"),
 		Expires:    3600,
-		Parameters: map[string]*string{
+		ExtendQueryParams: map[string]*string{
 			"partNumber": aws.String("1"),
 			"uploadId":   aws.String(initXml.UploadId),
 		},
-		Headers: map[string]*string{
+		ExtendHeaders: map[string]*string{
 			"X-Amz-Copy-Source": aws.String("/" + bucket + "/" + object),
 		},
 	})
 	c.Assert(err, IsNil)
-	fmt.Println(uploadPartUrl)
 
 	uploadPartRequest, err := http.NewRequest("PUT", uploadPartUrl, nil)
 	c.Assert(err, IsNil)
@@ -928,7 +908,6 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartCopy(c *C) {
 
 	body, err = io.ReadAll(uploadPartResp.Body)
 	c.Assert(err, IsNil)
-	fmt.Println(string(body))
 
 	uploadPartXml := struct {
 		ETag string `xml:"ETag"`
@@ -945,12 +924,11 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartCopy(c *C) {
 		Bucket:     aws.String(bucket),
 		Key:        aws.String(object + "copy"),
 		Expires:    3600,
-		Parameters: map[string]*string{
+		ExtendQueryParams: map[string]*string{
 			"uploadId": aws.String(initXml.UploadId),
 		},
 	})
 	c.Assert(err, IsNil)
-	fmt.Println(completeUrl)
 
 	completeParts := `<CompleteMultipartUpload>
 		<Part>
@@ -958,8 +936,6 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartCopy(c *C) {
 			<ETag>` + etag + `</ETag>
 		</Part>
 	</CompleteMultipartUpload>`
-
-	fmt.Println(completeParts)
 
 	completeRequest, err := http.NewRequest("POST", completeUrl, strings.NewReader(completeParts))
 	c.Assert(err, IsNil)
@@ -970,8 +946,6 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartCopy(c *C) {
 	body, err = io.ReadAll(completeResp.Body)
 	c.Assert(err, IsNil)
 
-	fmt.Println(string(body))
-
 	// 获取head外链
 	headUrl, err := client.GeneratePresignedUrl(&s3.GeneratePresignedUrlInput{
 		HTTPMethod: s3.HEAD,
@@ -980,7 +954,6 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartCopy(c *C) {
 		Expires:    3600,
 	})
 	c.Assert(err, IsNil)
-	fmt.Println(headUrl)
 
 	headRequest, err := http.NewRequest("HEAD", headUrl, nil)
 	c.Assert(err, IsNil)
@@ -1031,7 +1004,6 @@ func (s *Ks3utilCommandSuite) TestUploadFile(c *C) {
 		CheckpointFile:   aws.String(object + s3.CheckpointFileSuffixUploader),
 		PartSize:         aws.Long(1024 * 1024),
 		ProgressFn: func(increment, completed, total int64) {
-			fmt.Printf("percent:%.2f%%\n", float64(completed)/float64(total)*100)
 		},
 	})
 	c.Assert(err, IsNil)
@@ -1087,7 +1059,6 @@ func (s *Ks3utilCommandSuite) TestDownloadFile(c *C) {
 		EnableCheckpoint: aws.Boolean(true),
 		CheckpointFile:   aws.String(object + s3.CheckpointFileSuffixDownloader),
 		ProgressFn: func(increment, completed, total int64) {
-			fmt.Printf("percent:%.2f%%\n", float64(completed)/float64(total)*100)
 		},
 	})
 	c.Assert(err, IsNil)
@@ -1271,7 +1242,6 @@ func (s *Ks3utilCommandSuite) TestCopyFile(c *C) {
 		EnableCheckpoint: aws.Boolean(true),
 		CheckpointFile:   aws.String(object + s3.CheckpointFileSuffixCopier),
 		ProgressFn: func(increment, completed, total int64) {
-			fmt.Printf("percent:%.2f%%\n", float64(completed)/float64(total)*100)
 		},
 	})
 	c.Assert(err, IsNil)
@@ -1387,7 +1357,6 @@ func (s *Ks3utilCommandSuite) TestCopyFileAcrossRegion(c *C) {
 		EnableCheckpoint: aws.Boolean(true),
 		CheckpointFile:   aws.String(object + s3.CheckpointFileSuffixCopier),
 		ProgressFn: func(increment, completed, total int64) {
-			fmt.Printf("percent:%.2f%%\n", float64(completed)/float64(total)*100)
 		},
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -1440,4 +1409,101 @@ func (s *Ks3utilCommandSuite) TestCopyFileAcrossRegion(c *C) {
 		Bucket: aws.String(dstBucket),
 	})
 	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestBucketNameEmpty(c *C) {
+	// PutObject
+	_, err := client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(""),
+		Key:    aws.String(key),
+		Body:   strings.NewReader("test"),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(strings.Contains(err.Error(), "input member Bucket must not be empty"), Equals, true)
+
+	// GetObject
+	_, err = client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(""),
+		Key:    aws.String(key),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(strings.Contains(err.Error(), "input member Bucket must not be empty"), Equals, true)
+
+	// DeleteObject
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(""),
+		Key:    aws.String(key),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(strings.Contains(err.Error(), "input member Bucket must not be empty"), Equals, true)
+}
+
+func (s *Ks3utilCommandSuite) TestObjectKeyEmpty(c *C) {
+	// PutObject
+	_, err := client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(""),
+		Body:   strings.NewReader("test"),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(strings.Contains(err.Error(), "input member Key must not be empty"), Equals, true)
+
+	// GetObject
+	_, err = client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(""),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(strings.Contains(err.Error(), "input member Key must not be empty"), Equals, true)
+
+	// DeleteObject
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(""),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(strings.Contains(err.Error(), "input member Key must not be empty"), Equals, true)
+}
+
+func (s *Ks3utilCommandSuite) TestPutObjectWithExtendHeaders(c *C) {
+	object := randLowStr(10)
+	createFile(object, 1024*1024*10)
+	fd, _ := os.Open(object)
+
+	// 设置扩展头部
+	_, err := client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		Body:   fd,
+		ExtendHeaders: map[string]*string{
+			"X-Amz-Storage-Class": aws.String(s3.StorageClassIA),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 验证扩展头部是否生效
+	headResp, err := client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*headResp.Metadata["X-Amz-Storage-Class"], Equals, s3.StorageClassIA)
+
+	// 删除对象
+	s.DeleteObject(object, c)
+	os.Remove(object)
+}
+
+func (s *Ks3utilCommandSuite) TestPutObjectWithExtendQueryParams(c *C) {
+	// 设置扩展查询参数
+	resp, err := client.ListObjects(&s3.ListObjectsInput{
+		Bucket: aws.String(bucket),
+		ExtendQueryParams: map[string]*string{
+			"max-keys": aws.String("10"),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 验证扩展查询参数是否生效
+	c.Assert(*resp.MaxKeys, Equals, int64(10))
 }

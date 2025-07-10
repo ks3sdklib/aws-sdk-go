@@ -46,10 +46,10 @@ type PutBucketRetentionInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketRetentionInput `json:"-" xml:"-"`
 }
@@ -120,10 +120,10 @@ type GetBucketRetentionInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type GetBucketRetentionOutput struct {
@@ -187,10 +187,10 @@ type ListRetentionInput struct {
 	Prefix *string `location:"querystring" locationName:"prefix" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type ListRetentionOutput struct {
@@ -314,10 +314,10 @@ type RecoverObjectInput struct {
 	RetentionId *string `location:"header" locationName:"x-kss-retention-id" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type RecoverObjectOutput struct {
@@ -369,10 +369,10 @@ type ClearObjectInput struct {
 	RetentionId *string `location:"header" locationName:"x-kss-retention-id" type:"string" required:"true"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type ClearObjectOutput struct {

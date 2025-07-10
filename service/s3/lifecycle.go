@@ -127,10 +127,10 @@ type PutBucketLifecycleInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketLifecycleInput `json:"-" xml:"-"`
 }
@@ -158,10 +158,10 @@ type DeleteBucketLifecycleInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataDeleteBucketLifecycleInput `json:"-" xml:"-"`
 }
@@ -187,10 +187,10 @@ type GetBucketLifecycleInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetBucketLifecycleInput `json:"-" xml:"-"`
 }

@@ -48,6 +48,7 @@ var DefaultConfig = &Config{
 	SignerVersion:                  "V2",
 	CrcCheckEnabled:                false,
 	DisableRestProtocolURICleaning: true,
+	DnsCache:                       true,
 }
 
 // A Config provides service configuration
@@ -71,6 +72,7 @@ type Config struct {
 	SignerVersion                  string
 	CrcCheckEnabled                bool // 允许crc64校验，默认为false
 	DisableRestProtocolURICleaning bool // 禁用path clean，默认为true
+	DnsCache                       bool
 }
 
 // Copy will return a shallow copy of the Config object.
@@ -140,10 +142,19 @@ func (c Config) Merge(newcfg *Config) *Config {
 		cfg.ManualSend = c.ManualSend
 	}
 
+	if newcfg.DnsCache {
+		cfg.DnsCache = newcfg.DnsCache
+	} else {
+		cfg.DnsCache = c.DnsCache
+	}
+
 	if newcfg.HTTPClient != nil {
 		cfg.HTTPClient = newcfg.HTTPClient
 	} else {
 		cfg.HTTPClient = c.HTTPClient
+		if cfg.DnsCache {
+			cfg.HTTPClient.Transport = DnsCacheTransport
+		}
 	}
 	defaultHTTPRedirect(cfg.HTTPClient)
 

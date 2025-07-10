@@ -45,10 +45,10 @@ type PutBucketInventoryInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketInventoryInput `json:"-" xml:"-"`
 }
@@ -170,10 +170,10 @@ type GetBucketInventoryInput struct {
 	Id *string `location:"querystring" locationName:"id" type:"string" required:"true"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type GetBucketInventoryOutput struct {
@@ -228,10 +228,10 @@ type DeleteBucketInventoryInput struct {
 	Id *string `location:"querystring" locationName:"id" type:"string" required:"true"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 type DeleteBucketInventoryOutput struct {
 	Metadata map[string]*string `location:"headers"  type:"map"`
@@ -277,10 +277,10 @@ type ListBucketInventoryInput struct {
 	ContinuationToken *string `location:"querystring" locationName:"continuation-token" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type ListInventoryConfigurationsResult struct {

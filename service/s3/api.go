@@ -1587,10 +1587,10 @@ type GeneratePresignedUrlInput struct {
 	ResponseExpires *time.Time `location:"querystring" locationName:"response-expires" type:"timestamp" timestampFormat:"iso8601"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGeneratePresignedUrlInput `json:"-" xml:"-"`
 }
@@ -1897,10 +1897,10 @@ type AbortMultipartUploadInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataAbortMultipartUploadInput `json:"-" xml:"-"`
 }
@@ -2020,10 +2020,10 @@ type CompleteMultipartUploadInput struct {
 	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataCompleteMultipartUploadInput `json:"-" xml:"-"`
 }
@@ -2268,10 +2268,10 @@ type CopyObjectInput struct {
 	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataCopyObjectInput `json:"-" xml:"-"`
 }
@@ -2403,10 +2403,10 @@ type CreateBucketInput struct {
 	BucketType *string `location:"header" locationName:"x-amz-bucket-type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	MetadataCreateBucketInput `json:"-" xml:"-"`
 }
@@ -2520,10 +2520,10 @@ type CreateMultipartUploadInput struct {
 	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataCreateMultipartUploadInput `json:"-" xml:"-"`
 }
@@ -2593,10 +2593,10 @@ type DeleteBucketInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataDeleteBucketInput `json:"-" xml:"-"`
 }
@@ -2623,10 +2623,10 @@ type DeleteBucketPolicyInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataDeleteBucketPolicyInput `json:"-" xml:"-"`
 }
@@ -2653,10 +2653,10 @@ type DeleteBucketTaggingInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataDeleteBucketTaggingInput `json:"-" xml:"-"`
 }
@@ -2683,10 +2683,10 @@ type DeleteBucketWebsiteInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataDeleteBucketWebsiteInput `json:"-" xml:"-"`
 }
@@ -2751,10 +2751,10 @@ type DeleteObjectInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataDeleteObjectInput `json:"-" xml:"-"`
 }
@@ -2818,10 +2818,10 @@ type DeleteObjectsInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataDeleteObjectsInput `json:"-" xml:"-"`
 }
@@ -2901,10 +2901,10 @@ type GetBucketACLInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetBucketACLInput `json:"-" xml:"-"`
 }
@@ -2936,10 +2936,10 @@ type GetBucketLocationInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetBucketLocationInput `json:"-" xml:"-"`
 }
@@ -2968,10 +2968,10 @@ type GetBucketLoggingInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetBucketLoggingInput `json:"-" xml:"-"`
 }
@@ -3011,10 +3011,10 @@ type GetBucketPolicyInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetBucketPolicyInput `json:"-" xml:"-"`
 }
@@ -3044,10 +3044,10 @@ type GetBucketRequestPaymentInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetBucketRequestPaymentInput `json:"-" xml:"-"`
 }
@@ -3077,10 +3077,10 @@ type GetBucketTaggingInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetBucketTaggingInput `json:"-" xml:"-"`
 }
@@ -3109,10 +3109,10 @@ type GetBucketVersioningInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetBucketVersioningInput `json:"-" xml:"-"`
 }
@@ -3147,10 +3147,10 @@ type GetBucketWebsiteInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetBucketWebsiteInput `json:"-" xml:"-"`
 }
@@ -3196,10 +3196,10 @@ type GetObjectACLInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetObjectACLInput `json:"-" xml:"-"`
 }
@@ -3313,10 +3313,10 @@ type GetObjectInput struct {
 	ProgressFn aws.ProgressFunc `location:"function"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetObjectInput `json:"-" xml:"-"`
 }
@@ -3441,10 +3441,10 @@ type GetObjectTorrentInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetObjectTorrentInput `json:"-" xml:"-"`
 }
@@ -3513,10 +3513,10 @@ type HeadBucketInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataHeadBucketInput `json:"-" xml:"-"`
 }
@@ -3590,10 +3590,10 @@ type HeadObjectInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataHeadObjectInput `json:"-" xml:"-"`
 }
@@ -3750,10 +3750,10 @@ type ListBucketsInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataListBucketsInput `json:"-" xml:"-"`
 }
@@ -3813,10 +3813,10 @@ type ListMultipartUploadsInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataListMultipartUploadsInput `json:"-" xml:"-"`
 }
@@ -3907,10 +3907,10 @@ type ListObjectVersionsInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataListObjectVersionsInput `json:"-" xml:"-"`
 }
@@ -3993,10 +3993,10 @@ type ListObjectsInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataListObjectsInput `json:"-" xml:"-"`
 }
@@ -4071,10 +4071,10 @@ type ListPartsInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataListPartsInput `json:"-" xml:"-"`
 }
@@ -4337,10 +4337,10 @@ type PutBucketACLInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketACLInput `json:"-" xml:"-"`
 }
@@ -4369,10 +4369,10 @@ type PutBucketLoggingInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketLoggingInput `json:"-" xml:"-"`
 }
@@ -4403,10 +4403,10 @@ type PutBucketNotificationConfigurationInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketNotificationConfigurationInput `json:"-" xml:"-"`
 }
@@ -4435,10 +4435,10 @@ type PutBucketNotificationInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketNotificationInput `json:"-" xml:"-"`
 }
@@ -4468,10 +4468,10 @@ type PutBucketPolicyInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketPolicyInput `json:"-" xml:"-"`
 }
@@ -4500,10 +4500,10 @@ type PutBucketRequestPaymentInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketRequestPaymentInput `json:"-" xml:"-"`
 }
@@ -4528,10 +4528,10 @@ type PutBucketTaggingInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketTaggingInput `json:"-" xml:"-"`
 }
@@ -4564,10 +4564,10 @@ type PutBucketVersioningInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketVersioningInput `json:"-" xml:"-"`
 }
@@ -4596,10 +4596,10 @@ type PutBucketWebsiteInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketWebsiteInput `json:"-" xml:"-"`
 }
@@ -4655,10 +4655,10 @@ type PutObjectACLInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutObjectACLInput `json:"-" xml:"-"`
 }
@@ -4794,10 +4794,10 @@ type PutObjectInput struct {
 	ProgressFn aws.ProgressFunc `location:"function"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutObjectInput `json:"-" xml:"-"`
 }
@@ -5064,10 +5064,10 @@ type RestoreObjectInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataRestoreObjectInput `json:"-" xml:"-"`
 }
@@ -5308,10 +5308,10 @@ type UploadPartCopyInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataUploadPartCopyInput `json:"-" xml:"-"`
 }
@@ -5410,10 +5410,10 @@ type UploadPartInput struct {
 	ProgressFn aws.ProgressFunc `location:"function"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataUploadPartInput `json:"-" xml:"-"`
 }
@@ -5532,10 +5532,10 @@ type DeleteObjectTaggingInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataDeleteObjectTaggingInput `json:"-" xml:"-"`
 }
@@ -5596,10 +5596,10 @@ type GetObjectTaggingInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetObjectTaggingInput `json:"-" xml:"-"`
 }
@@ -5664,10 +5664,10 @@ type PutObjectTaggingInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutObjectTaggingInput `json:"-" xml:"-"`
 }
@@ -5820,10 +5820,10 @@ type FetchObjectInput struct {
 	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `type:"map"`
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `type:"map"`
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataFetchObjectInput `json:"-" xml:"-"`
 }
