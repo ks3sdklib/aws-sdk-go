@@ -1650,7 +1650,7 @@ func (c *S3) PutObjectWithContext(ctx aws.Context, input *PutObjectInput) (*PutO
 	return out, err
 }
 
-func (c *S3) PutReaderRequest(input *PutReaderRequest) (req *aws.Request, output *PutObjectOutput) {
+func (c *S3) PutReaderRequest(input *PutReaderInput) (req *aws.Request, output *PutObjectOutput) {
 	op := &aws.Operation{
 		Name:       "PutObject",
 		HTTPMethod: "PUT",
@@ -1658,23 +1658,30 @@ func (c *S3) PutReaderRequest(input *PutReaderRequest) (req *aws.Request, output
 	}
 
 	if input == nil {
-		input = &PutReaderRequest{}
+		input = &PutReaderInput{}
 	}
+	input.Body = Body{io.NopCloser(input.Body)}
 
 	req = c.newRequest(op, input, output)
+	if c.Config.CrcCheckEnabled {
+		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
+	}
+	if input.ProgressFn != nil {
+		req.ProgressFn = input.ProgressFn
+	}
 	output = &PutObjectOutput{}
 	req.Data = output
 	return
 }
 
 // PutReader Adds an object to a bucket.
-func (c *S3) PutReader(input *PutReaderRequest) (*PutObjectOutput, error) {
+func (c *S3) PutReader(input *PutReaderInput) (*PutObjectOutput, error) {
 	req, out := c.PutReaderRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-func (c *S3) PutReaderWithContext(ctx aws.Context, input *PutReaderRequest) (*PutObjectOutput, error) {
+func (c *S3) PutReaderWithContext(ctx aws.Context, input *PutReaderInput) (*PutObjectOutput, error) {
 	req, out := c.PutReaderRequest(input)
 	req.SetContext(ctx)
 	err := req.Send()
@@ -4801,7 +4808,8 @@ type PutObjectInput struct {
 
 	metadataPutObjectInput `json:"-" xml:"-"`
 }
-type PutReaderRequest struct {
+
+type PutReaderInput struct {
 	// The canned ACL to apply to the object.
 	ACL *string `location:"header" locationName:"x-amz-acl" type:"string"`
 
@@ -4851,6 +4859,13 @@ type PutReaderRequest struct {
 	// A map of metadata to store with the object in S3.
 	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
 
+	// Specifies the object tag of the object. Multiple tags can be set at the same time, such as: TagA=A&TagB=B.
+	// Note: Key and Value need to be URL-encoded first. If an item does not have "=", the Value is considered to be an empty string.
+	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
+
+	// Specifies whether the object is forbidden to overwrite.
+	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
+
 	// Confirms that the requester knows that she or he will be charged for the
 	// request. Bucket owners need not specify this parameter in their requests.
 	// Documentation on downloading objects from requester pays buckets can be found
@@ -4893,8 +4908,22 @@ type PutReaderRequest struct {
 
 	ContentMaxLength *int64 `location:"header" locationName:"x-amz-content-maxlength" type:"integer"`
 
-	CallbackUrl  *string `location:"header" locationName:"x-kss-callbackurl" type:"string"`
+	CallbackUrl *string `location:"header" locationName:"x-kss-callbackurl" type:"string"`
+
 	CallbackBody *string `location:"header" locationName:"x-kss-callbackbody" type:"string"`
+
+	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"integer"`
+
+	ContentMD5 *string `location:"header" locationName:"Content-MD5" type:"string"`
+
+	// Progress callback function
+	ProgressFn aws.ProgressFunc `location:"function"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutObjectInput `json:"-" xml:"-"`
 }
