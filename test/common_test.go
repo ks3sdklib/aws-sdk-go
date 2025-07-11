@@ -57,7 +57,7 @@ func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 		MaxRetries:       3,        // 请求失败时最大重试次数，默认值为3，值小于0时不重试，如-1表示不重试
 		CrcCheckEnabled:  true,     // 开启CRC64校验，默认值为false
 		HTTPClient:       nil,      // HTTP请求的Client对象，若为空则使用默认值
-		DnsCache:         true,     // 启用DNS缓存，默认值为true
+		DisableDnsCache:  false,    // 禁用DNS缓存，默认值为false
 	})
 
 	s.SetUpBucketEnv(c)
