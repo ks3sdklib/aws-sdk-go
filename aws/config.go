@@ -152,7 +152,7 @@ func (c Config) Merge(newcfg *Config) *Config {
 		cfg.HTTPClient = newcfg.HTTPClient
 	} else {
 		cfg.HTTPClient = c.HTTPClient
-		if cfg.DnsCache {
+		if newcfg.DnsCache {
 			cfg.HTTPClient.Transport = DnsCacheTransport
 		}
 	}
