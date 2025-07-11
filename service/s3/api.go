@@ -1660,7 +1660,7 @@ func (c *S3) PutReaderRequest(input *PutReaderInput) (req *aws.Request, output *
 	if input == nil {
 		input = &PutReaderInput{}
 	}
-	input.Body = Body{io.NopCloser(input.Body)}
+	input.Body = &Body{io.NopCloser(input.Body)}
 
 	req = c.newRequest(op, input, output)
 	if c.Config.CrcCheckEnabled {
