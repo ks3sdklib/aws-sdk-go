@@ -1586,6 +1586,12 @@ type GeneratePresignedUrlInput struct {
 	// Sets the Expires header of the response.
 	ResponseExpires *time.Time `location:"querystring" locationName:"response-expires" type:"timestamp" timestampFormat:"iso8601"`
 
+	// Deprecated, use ExtendHeaders instead.
+	Headers map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Deprecated, use ExtendQueryParams instead.
+	Parameters map[string]*string `location:"extendQueryParams" type:"map"`
+
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
@@ -1690,37 +1696,54 @@ func (c *S3) PutReaderWithContext(ctx aws.Context, input *PutReaderInput) (*PutO
 
 // GeneratePresignedUrl generates a presigned url for the object
 func (c *S3) GeneratePresignedUrl(input *GeneratePresignedUrlInput) (url string, err error) {
-	opGeneratePresigned := &aws.Operation{
+	op := &aws.Operation{
 		HTTPMethod: string(input.HTTPMethod),
 		HTTPPath:   "/{Bucket}/{Key+}",
 	}
+
+	if input == nil {
+		input = &GeneratePresignedUrlInput{}
+	}
+
+	if input.ExtendHeaders == nil {
+		input.ExtendHeaders = input.Headers
+	}
+
+	if input.ExtendQueryParams == nil {
+		input.ExtendQueryParams = input.Parameters
+	}
+
 	output := &GeneratePresignedUrlOutput{}
-	req := c.newRequest(opGeneratePresigned, input, output)
+	req := c.newRequest(op, input, output)
+
 	aws.ValidateParameters(req)
 	if req.Error != nil {
 		return "", req.Error
 	}
+
 	if string(input.HTTPMethod) == "" {
 		return "", apierr.New("InvalidParameter", "missing required parameter: HTTPMethod", nil)
 	}
-	now := time.Now().Unix()
+
 	if input.Expires <= 0 {
-		return "", apierr.New("InvalidParameter", "Expires is required and Expires must bigger than 0", nil)
+		return "", apierr.New("InvalidParameter", "Expires is required and must bigger than 0", nil)
 	}
-	if c.Config.SignerVersion == "V4" || c.Config.SignerVersion == "V4_UNSIGNED_PAYLOAD_SIGNER" {
+
+	if IsV4Signature(c.Config.SignerVersion) {
 		if input.Expires > 604800 {
 			return "", apierr.New("InvalidParameter", "Expires must between 1 and 604800 in V4 signature", nil)
 		}
 		req.ExpireTime = input.Expires
 	} else {
-		req.ExpireTime = input.Expires + now
+		req.ExpireTime = input.Expires + time.Now().Unix()
 	}
 	req.Sign()
+
 	return req.HTTPRequest.URL.String(), nil
 }
 
-// GeneratePresignedUrlInput generates a presigned url for the object.
-// This method has been deprecated, please use GeneratePresignedUrl instead.
+// GeneratePresignedUrlInput generates a presigned url for the object
+// Deprecated: Use GeneratePresignedUrl instead.
 func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url string) {
 	opGeneratePresigned := &aws.Operation{
 		HTTPMethod: string(input.HTTPMethod),
