@@ -695,3 +695,40 @@ func (s *Ks3utilCommandSuite) TestRequesterQos(c *C) {
 	})
 	c.Assert(err, IsNil)
 }
+
+func (s *Ks3utilCommandSuite) TestBucketTagging(c *C) {
+	// 设置桶标签
+	_, err := client.PutBucketTagging(&s3.PutBucketTaggingInput{
+		Bucket: aws.String(bucket),
+		Tagging: &s3.Tagging{
+			TagSet: []*s3.Tag{
+				{
+					Key:   aws.String("key1"),
+					Value: aws.String("value1"),
+				},
+				{
+					Key:   aws.String("key2"),
+					Value: aws.String("value2"),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取桶标签
+	resp, err := client.GetBucketTagging(&s3.GetBucketTaggingInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.Tagging.TagSet), Equals, 2)
+	c.Assert(*resp.Tagging.TagSet[0].Key, Equals, "key1")
+	c.Assert(*resp.Tagging.TagSet[0].Value, Equals, "value1")
+	c.Assert(*resp.Tagging.TagSet[1].Key, Equals, "key2")
+	c.Assert(*resp.Tagging.TagSet[1].Value, Equals, "value2")
+
+	// 删除桶标签
+	_, err = client.DeleteBucketTagging(&s3.DeleteBucketTaggingInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+}
