@@ -77,3 +77,8 @@ const (
 	StorageMediumNormal  string = "Normal"
 	StorageMediumExtreme string = "Extreme"
 )
+
+const (
+	AlgorithmAES256 string = "AES256"
+	AlgorithmSM4    string = "SM4"
+)

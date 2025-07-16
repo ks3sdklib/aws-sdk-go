@@ -732,3 +732,31 @@ func (s *Ks3utilCommandSuite) TestBucketTagging(c *C) {
 	})
 	c.Assert(err, IsNil)
 }
+
+func (s *Ks3utilCommandSuite) TestBucketEncryption(c *C) {
+	// 设置桶加密配置
+	_, err := client.PutBucketEncryption(&s3.PutBucketEncryptionInput{
+		Bucket: aws.String(bucket),
+		ServerSideEncryptionConfiguration: &s3.ServerSideEncryptionConfiguration{
+			Rule: &s3.BucketEncryptionRule{
+				ApplyServerSideEncryptionByDefault: &s3.ApplyServerSideEncryptionByDefault{
+					SSEAlgorithm: aws.String(s3.AlgorithmAES256),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取桶加密配置
+	resp, err := client.GetBucketEncryption(&s3.GetBucketEncryptionInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.ServerSideEncryptionConfiguration.Rule.ApplyServerSideEncryptionByDefault.SSEAlgorithm, Equals, s3.AlgorithmAES256)
+
+	// 删除桶加密配置
+	_, err = client.DeleteBucketEncryption(&s3.DeleteBucketEncryptionInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+}

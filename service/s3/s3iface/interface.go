@@ -45,6 +45,8 @@ type S3API interface {
 
 	DeleteRequesterQos(*s3.DeleteRequesterQosInput) (*s3.DeleteRequesterQosOutput, error)
 
+	DeleteBucketEncryption(*s3.DeleteBucketEncryptionInput) (*s3.DeleteBucketEncryptionOutput, error)
+
 	DeleteObject(*s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 
 	DeleteObjects(*s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
@@ -86,6 +88,8 @@ type S3API interface {
 	GetBucketQos(*s3.GetBucketQosInput) (*s3.GetBucketQosOutput, error)
 
 	GetRequesterQos(*s3.GetRequesterQosInput) (*s3.GetRequesterQosOutput, error)
+
+	GetBucketEncryption(*s3.GetBucketEncryptionInput) (*s3.GetBucketEncryptionOutput, error)
 
 	GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error)
 
@@ -146,6 +150,8 @@ type S3API interface {
 	PutBucketQos(*s3.PutBucketQosInput) (*s3.PutBucketQosOutput, error)
 
 	PutRequesterQos(*s3.PutRequesterQosInput) (*s3.PutRequesterQosOutput, error)
+
+	PutBucketEncryption(*s3.PutBucketEncryptionInput) (*s3.PutBucketEncryptionOutput, error)
 
 	PutObject(*s3.PutObjectInput) (*s3.PutObjectOutput, error)
 
