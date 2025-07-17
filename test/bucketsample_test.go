@@ -60,7 +60,7 @@ func (s *Ks3utilCommandSuite) TestBucketAcl(c *C) {
 
 // TestBucketLifecycle bucket lifecycle
 func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
-	// 配置生命周期规则
+	// 设置生命周期规则
 	lifecycleConfiguration := &s3.LifecycleConfiguration{
 		Rules: []*s3.LifecycleRule{
 			{
@@ -87,6 +87,7 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 	_, err := client.PutBucketLifecycle(&s3.PutBucketLifecycleInput{
 		Bucket:                 aws.String(bucket),
 		LifecycleConfiguration: lifecycleConfiguration,
+		AllowSameActionOverlap: aws.Boolean(true),
 	})
 	c.Assert(err, IsNil)
 
@@ -103,6 +104,7 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 	c.Assert(*resp.Rules[0].Transitions[0].StorageClass, Equals, s3.StorageClassIA)
 	c.Assert(*resp.Rules[0].Transitions[0].Days, Equals, int64(30))
 	c.Assert(*resp.Rules[0].AbortIncompleteMultipartUpload.DaysAfterInitiation, Equals, int64(60))
+	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzAllowSameActionOverlap], Equals, "true")
 
 	// 删除生命周期规则
 	_, err = client.DeleteBucketLifecycle(&s3.DeleteBucketLifecycleInput{

@@ -126,6 +126,8 @@ type PutBucketLifecycleInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	AllowSameActionOverlap *bool `location:"header" locationName:"x-amz-allow-same-action-overlap" type:"boolean"`
+
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
