@@ -57,6 +57,8 @@ type S3API interface {
 
 	GetBucketLifecycle(*s3.GetBucketLifecycleInput) (*s3.GetBucketLifecycleOutput, error)
 
+	GetBucketAccessMonitor(*s3.GetBucketAccessMonitorInput) (*s3.GetBucketAccessMonitorOutput, error)
+
 	GetBucketLocation(*s3.GetBucketLocationInput) (*s3.GetBucketLocationOutput, error)
 
 	GetBucketLogging(*s3.GetBucketLoggingInput) (*s3.GetBucketLoggingOutput, error)
@@ -120,6 +122,8 @@ type S3API interface {
 	PutBucketCORS(*s3.PutBucketCORSInput) (*s3.PutBucketCORSOutput, error)
 
 	PutBucketLifecycle(*s3.PutBucketLifecycleInput) (*s3.PutBucketLifecycleOutput, error)
+
+	PutBucketAccessMonitor(*s3.PutBucketAccessMonitorInput) (*s3.PutBucketAccessMonitorOutput, error)
 
 	PutBucketLogging(*s3.PutBucketLoggingInput) (*s3.PutBucketLoggingOutput, error)
 

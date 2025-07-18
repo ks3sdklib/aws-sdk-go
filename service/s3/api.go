@@ -5073,25 +5073,6 @@ type metadataTopicConfigurationDeprecated struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-type Transition struct {
-	// Indicates at what date the object is to be moved or deleted. Should be in
-	// GMT ISO 8601 Format.
-	Date *time.Time `type:"timestamp" timestampFormat:"iso8601"`
-
-	// Indicates the lifetime, in days, of the objects that are subject to the rule.
-	// The value must be a non-zero positive integer.
-	Days *int64 `type:"integer"`
-
-	// The class of storage used to store the object.
-	StorageClass *string `type:"string"`
-
-	metadataTransition `json:"-" xml:"-"`
-}
-
-type metadataTransition struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type UploadPartCopyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 

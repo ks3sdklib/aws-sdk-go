@@ -45,6 +45,7 @@ type RequesterQosRule struct {
 type PutRequesterQosOutput struct {
 	// The HTTP headers of the response.
 	Metadata map[string]*string `location:"headers" type:"map"`
+
 	// The HTTP status code of the response.
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
@@ -95,8 +96,10 @@ type GetRequesterQosInput struct {
 type GetRequesterQosOutput struct {
 	// Requester flow control configuration container.
 	RequesterQosConfiguration *RequesterQosConfiguration `locationName:"RequesterQosConfiguration" type:"structure"`
+
 	// The HTTP headers of the response.
 	Metadata map[string]*string `location:"headers" type:"map"`
+
 	// The HTTP status code of the response.
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 
@@ -153,6 +156,7 @@ type DeleteRequesterQosInput struct {
 type DeleteRequesterQosOutput struct {
 	// The HTTP headers of the response.
 	Metadata map[string]*string `location:"headers" type:"map"`
+
 	// The HTTP status code of the response.
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }

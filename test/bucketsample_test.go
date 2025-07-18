@@ -60,15 +60,30 @@ func (s *Ks3utilCommandSuite) TestBucketAcl(c *C) {
 
 // TestBucketLifecycle bucket lifecycle
 func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
-	// 设置生命周期规则
+	// 设置桶访问追踪配置
+	_, err := client.PutBucketAccessMonitor(&s3.PutBucketAccessMonitorInput{
+		Bucket: aws.String(bucket),
+		AccessMonitorConfiguration: &s3.AccessMonitorConfiguration{
+			Status: aws.String(s3.StatusEnabled),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取桶访问追踪配置
+	accessMonitorResp, err := client.GetBucketAccessMonitor(&s3.GetBucketAccessMonitorInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*accessMonitorResp.AccessMonitorConfiguration.Status, Equals, s3.StatusEnabled)
+
 	lifecycleConfiguration := &s3.LifecycleConfiguration{
 		Rules: []*s3.LifecycleRule{
 			{
 				ID: aws.String("rule1"),
 				Filter: &s3.LifecycleFilter{
-					Prefix: aws.String("prefix1"),
+					Prefix: aws.String("prefix1/"),
 				},
-				Status: aws.String("Enabled"),
+				Status: aws.String(s3.StatusEnabled),
 				Expiration: &s3.LifecycleExpiration{
 					Days: aws.Long(90),
 				},
@@ -82,31 +97,65 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 					DaysAfterInitiation: aws.Long(60),
 				},
 			},
+			{
+				ID: aws.String("rule2"),
+				Filter: &s3.LifecycleFilter{
+					And: &s3.And{
+						Prefix: aws.String("prefix2/"),
+						Tag: []*s3.Tag{
+							{
+								Key:   aws.String("key1"),
+								Value: aws.String("value1"),
+							},
+						},
+					},
+				},
+				Status: aws.String(s3.StatusEnabled),
+				Transitions: []*s3.Transition{
+					{
+						Days:                 aws.Long(30),
+						StorageClass:         aws.String(s3.StorageClassIA),
+						IsAccessTime:         aws.Boolean(true),
+						ReturnToStdWhenVisit: aws.Boolean(true),
+					},
+				},
+			},
 		},
 	}
-	_, err := client.PutBucketLifecycle(&s3.PutBucketLifecycleInput{
+	// 设置桶生命周期规则
+	_, err = client.PutBucketLifecycle(&s3.PutBucketLifecycleInput{
 		Bucket:                 aws.String(bucket),
 		LifecycleConfiguration: lifecycleConfiguration,
 		AllowSameActionOverlap: aws.Boolean(true),
 	})
 	c.Assert(err, IsNil)
 
-	// 获取生命周期规则
+	// 获取桶生命周期规则
 	resp, err := client.GetBucketLifecycle(&s3.GetBucketLifecycleInput{
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(len(resp.Rules), Equals, 1)
+	c.Assert(len(resp.Rules), Equals, 2)
 	c.Assert(*resp.Rules[0].ID, Equals, "rule1")
-	c.Assert(*resp.Rules[0].Filter.Prefix, Equals, "prefix1")
-	c.Assert(*resp.Rules[0].Status, Equals, "Enabled")
+	c.Assert(*resp.Rules[0].Filter.Prefix, Equals, "prefix1/")
+	c.Assert(*resp.Rules[0].Status, Equals, s3.StatusEnabled)
 	c.Assert(*resp.Rules[0].Expiration.Days, Equals, int64(90))
 	c.Assert(*resp.Rules[0].Transitions[0].StorageClass, Equals, s3.StorageClassIA)
 	c.Assert(*resp.Rules[0].Transitions[0].Days, Equals, int64(30))
 	c.Assert(*resp.Rules[0].AbortIncompleteMultipartUpload.DaysAfterInitiation, Equals, int64(60))
+	c.Assert(*resp.Rules[1].ID, Equals, "rule2")
+	c.Assert(*resp.Rules[1].Filter.And.Prefix, Equals, "prefix2/")
+	c.Assert(len(resp.Rules[1].Filter.And.Tag), Equals, 1)
+	c.Assert(*resp.Rules[1].Filter.And.Tag[0].Key, Equals, "key1")
+	c.Assert(*resp.Rules[1].Filter.And.Tag[0].Value, Equals, "value1")
+	c.Assert(*resp.Rules[1].Status, Equals, s3.StatusEnabled)
+	c.Assert(*resp.Rules[1].Transitions[0].StorageClass, Equals, s3.StorageClassIA)
+	c.Assert(*resp.Rules[1].Transitions[0].Days, Equals, int64(30))
+	c.Assert(*resp.Rules[1].Transitions[0].IsAccessTime, Equals, true)
+	c.Assert(*resp.Rules[1].Transitions[0].ReturnToStdWhenVisit, Equals, true)
 	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzAllowSameActionOverlap], Equals, "true")
 
-	// 删除生命周期规则
+	// 删除桶生命周期规则
 	_, err = client.DeleteBucketLifecycle(&s3.DeleteBucketLifecycleInput{
 		Bucket: aws.String(bucket),
 	})

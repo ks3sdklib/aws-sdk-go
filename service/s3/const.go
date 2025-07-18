@@ -83,3 +83,8 @@ const (
 	AlgorithmAES256 string = "AES256"
 	AlgorithmSM4    string = "SM4"
 )
+
+const (
+	StatusEnabled  string = "Enabled"
+	StatusDisabled string = "Disabled"
+)

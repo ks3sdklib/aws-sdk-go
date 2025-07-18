@@ -5,30 +5,33 @@ import (
 	"time"
 )
 
+type PutBucketLifecycleInput struct {
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	LifecycleConfiguration *LifecycleConfiguration `locationName:"LifecycleConfiguration" type:"structure"`
+
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Specifies whether lifecycle rules allow prefix overlap.
+	AllowSameActionOverlap *bool `location:"header" locationName:"x-amz-allow-same-action-overlap" type:"boolean"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
+	metadataPutBucketLifecycleInput `json:"-" xml:"-"`
+}
+
+type metadataPutBucketLifecycleInput struct {
+	SDKShapeTraits bool `type:"structure" payload:"LifecycleConfiguration"`
+
+	AutoFillMD5 bool
+}
+
 type LifecycleConfiguration struct {
 	Rules []*LifecycleRule `locationName:"Rule" type:"list" flattened:"true" required:"true"`
-
-	metadataLifecycleConfiguration `json:"-" xml:"-"`
-}
-
-type metadataLifecycleConfiguration struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type LifecycleExpiration struct {
-	// Indicates at what date the object is to be moved or deleted. Should be in
-	// GMT ISO 8601 Format.
-	Date *time.Time `type:"timestamp" timestampFormat:"iso8601"`
-
-	// Indicates the lifetime, in days, of the objects that are subject to the rule.
-	// The value must be a non-zero positive integer.
-	Days *int64 `type:"integer"`
-
-	metadataLifecycleExpiration `json:"-" xml:"-"`
-}
-
-type metadataLifecycleExpiration struct {
-	SDKShapeTraits bool `type:"structure"`
 }
 
 type LifecycleRule struct {
@@ -49,63 +52,55 @@ type LifecycleRule struct {
 	// Specifies when an object transitions to a specified storage class.
 	Transitions []*Transition `locationName:"Transition" type:"list" flattened:"true"`
 
-	// Specifies when noncurrent object versions expire. Upon expiration, Amazon
-	// S3 permanently deletes the noncurrent object versions. You set this lifecycle
-	// configuration action on a bucket that has versioning enabled (or suspended)
-	// to request that Amazon S3 delete noncurrent object versions at a specific
-	// period in the object's lifetime.
-	NoncurrentVersionExpiration *NoncurrentVersionExpiration `type:"structure"`
-
-	// Container for the transition rule that describes when noncurrent objects
-	// transition to the GLACIER storage class. If your bucket is versioning-enabled
-	// (or versioning is suspended), you can set this action to request that Amazon
-	// S3 transition noncurrent object versions to the GLACIER storage class at
-	// a specific period in the object's lifetime.
-	NoncurrentVersionTransition *NoncurrentVersionTransition `type:"structure"`
-
 	// Specifies the expiration time for multipart uploads.
 	AbortIncompleteMultipartUpload *AbortIncompleteMultipartUpload `type:"structure"`
-
-	metadataLifecycleRule `json:"-" xml:"-"`
 }
 
-// NoncurrentVersionExpiration Specifies when noncurrent object versions expire. Upon expiration, Amazon
-// S3 permanently deletes the noncurrent object versions. You set this lifecycle
-// configuration action on a bucket that has versioning enabled (or suspended)
-// to request that Amazon S3 delete noncurrent object versions at a specific
-// period in the object's lifetime.
-type NoncurrentVersionExpiration struct {
-	// Specifies the number of days an object is noncurrent before Amazon S3 can
-	// perform the associated action. For information about the noncurrent days
-	// calculations, see How Amazon S3 Calculates When an Object Became Noncurrent
-	// (/AmazonS3/latest/dev/s3-access-control.html) in the Amazon Simple Storage
-	// Service Developer Guide.
-	NoncurrentDays *int64 `type:"integer"`
-
-	metadataNoncurrentVersionExpiration `json:"-" xml:"-"`
+type LifecycleFilter struct {
+	Prefix *string `type:"string"`
+	And    *And    `locationName:"And" type:"structure"`
 }
 
-type metadataNoncurrentVersionExpiration struct {
-	SDKShapeTraits bool `type:"structure"`
+type And struct {
+	Prefix *string `type:"string"`
+	Tag    []*Tag  `locationNameList:"Tag" type:"list" flattened:"true"`
 }
 
-// NoncurrentVersionTransition Container for the transition rule that describes when noncurrent objects
-// transition to the GLACIER storage class. If your bucket is versioning-enabled
-// (or versioning is suspended), you can set this action to request that Amazon
-// S3 transition noncurrent object versions to the GLACIER storage class at
-// a specific period in the object's lifetime.
-type NoncurrentVersionTransition struct {
-	// Specifies the number of days an object is noncurrent before Amazon S3 can
-	// perform the associated action. For information about the noncurrent days
-	// calculations, see How Amazon S3 Calculates When an Object Became Noncurrent
-	// (/AmazonS3/latest/dev/s3-access-control.html) in the Amazon Simple Storage
-	// Service Developer Guide.
-	NoncurrentDays *int64 `type:"integer"`
+type LifecycleExpiration struct {
+	// Indicates at what date the object is to be moved or deleted. Should be in
+	// GMT ISO 8601 Format.
+	Date *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// Indicates the lifetime, in days, of the objects that are subject to the rule.
+	// The value must be a non-zero positive integer.
+	Days *int64 `type:"integer"`
+}
+
+type Transition struct {
+	// Indicates at what date the object is to be moved or deleted. Should be in
+	// GMT ISO 8601 Format.
+	Date *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// Specifies the number of days after the object is last modified or accessed that the lifecycle rule takes effect.
+	// When the value of IsAccessTime in the request is true, this parameter indicates that the lifecycle rule takes
+	// effect based on the last access time of the object. When IsAccessTime is not set in the request or is set to false,
+	// this parameter indicates that the lifecycle rule takes effect based on the last modification time of the object.
+	// This parameter is mutually exclusive with Date.
+	Days *int64 `type:"integer"`
 
 	// The class of storage used to store the object.
 	StorageClass *string `type:"string"`
 
-	metadataNoncurrentVersionTransition `json:"-" xml:"-"`
+	// Specifies whether to use the last access time matching rule.
+	// true: indicates that the last access time of the object is used for matching.
+	// false: indicates that the last modification time of the object is used for matching.
+	IsAccessTime *bool `type:"boolean"`
+
+	// Specifies whether to convert the object to the source storage type when accessed again after the object is
+	// converted to another storage type. This is only valid when IsAccessTime is set to true.
+	// true: Indicates that the object is converted to the source storage type when accessed again.
+	// false: Indicates that the object is still the target storage type when accessed again.
+	ReturnToStdWhenVisit *bool `type:"boolean"`
 }
 
 type AbortIncompleteMultipartUpload struct {
@@ -115,74 +110,48 @@ type AbortIncompleteMultipartUpload struct {
 	Date *string `type:"string"`
 }
 
-type metadataNoncurrentVersionTransition struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type PutBucketLifecycleInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	LifecycleConfiguration *LifecycleConfiguration `locationName:"LifecycleConfiguration" type:"structure"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	AllowSameActionOverlap *bool `location:"header" locationName:"x-amz-allow-same-action-overlap" type:"boolean"`
-
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
-
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
-
-	metadataPutBucketLifecycleInput `json:"-" xml:"-"`
-}
-
-type metadataPutBucketLifecycleInput struct {
-	SDKShapeTraits bool `type:"structure" payload:"LifecycleConfiguration"`
-	AutoFillMD5    bool
-}
-
 type PutBucketLifecycleOutput struct {
-	metadataPutBucketLifecycleOutput `json:"-" xml:"-"`
+	// The HTTP headers of the response.
+	Metadata map[string]*string `location:"headers" type:"map"`
 
-	Metadata map[string]*string `location:"headers"  type:"map"`
-
+	// The HTTP status code of the response.
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
-type metadataPutBucketLifecycleOutput struct {
-	SDKShapeTraits bool `type:"structure"`
+// PutBucketLifecycleRequest generates a request for the PutBucketLifecycle operation.
+func (c *S3) PutBucketLifecycleRequest(input *PutBucketLifecycleInput) (req *aws.Request, output *PutBucketLifecycleOutput) {
+	op := &aws.Operation{
+		Name:       "PutBucketLifecycle",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?lifecycle",
+	}
+
+	if input == nil {
+		input = &PutBucketLifecycleInput{}
+	}
+
+	input.AutoFillMD5 = true
+	req = c.newRequest(op, input, output)
+	output = &PutBucketLifecycleOutput{}
+	req.Data = output
+	return
 }
 
-type DeleteBucketLifecycleInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
-
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
-
-	metadataDeleteBucketLifecycleInput `json:"-" xml:"-"`
+// PutBucketLifecycle Sets lifecycle configuration for your bucket. If a lifecycle configuration
+// exists, it replaces it.
+func (c *S3) PutBucketLifecycle(input *PutBucketLifecycleInput) (*PutBucketLifecycleOutput, error) {
+	req, out := c.PutBucketLifecycleRequest(input)
+	err := req.Send()
+	return out, err
 }
 
-type metadataDeleteBucketLifecycleInput struct {
-	SDKShapeTraits bool `type:"structure"`
+func (c *S3) PutBucketLifecycleWithContext(ctx aws.Context, input *PutBucketLifecycleInput) (*PutBucketLifecycleOutput, error) {
+	req, out := c.PutBucketLifecycleRequest(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
 }
 
-type DeleteBucketLifecycleOutput struct {
-	metadataDeleteBucketLifecycleOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-
-	StatusCode *int64 `location:"statusCode" type:"integer"`
-}
-
-type metadataDeleteBucketLifecycleOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
 type GetBucketLifecycleInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -193,31 +162,6 @@ type GetBucketLifecycleInput struct {
 
 	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
 	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
-
-	metadataGetBucketLifecycleInput `json:"-" xml:"-"`
-}
-
-type metadataGetBucketLifecycleInput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-type metadataLifecycleRule struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-type LifecycleFilter struct {
-	Prefix                  *string `type:"string"`
-	And                     *And    `locationName:"And" type:"structure"`
-	metadataLifecycleFilter `json:"-" xml:"-"`
-}
-type metadataLifecycleFilter struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-type And struct {
-	Prefix      *string `type:"string"`
-	Tag         []*Tag  `locationNameList:"Tag" type:"list" flattened:"true"`
-	metadataAnd `json:"-" xml:"-"`
-}
-type metadataAnd struct {
-	SDKShapeTraits bool `type:"structure"`
 }
 
 type GetBucketLifecycleOutput struct {
@@ -232,38 +176,6 @@ type GetBucketLifecycleOutput struct {
 
 type metadataGetBucketLifecycleOutput struct {
 	SDKShapeTraits bool `type:"structure"`
-}
-
-// DeleteBucketLifecycleRequest generates a request for the DeleteBucketLifecycle operation.
-func (c *S3) DeleteBucketLifecycleRequest(input *DeleteBucketLifecycleInput) (req *aws.Request, output *DeleteBucketLifecycleOutput) {
-	op := &aws.Operation{
-		Name:       "DeleteBucketLifecycle",
-		HTTPMethod: "DELETE",
-		HTTPPath:   "/{Bucket}?lifecycle",
-	}
-
-	if input == nil {
-		input = &DeleteBucketLifecycleInput{}
-	}
-
-	req = c.newRequest(op, input, output)
-	output = &DeleteBucketLifecycleOutput{}
-	req.Data = output
-	return
-}
-
-// DeleteBucketLifecycle Deletes the lifecycle configuration from the bucket.
-func (c *S3) DeleteBucketLifecycle(input *DeleteBucketLifecycleInput) (*DeleteBucketLifecycleOutput, error) {
-	req, out := c.DeleteBucketLifecycleRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-func (c *S3) DeleteBucketLifecycleWithContext(ctx aws.Context, input *DeleteBucketLifecycleInput) (*DeleteBucketLifecycleOutput, error) {
-	req, out := c.DeleteBucketLifecycleRequest(input)
-	req.SetContext(ctx)
-	err := req.Send()
-	return out, err
 }
 
 // GetBucketLifecycleRequest generates a request for the GetBucketLifecycle operation.
@@ -298,35 +210,51 @@ func (c *S3) GetBucketLifecycleWithContext(ctx aws.Context, input *GetBucketLife
 	return out, err
 }
 
-// PutBucketLifecycleRequest generates a request for the PutBucketLifecycle operation.
-func (c *S3) PutBucketLifecycleRequest(input *PutBucketLifecycleInput) (req *aws.Request, output *PutBucketLifecycleOutput) {
+type DeleteBucketLifecycleInput struct {
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+}
+
+type DeleteBucketLifecycleOutput struct {
+	Metadata map[string]*string `location:"headers"  type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
+}
+
+// DeleteBucketLifecycleRequest generates a request for the DeleteBucketLifecycle operation.
+func (c *S3) DeleteBucketLifecycleRequest(input *DeleteBucketLifecycleInput) (req *aws.Request, output *DeleteBucketLifecycleOutput) {
 	op := &aws.Operation{
-		Name:       "PutBucketLifecycle",
-		HTTPMethod: "PUT",
+		Name:       "DeleteBucketLifecycle",
+		HTTPMethod: "DELETE",
 		HTTPPath:   "/{Bucket}?lifecycle",
 	}
 
 	if input == nil {
-		input = &PutBucketLifecycleInput{}
+		input = &DeleteBucketLifecycleInput{}
 	}
 
-	input.AutoFillMD5 = true
 	req = c.newRequest(op, input, output)
-	output = &PutBucketLifecycleOutput{}
+	output = &DeleteBucketLifecycleOutput{}
 	req.Data = output
 	return
 }
 
-// PutBucketLifecycle Sets lifecycle configuration for your bucket. If a lifecycle configuration
-// exists, it replaces it.
-func (c *S3) PutBucketLifecycle(input *PutBucketLifecycleInput) (*PutBucketLifecycleOutput, error) {
-	req, out := c.PutBucketLifecycleRequest(input)
+// DeleteBucketLifecycle Deletes the lifecycle configuration from the bucket.
+func (c *S3) DeleteBucketLifecycle(input *DeleteBucketLifecycleInput) (*DeleteBucketLifecycleOutput, error) {
+	req, out := c.DeleteBucketLifecycleRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-func (c *S3) PutBucketLifecycleWithContext(ctx aws.Context, input *PutBucketLifecycleInput) (*PutBucketLifecycleOutput, error) {
-	req, out := c.PutBucketLifecycleRequest(input)
+func (c *S3) DeleteBucketLifecycleWithContext(ctx aws.Context, input *DeleteBucketLifecycleInput) (*DeleteBucketLifecycleOutput, error) {
+	req, out := c.DeleteBucketLifecycleRequest(input)
 	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
