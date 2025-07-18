@@ -22,6 +22,8 @@ const (
 	HTTPHeaderAmzDataRedundancyType            = "X-Amz-Data-Redundancy-Type"
 	HTTPHeaderAmzZRSSwitchEnable               = "X-Amz-Zrs-Switch-Enable"
 	HTTPHeaderAmzAllowSameActionOverlap        = "X-Amz-Allow-Same-Action-Overlap"
+	HTTPHeaderAmzBucketType                    = "X-Amz-Bucket-Type"
+	HTTPHeaderAmzBucketVisitType               = "X-Amz-Bucket-Visit-Type"
 )
 
 // ACL
@@ -52,6 +54,11 @@ const (
 	BucketTypeIA         string = "IA"
 	BucketTypeDeepIA     string = "DEEP_IA"
 	BucketTypeArchive    string = "ARCHIVE"
+)
+
+const (
+	BucketVisitTypeNormal       string = "NORMAL"
+	BucketVisitTypeFrequentList string = "FREQUENTLIST"
 )
 
 type HTTPMethod string

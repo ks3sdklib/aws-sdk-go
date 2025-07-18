@@ -12,10 +12,11 @@ func (s *Ks3utilCommandSuite) TestBucket(c *C) {
 	// 创建bucket
 	bucketName := commonNamePrefix + randLowStr(10)
 	_, err := client.CreateBucket(&s3.CreateBucketInput{
-		ACL:    aws.String("public-read"),
 		Bucket: aws.String(bucketName),
+		ACL:    aws.String(s3.ACLPublicRead),
 		//ProjectId:  aws.String("1232"), //项目ID
-		BucketType: aws.String(s3.BucketTypeNormal),
+		BucketType:      aws.String(s3.BucketTypeNormal),
+		BucketVisitType: aws.String(s3.BucketVisitTypeNormal),
 	})
 	c.Assert(err, IsNil)
 
@@ -25,21 +26,28 @@ func (s *Ks3utilCommandSuite) TestBucket(c *C) {
 	c.Assert(exist, Equals, true)
 
 	// 获取bucket信息
-	_, err = client.HeadBucket(&s3.HeadBucketInput{
+	headResp, err := client.HeadBucket(&s3.HeadBucketInput{
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
+	c.Assert(*headResp.Metadata[s3.HTTPHeaderAmzBucketType], Equals, s3.BucketTypeNormal)
+	c.Assert(*headResp.Metadata[s3.HTTPHeaderAmzBucketVisitType], Equals, s3.BucketVisitTypeNormal)
+
+	// 获取bucket列表
+	listResp, err := client.ListBuckets(&s3.ListBucketsInput{})
+	c.Assert(err, IsNil)
+	for _, bucketInfo := range listResp.Buckets {
+		if *bucketInfo.Name == bucketName {
+			c.Assert(*bucketInfo.Type, Equals, s3.BucketTypeNormal)
+			c.Assert(*bucketInfo.VisitType, Equals, s3.BucketVisitTypeNormal)
+			c.Assert(*bucketInfo.DataRedundancyType, Equals, s3.DataRedundancyTypeLRS)
+		}
+	}
 
 	// 删除bucket
 	_, err = client.DeleteBucket(&s3.DeleteBucketInput{
 		Bucket: aws.String(bucketName),
 	})
-	c.Assert(err, IsNil)
-}
-
-// TestListBuckets 获取bucket列表
-func (s *Ks3utilCommandSuite) TestListBuckets(c *C) {
-	_, err := client.ListBuckets(&s3.ListBucketsInput{})
 	c.Assert(err, IsNil)
 }
 

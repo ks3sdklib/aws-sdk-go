@@ -1882,6 +1882,9 @@ type Bucket struct {
 
 	Type *string `type:"string"`
 
+	// Bucket visit type, NORMAL is the standard type, FREQUENTLIST is the high-frequency enumeration type.
+	VisitType *string `type:"string"`
+
 	// The bucket data redundancy type.
 	DataRedundancyType *string `type:"string"`
 
@@ -2335,6 +2338,9 @@ type CreateBucketInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
 	BucketType *string `location:"header" locationName:"x-amz-bucket-type" type:"string"`
+
+	// Specify the bucket visit type.
+	BucketVisitType *string `location:"header" locationName:"x-amz-bucket-visit-type" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
