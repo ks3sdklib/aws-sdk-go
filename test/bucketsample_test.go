@@ -387,6 +387,7 @@ func (s *Ks3utilCommandSuite) TestBucketRetention(c *C) {
 	_, err := client.PutBucketRetention(&s3.PutBucketRetentionInput{
 		Bucket: aws.String(retentionBucket),
 		RetentionConfiguration: &s3.BucketRetentionConfiguration{
+			EnableMultipleVersion: aws.Boolean(true),
 			Rule: &s3.RetentionRule{
 				Status: aws.String("Enabled"),
 				Days:   aws.Long(30),
@@ -399,6 +400,7 @@ func (s *Ks3utilCommandSuite) TestBucketRetention(c *C) {
 		Bucket: aws.String(retentionBucket),
 	})
 	c.Assert(err, IsNil)
+	c.Assert(*resp.RetentionConfiguration.EnableMultipleVersion, Equals, true)
 	c.Assert(*resp.RetentionConfiguration.Rule.Status, Equals, "Enabled")
 	c.Assert(*resp.RetentionConfiguration.Rule.Days, Equals, int64(30))
 
