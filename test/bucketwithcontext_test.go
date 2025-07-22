@@ -20,7 +20,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketCORSWithContext(c *C) {
 			AllowedHeader: []string{"*"},
 			AllowedMethod: []string{"GET"},
 			AllowedOrigin: []string{"*"},
-			MaxAgeSeconds: 100},
+			MaxAgeSeconds: aws.Long(100)},
 		},
 	}
 	// put,不通过context取消
@@ -34,7 +34,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketCORSWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(awsutil.StringValue(resp.Rules), Equals, awsutil.StringValue(corsConfiguration.Rules))
+	c.Assert(awsutil.StringValue(resp.CORSConfiguration.Rules), Equals, awsutil.StringValue(corsConfiguration.Rules))
 	// delete
 	_, err = client.DeleteBucketCORSWithContext(context.Background(), &s3.DeleteBucketCORSInput{
 		Bucket: aws.String(bucket),
@@ -53,7 +53,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketCORSWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(awsutil.StringValue(resp.Rules), Equals, awsutil.StringValue([]string{}))
+	c.Assert(awsutil.StringValue(resp.CORSConfiguration.Rules), Equals, awsutil.StringValue([]string{}))
 }
 
 // GET Bucket CORS
@@ -64,7 +64,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketCORSWithContext(c *C) {
 			AllowedHeader: []string{"*"},
 			AllowedMethod: []string{"GET"},
 			AllowedOrigin: []string{"*"},
-			MaxAgeSeconds: 100},
+			MaxAgeSeconds: aws.Long(100)},
 		},
 	}
 	// put
@@ -78,7 +78,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketCORSWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(awsutil.StringValue(resp.Rules), Equals, awsutil.StringValue(corsConfiguration.Rules))
+	c.Assert(awsutil.StringValue(resp.CORSConfiguration.Rules), Equals, awsutil.StringValue(corsConfiguration.Rules))
 	// get，通过context取消
 	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
 	defer cancelFunc()
@@ -101,7 +101,7 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketCORSWithContext(c *C) {
 			AllowedHeader: []string{"*"},
 			AllowedMethod: []string{"GET"},
 			AllowedOrigin: []string{"*"},
-			MaxAgeSeconds: 100},
+			MaxAgeSeconds: aws.Long(100)},
 		},
 	}
 	// put
@@ -115,7 +115,7 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketCORSWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(awsutil.StringValue(resp.Rules), Equals, awsutil.StringValue(corsConfiguration.Rules))
+	c.Assert(awsutil.StringValue(resp.CORSConfiguration.Rules), Equals, awsutil.StringValue(corsConfiguration.Rules))
 	// delete，通过context取消
 	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
 	defer cancelFunc()

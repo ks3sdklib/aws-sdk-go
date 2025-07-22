@@ -180,14 +180,33 @@ func (s *Ks3utilCommandSuite) TestBucketCors(c *C) {
 					"*",
 				},
 				AllowedMethod: []string{
-					"GET",
+					"PUT", "GET", "HEAD", "DELETE",
 				},
 				AllowedOrigin: []string{
 					"*",
 				},
-				MaxAgeSeconds: 100,
+				ExposeHeader: []string{
+					"ETag", "x-kss-meta-test",
+				},
+				MaxAgeSeconds: aws.Long(100),
+			},
+			{
+				AllowedHeader: []string{
+					"x-kss-meta-test1", "x-kss-meta-test2",
+				},
+				AllowedMethod: []string{
+					"GET", "HEAD",
+				},
+				AllowedOrigin: []string{
+					"https://example1.com", "https://example2.com",
+				},
+				ExposeHeader: []string{
+					"ETag", "x-kss-acl",
+				},
+				MaxAgeSeconds: aws.Long(200),
 			},
 		},
+		NonCrossOriginResponseVary: aws.Boolean(true),
 	}
 	// 设置桶的CORS配置
 	_, err := client.PutBucketCORS(&s3.PutBucketCORSInput{
@@ -197,10 +216,22 @@ func (s *Ks3utilCommandSuite) TestBucketCors(c *C) {
 	c.Assert(err, IsNil)
 
 	// 获取桶的CORS配置
-	_, err = client.GetBucketCORS(&s3.GetBucketCORSInput{
+	resp, err := client.GetBucketCORS(&s3.GetBucketCORSInput{
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
+	c.Assert(len(resp.CORSConfiguration.Rules), Equals, 2)
+	c.Assert(resp.CORSConfiguration.Rules[0].AllowedHeader, DeepEquals, []string{"*"})
+	c.Assert(resp.CORSConfiguration.Rules[0].AllowedMethod, DeepEquals, []string{"PUT", "GET", "HEAD", "DELETE"})
+	c.Assert(resp.CORSConfiguration.Rules[0].AllowedOrigin, DeepEquals, []string{"*"})
+	c.Assert(resp.CORSConfiguration.Rules[0].ExposeHeader, DeepEquals, []string{"ETag", "x-kss-meta-test"})
+	c.Assert(*resp.CORSConfiguration.Rules[0].MaxAgeSeconds, Equals, int64(100))
+	c.Assert(resp.CORSConfiguration.Rules[1].AllowedHeader, DeepEquals, []string{"x-kss-meta-test1", "x-kss-meta-test2"})
+	c.Assert(resp.CORSConfiguration.Rules[1].AllowedMethod, DeepEquals, []string{"GET", "HEAD"})
+	c.Assert(resp.CORSConfiguration.Rules[1].AllowedOrigin, DeepEquals, []string{"https://example1.com", "https://example2.com"})
+	c.Assert(resp.CORSConfiguration.Rules[1].ExposeHeader, DeepEquals, []string{"ETag", "x-kss-acl"})
+	c.Assert(*resp.CORSConfiguration.Rules[1].MaxAgeSeconds, Equals, int64(200))
+	c.Assert(*resp.CORSConfiguration.NonCrossOriginResponseVary, Equals, true)
 
 	// 删除桶的CORS配置
 	_, err = client.DeleteBucketCORS(&s3.DeleteBucketCORSInput{

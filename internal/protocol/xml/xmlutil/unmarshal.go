@@ -222,6 +222,9 @@ func parseScalar(r reflect.Value, node *XMLNode, tag reflect.StructTag) error {
 	case *string:
 		r.Set(reflect.ValueOf(&node.Text))
 		return nil
+	case string:
+		r.Set(reflect.ValueOf(node.Text))
+		return nil
 	case []byte:
 		b, err := base64.StdEncoding.DecodeString(node.Text)
 		if err != nil {
