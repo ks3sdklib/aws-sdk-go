@@ -72,6 +72,7 @@ var signQuerys = map[string]bool{
 	"requesterqos":                 true,
 	"encryption":                   true,
 	"accessmonitor":                true,
+	"transferAcceleration":         true,
 }
 
 type signer struct {

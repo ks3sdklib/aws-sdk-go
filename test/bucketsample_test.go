@@ -852,3 +852,21 @@ func (s *Ks3utilCommandSuite) TestBucketEncryption(c *C) {
 	})
 	c.Assert(err, IsNil)
 }
+
+func (s *Ks3utilCommandSuite) TestBucketTransferAcceleration(c *C) {
+	// 设置桶传输加速配置
+	_, err := client.PutBucketTransferAcceleration(&s3.PutBucketTransferAccelerationInput{
+		Bucket: aws.String(bucket),
+		TransferAccelerationConfiguration: &s3.TransferAccelerationConfiguration{
+			Enabled: aws.Boolean(true),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取桶传输加速配置
+	resp, err := client.GetBucketTransferAcceleration(&s3.GetBucketTransferAccelerationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.TransferAccelerationConfiguration.Enabled, Equals, true)
+}
