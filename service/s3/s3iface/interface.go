@@ -93,6 +93,8 @@ type S3API interface {
 
 	GetBucketEncryption(*s3.GetBucketEncryptionInput) (*s3.GetBucketEncryptionOutput, error)
 
+	GetBucketTransferAcceleration(*s3.GetBucketTransferAccelerationInput) (*s3.GetBucketTransferAccelerationOutput, error)
+
 	GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error)
 
 	GetObjectACL(*s3.GetObjectACLInput) (*s3.GetObjectACLOutput, error)
@@ -156,6 +158,8 @@ type S3API interface {
 	PutRequesterQos(*s3.PutRequesterQosInput) (*s3.PutRequesterQosOutput, error)
 
 	PutBucketEncryption(*s3.PutBucketEncryptionInput) (*s3.PutBucketEncryptionOutput, error)
+
+	PutBucketTransferAcceleration(*s3.PutBucketTransferAccelerationInput) (*s3.PutBucketTransferAccelerationOutput, error)
 
 	PutObject(*s3.PutObjectInput) (*s3.PutObjectOutput, error)
 
