@@ -97,6 +97,7 @@ func (c Config) Copy() Config {
 	dst.SignerVersion = c.SignerVersion
 	dst.CrcCheckEnabled = c.CrcCheckEnabled
 	dst.DisableRestProtocolURICleaning = c.DisableRestProtocolURICleaning
+	dst.DisableDnsCache = c.DisableDnsCache
 	return dst
 }
 
