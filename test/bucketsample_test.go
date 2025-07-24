@@ -269,12 +269,13 @@ func (s *Ks3utilCommandSuite) TestBucketMirror(c *C) {
 		AsyncMirrorRule: &s3.AsyncMirrorRule{
 			//一组源站url，数量不超过10个，url必须以http或者https开头，域名部分最多不超过256个字符，path部分最多不超过1024个字符。
 			MirrorUrls: []*string{
-				aws.String("http://abc.om"),
-				aws.String("http://abc.om"),
+				aws.String("https://example1.com"),
+				aws.String("https://example2.com"),
 			},
 			SavingSetting: &s3.SavingSetting{
 				ACL: aws.String("private"),
 			},
+			MirrorType: aws.String("V4"),
 		},
 		//一组同步回源规则，最多可配置20个。该字段与async_mirror_rule必须至少有一个，可同时存在。
 		SyncMirrorRules: []*s3.SyncMirrorRules{
@@ -291,7 +292,7 @@ func (s *Ks3utilCommandSuite) TestBucketMirror(c *C) {
 					},
 				},
 				//源站url,必须以http或者https开头，域名部分最多不超过256个字符，path部分最多不超过1024个字符。
-				MirrorURL: aws.String("http://v-ks-a-i.originalvod.com"),
+				MirrorURL: aws.String("https://v-ks-a-i.originalvod.com"),
 				//ks3请求源站时的配置，可不填。
 				MirrorRequestSetting: &s3.MirrorRequestSetting{
 					//ks3请求源站时是否将客户端请求ks3时的query string透传给源站。
@@ -330,6 +331,7 @@ func (s *Ks3utilCommandSuite) TestBucketMirror(c *C) {
 				SavingSetting: &s3.SavingSetting{
 					ACL: aws.String("private"),
 				},
+				MirrorType: aws.String("V6"),
 			},
 		},
 	}
@@ -347,6 +349,29 @@ func (s *Ks3utilCommandSuite) TestBucketMirror(c *C) {
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*resp.BucketMirror.Version, Equals, "V3")
+	c.Assert(*resp.BucketMirror.UseDefaultRobots, Equals, false)
+	c.Assert(len(resp.BucketMirror.AsyncMirrorRule.MirrorUrls), Equals, 2)
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorUrls[0], Equals, "https://example1.com")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorUrls[1], Equals, "https://example2.com")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.SavingSetting.ACL, Equals, "private")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorType, Equals, "V4")
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MatchCondition.HTTPCodes[0], Equals, "404")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MatchCondition.KeyPrefixes[0], Equals, "abc")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorURL, Equals, "https://v-ks-a-i.originalvod.com")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.PassQueryString, Equals, false)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.Follow3Xx, Equals, false)
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders[0].Key, Equals, "a")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders[0].Value, Equals, "b")
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders), Equals, 2)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders[0].Key, Equals, "c")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders[1].Key, Equals, "d")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassAll, Equals, false)
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassHeaders), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassHeaders[0].Key, Equals, "key")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].SavingSetting.ACL, Equals, "private")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorType, Equals, "V6")
 
 	// 删除桶的镜像回源规则
 	_, err = client.DeleteBucketMirror(&s3.DeleteBucketMirrorInput{
@@ -869,4 +894,45 @@ func (s *Ks3utilCommandSuite) TestBucketTransferAcceleration(c *C) {
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*resp.TransferAccelerationConfiguration.Enabled, Equals, true)
+}
+
+func (s *Ks3utilCommandSuite) TestBucketVpcAccessBlock(c *C) {
+	c.Skip("Skip TestBucketVpcAccessBlock")
+	// 设置阻止VPC访问配置
+	_, err := client.PutVpcAccessBlock(&s3.PutVpcAccessBlockInput{
+		VpcAccessBlockConfiguration: &s3.VpcAccessBlockConfiguration{
+			Rules: []*s3.VpcAccessBlockRule{
+				{
+					RuleID: aws.String("rule-1"),
+					Region: aws.String("cn-beijing-6"),
+					VPC: &s3.VPC{
+						IDs: []string{"vpc-1", "vpc-2"},
+					},
+					BucketAllowAccess: &s3.BucketAllowAccess{
+						Names: []string{"bucket1", "bucket2"},
+					},
+					Status: aws.String(s3.StatusEnabled),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取阻止VPC访问配置
+	resp, err := client.GetVpcAccessBlock(&s3.GetVpcAccessBlockInput{})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.VpcAccessBlockConfiguration.Rules), Equals, 1)
+	c.Assert(*resp.VpcAccessBlockConfiguration.Rules[0].RuleID, Equals, "rule-1")
+	c.Assert(*resp.VpcAccessBlockConfiguration.Rules[0].Region, Equals, "cn-beijing-6")
+	c.Assert(len(resp.VpcAccessBlockConfiguration.Rules[0].VPC.IDs), Equals, 2)
+	c.Assert(resp.VpcAccessBlockConfiguration.Rules[0].VPC.IDs[0], Equals, "vpc-1")
+	c.Assert(resp.VpcAccessBlockConfiguration.Rules[0].VPC.IDs[1], Equals, "vpc-2")
+	c.Assert(len(resp.VpcAccessBlockConfiguration.Rules[0].BucketAllowAccess.Names), Equals, 2)
+	c.Assert(resp.VpcAccessBlockConfiguration.Rules[0].BucketAllowAccess.Names[0], Equals, "bucket1")
+	c.Assert(resp.VpcAccessBlockConfiguration.Rules[0].BucketAllowAccess.Names[1], Equals, "bucket2")
+	c.Assert(*resp.VpcAccessBlockConfiguration.Rules[0].Status, Equals, s3.StatusEnabled)
+
+	// 删除阻止VPC访问配置
+	_, err = client.DeleteVpcAccessBlock(&s3.DeleteVpcAccessBlockInput{})
+	c.Assert(err, IsNil)
 }
