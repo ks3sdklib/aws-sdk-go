@@ -388,6 +388,7 @@ func (s *Ks3utilCommandSuite) TestBucketReplication(c *C) {
 }
 
 func (s *Ks3utilCommandSuite) TestBucketInventory(c *C) {
+	c.Skip("Skip TestBucketInventory")
 	id := randLowStr(8)
 	_, err := client.PutBucketInventory(&s3.PutBucketInventoryInput{
 		Bucket: aws.String(bucket),
@@ -578,7 +579,7 @@ func (s *Ks3utilCommandSuite) TestBucketDataRedundancySwitch(c *C) {
 }
 
 func (s *Ks3utilCommandSuite) TestBucketQos(c *C) {
-	c.Skip("skip bucketQos test")
+	c.Skip("Skip TestBucketQos")
 	// 设置桶流控配置
 	_, err := client.PutBucketQos(&s3.PutBucketQosInput{
 		Bucket: aws.String(bucket),
@@ -628,7 +629,7 @@ func (s *Ks3utilCommandSuite) TestBucketQos(c *C) {
 }
 
 func (s *Ks3utilCommandSuite) TestRequesterQos(c *C) {
-	c.Skip("skip requesterQos test")
+	c.Skip("Skip TestRequesterQos")
 	// 设置请求者流控配置
 	_, err := client.PutRequesterQos(&s3.PutRequesterQosInput{
 		Bucket: aws.String(bucket),

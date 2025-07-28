@@ -66,9 +66,19 @@ func (v *validator) validateStruct(value reflect.Value, path string) {
 		fvalue := value.FieldByName(f.Name)
 
 		notset := false
+		notval := false
 		if f.Tag.Get("required") != "" {
 			switch fvalue.Kind() {
-			case reflect.Ptr, reflect.Slice, reflect.Map:
+			case reflect.Ptr:
+				if fvalue.IsNil() {
+					notset = true
+				} else {
+					elem := fvalue.Elem()
+					if elem.Kind() == reflect.String && elem.Len() == 0 {
+						notval = true
+					}
+				}
+			case reflect.Slice, reflect.Map:
 				if fvalue.IsNil() {
 					notset = true
 				}
@@ -81,6 +91,9 @@ func (v *validator) validateStruct(value reflect.Value, path string) {
 
 		if notset {
 			msg := "missing required parameter: " + path + prefix + f.Name
+			v.errors = append(v.errors, msg)
+		} else if notval {
+			msg := "input member " + path + prefix + f.Name + " must not be empty"
 			v.errors = append(v.errors, msg)
 		} else {
 			v.validateAny(fvalue, path+prefix+f.Name)

@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-var opAppendObject *aws.Operation
-
 type AppendObjectInput struct {
 	// The name of the bucket.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
@@ -87,6 +85,12 @@ type AppendObjectInput struct {
 	// Progress callback function
 	ProgressFn aws.ProgressFunc `location:"function"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataAppendObjectInput `json:"-" xml:"-"`
 }
 
@@ -129,22 +133,17 @@ type metadataAppendObjectOutput struct {
 
 // AppendObjectRequest generates a request for the AppendObject operation.
 func (c *S3) AppendObjectRequest(input *AppendObjectInput) (req *aws.Request, output *AppendObjectOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opAppendObject == nil {
-		opAppendObject = &aws.Operation{
-			Name:       "AppendObject",
-			HTTPMethod: "POST",
-			HTTPPath:   "/{Bucket}/{Key+}?append",
-		}
+	op := &aws.Operation{
+		Name:       "AppendObject",
+		HTTPMethod: "POST",
+		HTTPPath:   "/{Bucket}/{Key+}?append",
 	}
 
 	if input == nil {
 		input = &AppendObjectInput{}
 	}
 
-	req = c.newRequest(opAppendObject, input, output)
+	req = c.newRequest(op, input, output)
 
 	if input.ProgressFn != nil {
 		req.ProgressFn = input.ProgressFn

@@ -30,14 +30,10 @@ var (
 	accessKeySecret         = os.Getenv("KS3_TEST_ACCESS_KEY_SECRET")
 	bucket                  = os.Getenv("KS3_TEST_BUCKET")
 	region                  = os.Getenv("KS3_TEST_REGION")
-	bucketEndpoint          = os.Getenv("KS3_TEST_BUCKET_ENDPOINT")
 	key                     = randLowStr(10)
 	logPath                 = "report/ks3go-sdk-test_" + time.Now().Format("20060102_150405") + ".log"
 	content                 = "abc"
 	client           *s3.S3 = nil
-	out                     = os.Stdout
-	errout                  = os.Stderr
-	sleepTime               = time.Second
 	commonNamePrefix        = "go-sdk-test-"
 	testFileDir             = "go-sdk-test-file/"
 	timeout                 = 1 * time.Microsecond
@@ -46,11 +42,11 @@ var (
 // SetUpSuite 在测试套件启动前执行一次
 func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 	fmt.Printf("set up Ks3utilCommandSuite\n")
-	var cre = credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "") //online
+	var cre = credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "")
 	client = s3.New(&aws.Config{
-		Credentials:      cre,      // 访问凭证
-		Region:           region,   // 填写您的Region
-		Endpoint:         endpoint, // 填写您的Endpoint
+		Credentials:      cre,      // 访问凭证，必填
+		Region:           region,   // 访问的地域，必填
+		Endpoint:         endpoint, // 访问的域名，必填
 		DisableSSL:       false,    // 禁用HTTPS，默认值为false
 		LogLevel:         aws.Off,  // 日志等级，默认关闭日志，可选值：Off, Error, Warn, Info, Debug
 		LogHTTPBody:      false,    // 把HTTP请求body打入日志，默认值为false
@@ -58,9 +54,10 @@ func (s *Ks3utilCommandSuite) SetUpSuite(c *C) {
 		S3ForcePathStyle: false,    // 使用二级域名，默认值为false
 		DomainMode:       false,    // 开启自定义Bucket绑定域名，当开启时S3ForcePathStyle参数不生效，默认值为false
 		SignerVersion:    "V2",     // 签名方式可选值有：V2 OR V4 OR V4_UNSIGNED_PAYLOAD_SIGNER，默认值为V2
-		MaxRetries:       3,        // 请求失败时最大重试次数，值小于0时不重试
+		MaxRetries:       3,        // 请求失败时最大重试次数，默认值为3，值小于0时不重试，如-1表示不重试
 		CrcCheckEnabled:  true,     // 开启CRC64校验，默认值为false
 		HTTPClient:       nil,      // HTTP请求的Client对象，若为空则使用默认值
+		DisableDnsCache:  false,    // 禁用DNS缓存，默认值为false
 	})
 
 	s.SetUpBucketEnv(c)

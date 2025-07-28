@@ -140,7 +140,7 @@ type Downloader struct {
 
 	downloadCheckpoint *DownloadCheckpoint
 
-	CompletedSize atomic.Int64
+	CompletedSize int64
 
 	downloadFileSize int64
 
@@ -421,8 +421,8 @@ func (d *Downloader) setError(err error) {
 
 func (d *Downloader) publishProgress(actualPartSize int64) {
 	if d.downloadFileRequest.ProgressFn != nil {
-		d.CompletedSize.Add(actualPartSize)
-		d.downloadFileRequest.ProgressFn(actualPartSize, d.CompletedSize.Load(), d.downloadFileSize)
+		atomic.AddInt64(&d.CompletedSize, actualPartSize)
+		d.downloadFileRequest.ProgressFn(actualPartSize, d.CompletedSize, d.downloadFileSize)
 	}
 }
 

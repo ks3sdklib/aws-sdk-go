@@ -6,22 +6,17 @@ import (
 
 // GetBucketCORSRequest generates a request for the GetBucketCORS operation.
 func (c *S3) GetBucketCORSRequest(input *GetBucketCORSInput) (req *aws.Request, output *GetBucketCORSOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketCORS == nil {
-		opGetBucketCORS = &aws.Operation{
-			Name:       "GetBucketCors",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?cors",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketCors",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?cors",
 	}
 
 	if input == nil {
 		input = &GetBucketCORSInput{}
 	}
 
-	req = c.newRequest(opGetBucketCORS, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetBucketCORSOutput{}
 	req.Data = output
 	return
@@ -47,26 +42,19 @@ func (c *S3) GetBucketCORSWithContext(ctx aws.Context, input *GetBucketCORSInput
 	return out, err
 }
 
-var opGetBucketCORS *aws.Operation
-
 // DeleteBucketCORSRequest generates a request for the DeleteBucketCORS operation.
 func (c *S3) DeleteBucketCORSRequest(input *DeleteBucketCORSInput) (req *aws.Request, output *DeleteBucketCORSOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteBucketCORS == nil {
-		opDeleteBucketCORS = &aws.Operation{
-			Name:       "DeleteBucketCors",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?cors",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteBucketCors",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}?cors",
 	}
 
 	if input == nil {
 		input = &DeleteBucketCORSInput{}
 	}
 
-	req = c.newRequest(opDeleteBucketCORS, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DeleteBucketCORSOutput{}
 	req.Data = output
 	return
@@ -86,25 +74,21 @@ func (c *S3) DeleteBucketCORSWithContext(ctx aws.Context, input *DeleteBucketCOR
 	return out, err
 }
 
-var opDeleteBucketCORS *aws.Operation
-
 // PutBucketCORSRequest generates a request for the PutBucketCORS operation.
 func (c *S3) PutBucketCORSRequest(input *PutBucketCORSInput) (req *aws.Request, output *PutBucketCORSOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opPutBucketCORS == nil {
-		opPutBucketCORS = &aws.Operation{
-			Name:       "PutBucketCors",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?cors",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketCors",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?cors",
 	}
+
 	if input == nil {
 		input = &PutBucketCORSInput{}
 	}
+
 	//目前默认为true
 	input.AutoFillMD5 = true
-	req = c.newRequest(opPutBucketCORS, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketCORSOutput{}
 	req.Data = output
 	return
@@ -124,14 +108,18 @@ func (c *S3) PutBucketCORSWithContext(ctx aws.Context, input *PutBucketCORSInput
 	return out, err
 }
 
-var opPutBucketCORS *aws.Operation
-
 type PutBucketCORSInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	CORSConfiguration *CORSConfiguration `locationName:"CORSConfiguration" type:"structure" xmlURI:"http://s3.amazonaws.com/doc/2006-03-01/" `
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketCORSInput `json:"-" xml:"-"`
 }
@@ -145,6 +133,12 @@ type GetBucketCORSInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataInput `json:"-" xml:"-"`
 }
@@ -193,6 +187,12 @@ type DeleteBucketCORSInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataDeleteBucketCORSInput `json:"-" xml:"-"`
 }

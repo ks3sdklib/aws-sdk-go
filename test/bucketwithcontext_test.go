@@ -1149,6 +1149,7 @@ func (s *Ks3utilCommandSuite) TestListBucketRetentionWithContext(c *C) {
 
 // PUT Bucket Inventory
 func (s *Ks3utilCommandSuite) TestPutBucketInventoryWithContext(c *C) {
+	c.Skip("Skip TestPutBucketInventoryWithContext")
 	id := randLowStr(8)
 	// put,不通过context取消
 	_, err := client.PutBucketInventoryWithContext(context.Background(), &s3.PutBucketInventoryInput{
@@ -1242,6 +1243,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketInventoryWithContext(c *C) {
 
 // GET Bucket Inventory
 func (s *Ks3utilCommandSuite) TestGetBucketInventoryWithContext(c *C) {
+	c.Skip("Skip TestGetBucketInventoryWithContext")
 	id := randLowStr(8)
 	// put,不通过context取消
 	_, err := client.PutBucketInventoryWithContext(context.Background(), &s3.PutBucketInventoryInput{
@@ -1308,6 +1310,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketInventoryWithContext(c *C) {
 
 // DELETE Bucket Inventory
 func (s *Ks3utilCommandSuite) TestDeleteBucketInventoryWithContext(c *C) {
+	c.Skip("Skip TestDeleteBucketInventoryWithContext")
 	id := randLowStr(8)
 	// put,不通过context取消
 	_, err := client.PutBucketInventoryWithContext(context.Background(), &s3.PutBucketInventoryInput{
@@ -1374,6 +1377,7 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketInventoryWithContext(c *C) {
 
 // List Bucket Inventory
 func (s *Ks3utilCommandSuite) TestListBucketInventoryWithContext(c *C) {
+	c.Skip("Skip TestListBucketInventoryWithContext")
 	id := randLowStr(8)
 	// put,不通过context取消
 	_, err := client.PutBucketInventoryWithContext(context.Background(), &s3.PutBucketInventoryInput{

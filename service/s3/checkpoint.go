@@ -33,6 +33,8 @@ const (
 
 	CheckpointFileSuffixCopier = ".ccp"
 
+	TempFileSuffix = ".temp"
+
 	CheckpointMagic = "B62CAE41-F268-4EC5-839D-FBE475E3FA02"
 )
 

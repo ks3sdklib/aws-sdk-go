@@ -4,14 +4,18 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 )
 
-var opPutRequesterQos *aws.Operation
-
 type PutRequesterQosInput struct {
 	// The name of the bucket.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	// Requester flow control configuration container.
 	RequesterQosConfiguration *RequesterQosConfiguration `locationName:"RequesterQosConfiguration" type:"structure" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutRequesterQosInput `json:"-" xml:"-"`
 }
@@ -47,19 +51,17 @@ type PutRequesterQosOutput struct {
 
 // PutRequesterQosRequest generates a request for the PutRequesterQos operation.
 func (c *S3) PutRequesterQosRequest(input *PutRequesterQosInput) (req *aws.Request, output *PutRequesterQosOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opPutRequesterQos == nil {
-		opPutRequesterQos = &aws.Operation{
-			Name:       "PutRequesterQos",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?requesterqos",
-		}
+	op := &aws.Operation{
+		Name:       "PutRequesterQos",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?requesterqos",
 	}
+
 	if input == nil {
 		input = &PutRequesterQosInput{}
 	}
-	req = c.newRequest(opPutRequesterQos, input, output)
+
+	req = c.newRequest(op, input, output)
 	output = &PutRequesterQosOutput{}
 	req.Data = output
 	return
@@ -79,11 +81,15 @@ func (c *S3) PutRequesterQosWithContext(ctx aws.Context, input *PutRequesterQosI
 	return out, err
 }
 
-var opGetRequesterQos *aws.Operation
-
 type GetRequesterQosInput struct {
 	// The name of the bucket.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type GetRequesterQosOutput struct {
@@ -103,19 +109,17 @@ type metadataGetRequesterQosOutput struct {
 
 // GetRequesterQosRequest generates a request for the GetRequesterQos operation.
 func (c *S3) GetRequesterQosRequest(input *GetRequesterQosInput) (req *aws.Request, output *GetRequesterQosOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opGetRequesterQos == nil {
-		opGetRequesterQos = &aws.Operation{
-			Name:       "GetRequesterQos",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?requesterqos",
-		}
+	op := &aws.Operation{
+		Name:       "GetRequesterQos",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?requesterqos",
 	}
+
 	if input == nil {
 		input = &GetRequesterQosInput{}
 	}
-	req = c.newRequest(opGetRequesterQos, input, output)
+
+	req = c.newRequest(op, input, output)
 	output = &GetRequesterQosOutput{}
 	req.Data = output
 	return
@@ -135,11 +139,15 @@ func (c *S3) GetRequesterQosWithContext(ctx aws.Context, input *GetRequesterQosI
 	return out, err
 }
 
-var opDeleteRequesterQos *aws.Operation
-
 type DeleteRequesterQosInput struct {
 	// The name of the bucket.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type DeleteRequesterQosOutput struct {
@@ -151,19 +159,17 @@ type DeleteRequesterQosOutput struct {
 
 // DeleteRequesterQosRequest generates a request for the DeleteRequesterQos operation.
 func (c *S3) DeleteRequesterQosRequest(input *DeleteRequesterQosInput) (req *aws.Request, output *DeleteRequesterQosOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opDeleteRequesterQos == nil {
-		opDeleteRequesterQos = &aws.Operation{
-			Name:       "DeleteRequesterQos",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?requesterqos",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteRequesterQos",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}?requesterqos",
 	}
+
 	if input == nil {
 		input = &DeleteRequesterQosInput{}
 	}
-	req = c.newRequest(opDeleteRequesterQos, input, output)
+
+	req = c.newRequest(op, input, output)
 	output = &DeleteRequesterQosOutput{}
 	req.Data = output
 	return

@@ -4,15 +4,10 @@ import "github.com/ks3sdklib/aws-sdk-go/aws"
 
 // PutBucketReplicationRequest generates a request for the PutBucketReplication operation.
 func (c *S3) PutBucketReplicationRequest(input *PutBucketReplicationInput) (req *aws.Request, output *PutBucketReplicationOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketReplication == nil {
-		opPutBucketReplication = &aws.Operation{
-			Name:       "PutBucketReplication",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?crr",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketReplication",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?crr",
 	}
 
 	if input == nil {
@@ -20,7 +15,7 @@ func (c *S3) PutBucketReplicationRequest(input *PutBucketReplicationInput) (req 
 	}
 
 	input.AutoFillMD5 = true
-	req = c.newRequest(opPutBucketReplication, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketReplicationOutput{}
 	req.Data = output
 	return
@@ -40,14 +35,18 @@ func (c *S3) PutBucketReplicationWithContext(ctx aws.Context, input *PutBucketRe
 	return out, err
 }
 
-var opPutBucketReplication *aws.Operation
-
 type PutBucketReplicationInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	ReplicationConfiguration *ReplicationConfiguration `locationName:"Replication" type:"structure" required:"true" xmlURI:"http://s3.amazonaws.com/doc/2006-03-01/"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketReplicationInput `json:"-" xml:"-"`
 }
@@ -89,22 +88,17 @@ type ReplicationConfiguration struct {
 
 // GetBucketReplicationRequest generates a request for the GetBucketReplication operation.
 func (c *S3) GetBucketReplicationRequest(input *GetBucketReplicationInput) (req *aws.Request, output *GetBucketReplicationOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketReplication == nil {
-		opGetBucketReplication = &aws.Operation{
-			Name:       "GetBucketReplication",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?crr",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketReplication",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?crr",
 	}
 
 	if input == nil {
 		input = &GetBucketReplicationInput{}
 	}
 
-	req = c.newRequest(opGetBucketReplication, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetBucketReplicationOutput{}
 	req.Data = output
 	return
@@ -124,10 +118,14 @@ func (c *S3) GetBucketReplicationWithContext(ctx aws.Context, input *GetBucketRe
 	return out, err
 }
 
-var opGetBucketReplication *aws.Operation
-
 type GetBucketReplicationInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type GetBucketReplicationOutput struct {
@@ -146,22 +144,17 @@ type metadataGetBucketReplicationOutput struct {
 
 // DeleteBucketReplicationRequest generates a request for the DeleteBucketReplication operation.
 func (c *S3) DeleteBucketReplicationRequest(input *DeleteBucketReplicationInput) (req *aws.Request, output *DeleteBucketReplicationOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteBucketReplication == nil {
-		opDeleteBucketReplication = &aws.Operation{
-			Name:       "DeleteBucketReplication",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?crr",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteBucketReplication",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}?crr",
 	}
 
 	if input == nil {
 		input = &DeleteBucketReplicationInput{}
 	}
 
-	req = c.newRequest(opDeleteBucketReplication, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DeleteBucketReplicationOutput{}
 	req.Data = output
 	return
@@ -181,10 +174,14 @@ func (c *S3) DeleteBucketReplicationWithContext(ctx aws.Context, input *DeleteBu
 	return out, err
 }
 
-var opDeleteBucketReplication *aws.Operation
-
 type DeleteBucketReplicationInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 type DeleteBucketReplicationOutput struct {
 	Metadata map[string]*string `location:"headers"  type:"map"`

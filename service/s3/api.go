@@ -15,31 +15,22 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"sync"
 	"time"
 )
 
-var oprw sync.Mutex
-var TempFileSuffix = ".temp" // Temp file suffix
-
 // AbortMultipartUploadRequest generates a request for the AbortMultipartUpload operation.
 func (c *S3) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) (req *aws.Request, output *AbortMultipartUploadOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opAbortMultipartUpload == nil {
-		opAbortMultipartUpload = &aws.Operation{
-			Name:       "AbortMultipartUpload",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}/{Key+}",
-		}
+	op := &aws.Operation{
+		Name:       "AbortMultipartUpload",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}/{Key+}",
 	}
 
 	if input == nil {
 		input = &AbortMultipartUploadInput{}
 	}
 
-	req = c.newRequest(opAbortMultipartUpload, input, output)
+	req = c.newRequest(op, input, output)
 	output = &AbortMultipartUploadOutput{}
 	req.Data = output
 	return
@@ -63,26 +54,19 @@ func (c *S3) AbortMultipartUploadWithContext(ctx aws.Context, input *AbortMultip
 	return out, err
 }
 
-var opAbortMultipartUpload *aws.Operation
-
 // CompleteMultipartUploadRequest generates a request for the CompleteMultipartUpload operation.
 func (c *S3) CompleteMultipartUploadRequest(input *CompleteMultipartUploadInput) (req *aws.Request, output *CompleteMultipartUploadOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opCompleteMultipartUpload == nil {
-		opCompleteMultipartUpload = &aws.Operation{
-			Name:       "CompleteMultipartUpload",
-			HTTPMethod: "POST",
-			HTTPPath:   "/{Bucket}/{Key+}",
-		}
+	op := &aws.Operation{
+		Name:       "CompleteMultipartUpload",
+		HTTPMethod: "POST",
+		HTTPPath:   "/{Bucket}/{Key+}",
 	}
 
 	if input == nil {
 		input = &CompleteMultipartUploadInput{}
 	}
 
-	req = c.newRequest(opCompleteMultipartUpload, input, output)
+	req = c.newRequest(op, input, output)
 	output = &CompleteMultipartUploadOutput{}
 	req.Data = output
 	return
@@ -102,19 +86,12 @@ func (c *S3) CompleteMultipartUploadWithContext(ctx aws.Context, input *Complete
 	return out, err
 }
 
-var opCompleteMultipartUpload *aws.Operation
-
 // CopyObjectRequest generates a request for the CopyObject operation.
 func (c *S3) CopyObjectRequest(input *CopyObjectInput) (req *aws.Request, output *CopyObjectOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opCopyObject == nil {
-		opCopyObject = &aws.Operation{
-			Name:       "CopyObject",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}/{Key+}",
-		}
+	op := &aws.Operation{
+		Name:       "CopyObject",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}/{Key+}",
 	}
 
 	if input == nil {
@@ -125,7 +102,7 @@ func (c *S3) CopyObjectRequest(input *CopyObjectInput) (req *aws.Request, output
 	if input.CopySource == nil {
 		input.CopySource = aws.String(BuildCopySource(input.SourceBucket, input.SourceKey))
 	}
-	req = c.newRequest(opCopyObject, input, output)
+	req = c.newRequest(op, input, output)
 	output = &CopyObjectOutput{}
 	req.Data = output
 	return
@@ -145,22 +122,17 @@ func (c *S3) CopyObjectWithContext(ctx aws.Context, input *CopyObjectInput) (*Co
 	return out, err
 }
 
-var opCopyObject *aws.Operation
-
 // CreateBucketRequest generates a request for the CreateBucket operation.
 func (c *S3) CreateBucketRequest(input *CreateBucketInput) (req *aws.Request, output *CreateBucketOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	var opCreateBucket *aws.Operation
+	var op *aws.Operation
 	if input.ProjectId == nil {
-		opCreateBucket = &aws.Operation{
+		op = &aws.Operation{
 			Name:       "CreateBucket",
 			HTTPMethod: "PUT",
 			HTTPPath:   "/{Bucket}",
 		}
 	} else {
-		opCreateBucket = &aws.Operation{
+		op = &aws.Operation{
 			Name:       "CreateBucket",
 			HTTPMethod: "PUT",
 			HTTPPath:   "/{Bucket}?projectId=" + *input.ProjectId,
@@ -171,7 +143,7 @@ func (c *S3) CreateBucketRequest(input *CreateBucketInput) (req *aws.Request, ou
 		input = &CreateBucketInput{}
 	}
 
-	req = c.newRequest(opCreateBucket, input, output)
+	req = c.newRequest(op, input, output)
 	output = &CreateBucketOutput{}
 	req.Data = output
 	return
@@ -193,22 +165,17 @@ func (c *S3) CreateBucketWithContext(ctx aws.Context, input *CreateBucketInput) 
 
 // CreateMultipartUploadRequest generates a request for the CreateMultipartUpload operation.
 func (c *S3) CreateMultipartUploadRequest(input *CreateMultipartUploadInput) (req *aws.Request, output *CreateMultipartUploadOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opCreateMultipartUpload == nil {
-		opCreateMultipartUpload = &aws.Operation{
-			Name:       "CreateMultipartUpload",
-			HTTPMethod: "POST",
-			HTTPPath:   "/{Bucket}/{Key+}?uploads",
-		}
+	op := &aws.Operation{
+		Name:       "CreateMultipartUpload",
+		HTTPMethod: "POST",
+		HTTPPath:   "/{Bucket}/{Key+}?uploads",
 	}
 
 	if input == nil {
 		input = &CreateMultipartUploadInput{}
 	}
 
-	req = c.newRequest(opCreateMultipartUpload, input, output)
+	req = c.newRequest(op, input, output)
 	output = &CreateMultipartUploadOutput{}
 	req.Data = output
 	return
@@ -234,26 +201,19 @@ func (c *S3) CreateMultipartUploadWithContext(ctx aws.Context, input *CreateMult
 	return out, err
 }
 
-var opCreateMultipartUpload *aws.Operation
-
 // DeleteBucketRequest generates a request for the DeleteBucket operation.
 func (c *S3) DeleteBucketRequest(input *DeleteBucketInput) (req *aws.Request, output *DeleteBucketOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteBucket == nil {
-		opDeleteBucket = &aws.Operation{
-			Name:       "DeleteBucket",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteBucket",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}",
 	}
 
 	if input == nil {
 		input = &DeleteBucketInput{}
 	}
 
-	req = c.newRequest(opDeleteBucket, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DeleteBucketOutput{}
 	req.Data = output
 	return
@@ -274,26 +234,19 @@ func (c *S3) DeleteBucketWithContext(ctx aws.Context, input *DeleteBucketInput) 
 	return out, err
 }
 
-var opDeleteBucket *aws.Operation
-
 // DeleteBucketPolicyRequest generates a request for the DeleteBucketPolicy operation.
 func (c *S3) DeleteBucketPolicyRequest(input *DeleteBucketPolicyInput) (req *aws.Request, output *DeleteBucketPolicyOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteBucketPolicy == nil {
-		opDeleteBucketPolicy = &aws.Operation{
-			Name:       "DeleteBucketPolicy",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?policy",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteBucketPolicy",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}?policy",
 	}
 
 	if input == nil {
 		input = &DeleteBucketPolicyInput{}
 	}
 
-	req = c.newRequest(opDeleteBucketPolicy, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DeleteBucketPolicyOutput{}
 	req.Data = output
 	return
@@ -313,26 +266,19 @@ func (c *S3) DeleteBucketPolicyWithContext(ctx aws.Context, input *DeleteBucketP
 	return out, err
 }
 
-var opDeleteBucketPolicy *aws.Operation
-
 // DeleteBucketTaggingRequest generates a request for the DeleteBucketTagging operation.
 func (c *S3) DeleteBucketTaggingRequest(input *DeleteBucketTaggingInput) (req *aws.Request, output *DeleteBucketTaggingOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteBucketTagging == nil {
-		opDeleteBucketTagging = &aws.Operation{
-			Name:       "DeleteBucketTagging",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?tagging",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteBucketTagging",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}?tagging",
 	}
 
 	if input == nil {
 		input = &DeleteBucketTaggingInput{}
 	}
 
-	req = c.newRequest(opDeleteBucketTagging, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DeleteBucketTaggingOutput{}
 	req.Data = output
 	return
@@ -352,26 +298,19 @@ func (c *S3) DeleteBucketTaggingWithContext(ctx aws.Context, input *DeleteBucket
 	return out, err
 }
 
-var opDeleteBucketTagging *aws.Operation
-
 // DeleteBucketWebsiteRequest generates a request for the DeleteBucketWebsite operation.
 func (c *S3) DeleteBucketWebsiteRequest(input *DeleteBucketWebsiteInput) (req *aws.Request, output *DeleteBucketWebsiteOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteBucketWebsite == nil {
-		opDeleteBucketWebsite = &aws.Operation{
-			Name:       "DeleteBucketWebsite",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?website",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteBucketWebsite",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}?website",
 	}
 
 	if input == nil {
 		input = &DeleteBucketWebsiteInput{}
 	}
 
-	req = c.newRequest(opDeleteBucketWebsite, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DeleteBucketWebsiteOutput{}
 	req.Data = output
 	return
@@ -391,26 +330,19 @@ func (c *S3) DeleteBucketWebsiteWithContext(ctx aws.Context, input *DeleteBucket
 	return out, err
 }
 
-var opDeleteBucketWebsite *aws.Operation
-
 // DeleteObjectRequest generates a request for the DeleteObject operation.
 func (c *S3) DeleteObjectRequest(input *DeleteObjectInput) (req *aws.Request, output *DeleteObjectOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteObject == nil {
-		opDeleteObject = &aws.Operation{
-			Name:       "DeleteObject",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}/{Key+}",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteObject",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}/{Key+}",
 	}
 
 	if input == nil {
 		input = &DeleteObjectInput{}
 	}
 
-	req = c.newRequest(opDeleteObject, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DeleteObjectOutput{}
 	req.Data = output
 	return
@@ -432,26 +364,19 @@ func (c *S3) DeleteObjectWithContext(ctx aws.Context, input *DeleteObjectInput) 
 	return out, err
 }
 
-var opDeleteObject *aws.Operation
-
 // DeleteObjectsRequest generates a request for the DeleteObjects operation.
 func (c *S3) DeleteObjectsRequest(input *DeleteObjectsInput) (req *aws.Request, output *DeleteObjectsOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteObjects == nil {
-		opDeleteObjects = &aws.Operation{
-			Name:       "DeleteObjects",
-			HTTPMethod: "POST",
-			HTTPPath:   "/{Bucket}?delete",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteObjects",
+		HTTPMethod: "POST",
+		HTTPPath:   "/{Bucket}?delete",
 	}
 
 	if input == nil {
 		input = &DeleteObjectsInput{}
 	}
 
-	req = c.newRequest(opDeleteObjects, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DeleteObjectsOutput{}
 	req.Data = output
 	return
@@ -554,26 +479,19 @@ func (c *S3) TryDeleteBucketPrefixWithContext(ctx aws.Context, input *DeleteBuck
 	return output, err
 }
 
-var opDeleteObjects *aws.Operation
-
 // GetBucketACLRequest generates a request for the GetBucketACL operation.
 func (c *S3) GetBucketACLRequest(input *GetBucketACLInput) (req *aws.Request, output *GetBucketACLOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketACL == nil {
-		opGetBucketACL = &aws.Operation{
-			Name:       "GetBucketAcl",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?acl",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketAcl",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?acl",
 	}
 
 	if input == nil {
 		input = &GetBucketACLInput{}
 	}
 
-	req = c.newRequest(opGetBucketACL, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetBucketACLOutput{}
 	req.Data = output
 	return
@@ -593,26 +511,19 @@ func (c *S3) GetBucketACLWithContext(ctx aws.Context, input *GetBucketACLInput) 
 	return out, err
 }
 
-var opGetBucketACL *aws.Operation
-
 // GetBucketLocationRequest generates a request for the GetBucketLocation operation.
 func (c *S3) GetBucketLocationRequest(input *GetBucketLocationInput) (req *aws.Request, output *GetBucketLocationOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketLocation == nil {
-		opGetBucketLocation = &aws.Operation{
-			Name:       "GetBucketLocation",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?location",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketLocation",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?location",
 	}
 
 	if input == nil {
 		input = &GetBucketLocationInput{}
 	}
 
-	req = c.newRequest(opGetBucketLocation, input, output)
+	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.PushFront(buildGetBucketLocation)
 	output = &GetBucketLocationOutput{}
 	req.Data = output
@@ -633,26 +544,19 @@ func (c *S3) GetBucketLocationWithContext(ctx aws.Context, input *GetBucketLocat
 	return out, err
 }
 
-var opGetBucketLocation *aws.Operation
-
 // GetBucketLoggingRequest generates a request for the GetBucketLogging operation.
 func (c *S3) GetBucketLoggingRequest(input *GetBucketLoggingInput) (req *aws.Request, output *GetBucketLoggingOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketLogging == nil {
-		opGetBucketLogging = &aws.Operation{
-			Name:       "GetBucketLogging",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?logging",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketLogging",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?logging",
 	}
 
 	if input == nil {
 		input = &GetBucketLoggingInput{}
 	}
 
-	req = c.newRequest(opGetBucketLogging, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetBucketLoggingOutput{}
 	req.Data = output
 	return
@@ -673,26 +577,19 @@ func (c *S3) GetBucketLoggingWithContext(ctx aws.Context, input *GetBucketLoggin
 	return out, err
 }
 
-var opGetBucketLogging *aws.Operation
-
 // GetBucketNotificationRequest generates a request for the GetBucketNotification operation.
 func (c *S3) GetBucketNotificationRequest(input *GetBucketNotificationConfigurationRequest) (req *aws.Request, output *NotificationConfigurationDeprecated) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketNotification == nil {
-		opGetBucketNotification = &aws.Operation{
-			Name:       "GetBucketNotification",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?notification",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketNotification",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?notification",
 	}
 
 	if input == nil {
 		input = &GetBucketNotificationConfigurationRequest{}
 	}
 
-	req = c.newRequest(opGetBucketNotification, input, output)
+	req = c.newRequest(op, input, output)
 	output = &NotificationConfigurationDeprecated{}
 	req.Data = output
 	return
@@ -712,26 +609,19 @@ func (c *S3) GetBucketNotificationWithContext(ctx aws.Context, input *GetBucketN
 	return out, err
 }
 
-var opGetBucketNotification *aws.Operation
-
 // GetBucketNotificationConfigurationRequest generates a request for the GetBucketNotificationConfiguration operation.
 func (c *S3) GetBucketNotificationConfigurationRequest(input *GetBucketNotificationConfigurationRequest) (req *aws.Request, output *NotificationConfiguration) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketNotificationConfiguration == nil {
-		opGetBucketNotificationConfiguration = &aws.Operation{
-			Name:       "GetBucketNotificationConfiguration",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?notification",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketNotificationConfiguration",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?notification",
 	}
 
 	if input == nil {
 		input = &GetBucketNotificationConfigurationRequest{}
 	}
 
-	req = c.newRequest(opGetBucketNotificationConfiguration, input, output)
+	req = c.newRequest(op, input, output)
 	output = &NotificationConfiguration{}
 	req.Data = output
 	return
@@ -751,26 +641,19 @@ func (c *S3) GetBucketNotificationConfigurationWithContext(ctx aws.Context, inpu
 	return out, err
 }
 
-var opGetBucketNotificationConfiguration *aws.Operation
-
 // GetBucketPolicyRequest generates a request for the GetBucketPolicy operation.
 func (c *S3) GetBucketPolicyRequest(input *GetBucketPolicyInput) (req *aws.Request, output *GetBucketPolicyOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketPolicy == nil {
-		opGetBucketPolicy = &aws.Operation{
-			Name:       "GetBucketPolicy",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?policy",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketPolicy",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?policy",
 	}
 
 	if input == nil {
 		input = &GetBucketPolicyInput{}
 	}
 
-	req = c.newRequest(opGetBucketPolicy, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetBucketPolicyOutput{}
 	req.Data = output
 	return
@@ -790,26 +673,19 @@ func (c *S3) GetBucketPolicyWithContext(ctx aws.Context, input *GetBucketPolicyI
 	return out, err
 }
 
-var opGetBucketPolicy *aws.Operation
-
 // GetBucketRequestPaymentRequest generates a request for the GetBucketRequestPayment operation.
 func (c *S3) GetBucketRequestPaymentRequest(input *GetBucketRequestPaymentInput) (req *aws.Request, output *GetBucketRequestPaymentOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketRequestPayment == nil {
-		opGetBucketRequestPayment = &aws.Operation{
-			Name:       "GetBucketRequestPayment",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?requestPayment",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketRequestPayment",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?requestPayment",
 	}
 
 	if input == nil {
 		input = &GetBucketRequestPaymentInput{}
 	}
 
-	req = c.newRequest(opGetBucketRequestPayment, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetBucketRequestPaymentOutput{}
 	req.Data = output
 	return
@@ -829,26 +705,19 @@ func (c *S3) GetBucketRequestPaymentWithContext(ctx aws.Context, input *GetBucke
 	return out, err
 }
 
-var opGetBucketRequestPayment *aws.Operation
-
 // GetBucketTaggingRequest generates a request for the GetBucketTagging operation.
 func (c *S3) GetBucketTaggingRequest(input *GetBucketTaggingInput) (req *aws.Request, output *GetBucketTaggingOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketTagging == nil {
-		opGetBucketTagging = &aws.Operation{
-			Name:       "GetBucketTagging",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?tagging",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketTagging",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?tagging",
 	}
 
 	if input == nil {
 		input = &GetBucketTaggingInput{}
 	}
 
-	req = c.newRequest(opGetBucketTagging, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetBucketTaggingOutput{}
 	req.Data = output
 	return
@@ -868,26 +737,19 @@ func (c *S3) GetBucketTaggingWithContext(ctx aws.Context, input *GetBucketTaggin
 	return out, err
 }
 
-var opGetBucketTagging *aws.Operation
-
 // GetBucketVersioningRequest generates a request for the GetBucketVersioning operation.
 func (c *S3) GetBucketVersioningRequest(input *GetBucketVersioningInput) (req *aws.Request, output *GetBucketVersioningOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketVersioning == nil {
-		opGetBucketVersioning = &aws.Operation{
-			Name:       "GetBucketVersioning",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?versioning",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketVersioning",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?versioning",
 	}
 
 	if input == nil {
 		input = &GetBucketVersioningInput{}
 	}
 
-	req = c.newRequest(opGetBucketVersioning, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetBucketVersioningOutput{}
 	req.Data = output
 	return
@@ -907,26 +769,19 @@ func (c *S3) GetBucketVersioningWithContext(ctx aws.Context, input *GetBucketVer
 	return out, err
 }
 
-var opGetBucketVersioning *aws.Operation
-
 // GetBucketWebsiteRequest generates a request for the GetBucketWebsite operation.
 func (c *S3) GetBucketWebsiteRequest(input *GetBucketWebsiteInput) (req *aws.Request, output *GetBucketWebsiteOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketWebsite == nil {
-		opGetBucketWebsite = &aws.Operation{
-			Name:       "GetBucketWebsite",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?website",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketWebsite",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?website",
 	}
 
 	if input == nil {
 		input = &GetBucketWebsiteInput{}
 	}
 
-	req = c.newRequest(opGetBucketWebsite, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetBucketWebsiteOutput{}
 	req.Data = output
 	return
@@ -946,26 +801,19 @@ func (c *S3) GetBucketWebsiteWithContext(ctx aws.Context, input *GetBucketWebsit
 	return out, err
 }
 
-var opGetBucketWebsite *aws.Operation
-
 // GetObjectRequest generates a request for the GetObject operation.
 func (c *S3) GetObjectRequest(input *GetObjectInput) (req *aws.Request, output *GetObjectOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetObject == nil {
-		opGetObject = &aws.Operation{
-			Name:       "GetObject",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}/{Key+}",
-		}
+	op := &aws.Operation{
+		Name:       "GetObject",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}/{Key+}",
 	}
 
 	if input == nil {
 		input = &GetObjectInput{}
 	}
 
-	req = c.newRequest(opGetObject, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetObjectOutput{}
 	req.Data = output
 	return
@@ -1041,26 +889,19 @@ func (c *S3) SaveObjectToFile(filePath string, input *GetObjectInput, res *GetOb
 	return os.Rename(tempFilePath, filePath)
 }
 
-var opGetObject *aws.Operation
-
 // GetObjectACLRequest generates a request for the GetObjectACL operation.
 func (c *S3) GetObjectACLRequest(input *GetObjectACLInput) (req *aws.Request, output *GetObjectACLOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetObjectACL == nil {
-		opGetObjectACL = &aws.Operation{
-			Name:       "GetObjectAcl",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}/{Key+}?acl",
-		}
+	op := &aws.Operation{
+		Name:       "GetObjectAcl",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}/{Key+}?acl",
 	}
 
 	if input == nil {
 		input = &GetObjectACLInput{}
 	}
 
-	req = c.newRequest(opGetObjectACL, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetObjectACLOutput{}
 	req.Data = output
 	return
@@ -1080,26 +921,19 @@ func (c *S3) GetObjectACLWithContext(ctx aws.Context, input *GetObjectACLInput) 
 	return out, err
 }
 
-var opGetObjectACL *aws.Operation
-
 // GetObjectTorrentRequest generates a request for the GetObjectTorrent operation.
 func (c *S3) GetObjectTorrentRequest(input *GetObjectTorrentInput) (req *aws.Request, output *GetObjectTorrentOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetObjectTorrent == nil {
-		opGetObjectTorrent = &aws.Operation{
-			Name:       "GetObjectTorrent",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}/{Key+}?torrent",
-		}
+	op := &aws.Operation{
+		Name:       "GetObjectTorrent",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}/{Key+}?torrent",
 	}
 
 	if input == nil {
 		input = &GetObjectTorrentInput{}
 	}
 
-	req = c.newRequest(opGetObjectTorrent, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetObjectTorrentOutput{}
 	req.Data = output
 	return
@@ -1119,26 +953,19 @@ func (c *S3) GetObjectTorrentWithContext(ctx aws.Context, input *GetObjectTorren
 	return out, err
 }
 
-var opGetObjectTorrent *aws.Operation
-
 // HeadBucketRequest generates a request for the HeadBucket operation.
 func (c *S3) HeadBucketRequest(input *HeadBucketInput) (req *aws.Request, output *HeadBucketOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opHeadBucket == nil {
-		opHeadBucket = &aws.Operation{
-			Name:       "HeadBucket",
-			HTTPMethod: "HEAD",
-			HTTPPath:   "/{Bucket}",
-		}
+	op := &aws.Operation{
+		Name:       "HeadBucket",
+		HTTPMethod: "HEAD",
+		HTTPPath:   "/{Bucket}",
 	}
 
 	if input == nil {
 		input = &HeadBucketInput{}
 	}
 
-	req = c.newRequest(opHeadBucket, input, output)
+	req = c.newRequest(op, input, output)
 	output = &HeadBucketOutput{}
 	req.Data = output
 	return
@@ -1185,26 +1012,19 @@ func (c *S3) HeadBucketExistWithContext(ctx aws.Context, bucket string) (bool, e
 	return false, err
 }
 
-var opHeadBucket *aws.Operation
-
 // HeadObjectRequest generates a request for the HeadObject operation.
 func (c *S3) HeadObjectRequest(input *HeadObjectInput) (req *aws.Request, output *HeadObjectOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opHeadObject == nil {
-		opHeadObject = &aws.Operation{
-			Name:       "HeadObject",
-			HTTPMethod: "HEAD",
-			HTTPPath:   "/{Bucket}/{Key+}",
-		}
+	op := &aws.Operation{
+		Name:       "HeadObject",
+		HTTPMethod: "HEAD",
+		HTTPPath:   "/{Bucket}/{Key+}",
 	}
 
 	if input == nil {
 		input = &HeadObjectInput{}
 	}
 
-	req = c.newRequest(opHeadObject, input, output)
+	req = c.newRequest(op, input, output)
 	output = &HeadObjectOutput{}
 	req.Data = output
 	return
@@ -1226,26 +1046,19 @@ func (c *S3) HeadObjectWithContext(ctx aws.Context, input *HeadObjectInput) (*He
 	return out, err
 }
 
-var opHeadObject *aws.Operation
-
 // ListBucketsRequest generates a request for the ListBuckets operation.
 func (c *S3) ListBucketsRequest(input *ListBucketsInput) (req *aws.Request, output *ListBucketsOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opListBuckets == nil {
-		opListBuckets = &aws.Operation{
-			Name:       "ListBuckets",
-			HTTPMethod: "GET",
-			HTTPPath:   "/",
-		}
+	op := &aws.Operation{
+		Name:       "ListBuckets",
+		HTTPMethod: "GET",
+		HTTPPath:   "/",
 	}
 
 	if input == nil {
 		input = &ListBucketsInput{}
 	}
 
-	req = c.newRequest(opListBuckets, input, output)
+	req = c.newRequest(op, input, output)
 	output = &ListBucketsOutput{}
 	req.Data = output
 	return
@@ -1265,32 +1078,25 @@ func (c *S3) ListBucketsWithContext(ctx aws.Context, input *ListBucketsInput) (*
 	return out, err
 }
 
-var opListBuckets *aws.Operation
-
 // ListMultipartUploadsRequest generates a request for the ListMultipartUploads operation.
 func (c *S3) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) (req *aws.Request, output *ListMultipartUploadsOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opListMultipartUploads == nil {
-		opListMultipartUploads = &aws.Operation{
-			Name:       "ListMultipartUploads",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?uploads",
-			Paginator: &aws.Paginator{
-				InputTokens:     []string{"KeyMarker", "UploadIdMarker"},
-				OutputTokens:    []string{"NextKeyMarker", "NextUploadIdMarker"},
-				LimitToken:      "MaxUploads",
-				TruncationToken: "IsTruncated",
-			},
-		}
+	op := &aws.Operation{
+		Name:       "ListMultipartUploads",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?uploads",
+		Paginator: &aws.Paginator{
+			InputTokens:     []string{"KeyMarker", "UploadIdMarker"},
+			OutputTokens:    []string{"NextKeyMarker", "NextUploadIdMarker"},
+			LimitToken:      "MaxUploads",
+			TruncationToken: "IsTruncated",
+		},
 	}
 
 	if input == nil {
 		input = &ListMultipartUploadsInput{}
 	}
 
-	req = c.newRequest(opListMultipartUploads, input, output)
+	req = c.newRequest(op, input, output)
 	output = &ListMultipartUploadsOutput{}
 	req.Data = output
 	return
@@ -1317,32 +1123,25 @@ func (c *S3) ListMultipartUploadsPages(input *ListMultipartUploadsInput, fn func
 	})
 }
 
-var opListMultipartUploads *aws.Operation
-
 // ListObjectVersionsRequest generates a request for the ListObjectVersions operation.
 func (c *S3) ListObjectVersionsRequest(input *ListObjectVersionsInput) (req *aws.Request, output *ListObjectVersionsOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opListObjectVersions == nil {
-		opListObjectVersions = &aws.Operation{
-			Name:       "ListObjectVersions",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?versions",
-			Paginator: &aws.Paginator{
-				InputTokens:     []string{"KeyMarker", "VersionIdMarker"},
-				OutputTokens:    []string{"NextKeyMarker", "NextVersionIdMarker"},
-				LimitToken:      "MaxKeys",
-				TruncationToken: "IsTruncated",
-			},
-		}
+	op := &aws.Operation{
+		Name:       "ListObjectVersions",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?versions",
+		Paginator: &aws.Paginator{
+			InputTokens:     []string{"KeyMarker", "VersionIdMarker"},
+			OutputTokens:    []string{"NextKeyMarker", "NextVersionIdMarker"},
+			LimitToken:      "MaxKeys",
+			TruncationToken: "IsTruncated",
+		},
 	}
 
 	if input == nil {
 		input = &ListObjectVersionsInput{}
 	}
 
-	req = c.newRequest(opListObjectVersions, input, output)
+	req = c.newRequest(op, input, output)
 	output = &ListObjectVersionsOutput{}
 	req.Data = output
 	return
@@ -1369,32 +1168,25 @@ func (c *S3) ListObjectVersionsPages(input *ListObjectVersionsInput, fn func(p *
 	})
 }
 
-var opListObjectVersions *aws.Operation
-
 // ListObjectsRequest generates a request for the ListObjects operation.
 func (c *S3) ListObjectsRequest(input *ListObjectsInput) (req *aws.Request, output *ListObjectsOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opListObjects == nil {
-		opListObjects = &aws.Operation{
-			Name:       "ListObjects",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}",
-			Paginator: &aws.Paginator{
-				InputTokens:     []string{"Marker"},
-				OutputTokens:    []string{"NextMarker || Contents[-1].Key"},
-				LimitToken:      "MaxKeys",
-				TruncationToken: "IsTruncated",
-			},
-		}
+	op := &aws.Operation{
+		Name:       "ListObjects",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}",
+		Paginator: &aws.Paginator{
+			InputTokens:     []string{"Marker"},
+			OutputTokens:    []string{"NextMarker || Contents[-1].Key"},
+			LimitToken:      "MaxKeys",
+			TruncationToken: "IsTruncated",
+		},
 	}
 
 	if input == nil {
 		input = &ListObjectsInput{}
 	}
 
-	req = c.newRequest(opListObjects, input, output)
+	req = c.newRequest(op, input, output)
 	output = &ListObjectsOutput{}
 	req.Data = output
 	return
@@ -1423,32 +1215,25 @@ func (c *S3) ListObjectsPages(input *ListObjectsInput, fn func(p *ListObjectsOut
 	})
 }
 
-var opListObjects *aws.Operation
-
 // ListPartsRequest generates a request for the ListParts operation.
 func (c *S3) ListPartsRequest(input *ListPartsInput) (req *aws.Request, output *ListPartsOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opListParts == nil {
-		opListParts = &aws.Operation{
-			Name:       "ListParts",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}/{Key+}",
-			Paginator: &aws.Paginator{
-				InputTokens:     []string{"PartNumberMarker"},
-				OutputTokens:    []string{"NextPartNumberMarker"},
-				LimitToken:      "MaxParts",
-				TruncationToken: "IsTruncated",
-			},
-		}
+	op := &aws.Operation{
+		Name:       "ListParts",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}/{Key+}",
+		Paginator: &aws.Paginator{
+			InputTokens:     []string{"PartNumberMarker"},
+			OutputTokens:    []string{"NextPartNumberMarker"},
+			LimitToken:      "MaxParts",
+			TruncationToken: "IsTruncated",
+		},
 	}
 
 	if input == nil {
 		input = &ListPartsInput{}
 	}
 
-	req = c.newRequest(opListParts, input, output)
+	req = c.newRequest(op, input, output)
 	output = &ListPartsOutput{}
 	req.Data = output
 	return
@@ -1475,26 +1260,19 @@ func (c *S3) ListPartsPages(input *ListPartsInput, fn func(p *ListPartsOutput, l
 	})
 }
 
-var opListParts *aws.Operation
-
 // PutBucketACLRequest generates a request for the PutBucketACL operation.
 func (c *S3) PutBucketACLRequest(input *PutBucketACLInput) (req *aws.Request, output *PutBucketACLOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketACL == nil {
-		opPutBucketACL = &aws.Operation{
-			Name:       "PutBucketAcl",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?acl",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketAcl",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?acl",
 	}
 
 	if input == nil {
 		input = &PutBucketACLInput{}
 	}
 
-	req = c.newRequest(opPutBucketACL, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketACLOutput{}
 	req.Data = output
 	return
@@ -1514,26 +1292,19 @@ func (c *S3) PutBucketACLWithContext(ctx aws.Context, input *PutBucketACLInput) 
 	return out, err
 }
 
-var opPutBucketACL *aws.Operation
-
 // PutBucketLoggingRequest generates a request for the PutBucketLogging operation.
 func (c *S3) PutBucketLoggingRequest(input *PutBucketLoggingInput) (req *aws.Request, output *PutBucketLoggingOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketLogging == nil {
-		opPutBucketLogging = &aws.Operation{
-			Name:       "PutBucketLogging",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?logging",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketLogging",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?logging",
 	}
 
 	if input == nil {
 		input = &PutBucketLoggingInput{}
 	}
 
-	req = c.newRequest(opPutBucketLogging, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketLoggingOutput{}
 	req.Data = output
 	return
@@ -1555,26 +1326,19 @@ func (c *S3) PutBucketLoggingWithContext(ctx aws.Context, input *PutBucketLoggin
 	return out, err
 }
 
-var opPutBucketLogging *aws.Operation
-
 // PutBucketNotificationRequest generates a request for the PutBucketNotification operation.
 func (c *S3) PutBucketNotificationRequest(input *PutBucketNotificationInput) (req *aws.Request, output *PutBucketNotificationOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketNotification == nil {
-		opPutBucketNotification = &aws.Operation{
-			Name:       "PutBucketNotification",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?notification",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketNotification",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?notification",
 	}
 
 	if input == nil {
 		input = &PutBucketNotificationInput{}
 	}
 
-	req = c.newRequest(opPutBucketNotification, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketNotificationOutput{}
 	req.Data = output
 	return
@@ -1594,26 +1358,19 @@ func (c *S3) PutBucketNotificationWithContext(ctx aws.Context, input *PutBucketN
 	return out, err
 }
 
-var opPutBucketNotification *aws.Operation
-
 // PutBucketNotificationConfigurationRequest generates a request for the PutBucketNotificationConfiguration operation.
 func (c *S3) PutBucketNotificationConfigurationRequest(input *PutBucketNotificationConfigurationInput) (req *aws.Request, output *PutBucketNotificationConfigurationOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketNotificationConfiguration == nil {
-		opPutBucketNotificationConfiguration = &aws.Operation{
-			Name:       "PutBucketNotificationConfiguration",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?notification",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketNotificationConfiguration",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?notification",
 	}
 
 	if input == nil {
 		input = &PutBucketNotificationConfigurationInput{}
 	}
 
-	req = c.newRequest(opPutBucketNotificationConfiguration, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketNotificationConfigurationOutput{}
 	req.Data = output
 	return
@@ -1633,26 +1390,19 @@ func (c *S3) PutBucketNotificationConfigurationWithContext(ctx aws.Context, inpu
 	return out, err
 }
 
-var opPutBucketNotificationConfiguration *aws.Operation
-
 // PutBucketPolicyRequest generates a request for the PutBucketPolicy operation.
 func (c *S3) PutBucketPolicyRequest(input *PutBucketPolicyInput) (req *aws.Request, output *PutBucketPolicyOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketPolicy == nil {
-		opPutBucketPolicy = &aws.Operation{
-			Name:       "PutBucketPolicy",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?policy",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketPolicy",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?policy",
 	}
 
 	if input == nil {
 		input = &PutBucketPolicyInput{}
 	}
 
-	req = c.newRequest(opPutBucketPolicy, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketPolicyOutput{}
 	req.Data = output
 	return
@@ -1673,26 +1423,19 @@ func (c *S3) PutBucketPolicyWithContext(ctx aws.Context, input *PutBucketPolicyI
 	return out, err
 }
 
-var opPutBucketPolicy *aws.Operation
-
 // PutBucketRequestPaymentRequest generates a request for the PutBucketRequestPayment operation.
 func (c *S3) PutBucketRequestPaymentRequest(input *PutBucketRequestPaymentInput) (req *aws.Request, output *PutBucketRequestPaymentOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketRequestPayment == nil {
-		opPutBucketRequestPayment = &aws.Operation{
-			Name:       "PutBucketRequestPayment",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?requestPayment",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketRequestPayment",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?requestPayment",
 	}
 
 	if input == nil {
 		input = &PutBucketRequestPaymentInput{}
 	}
 
-	req = c.newRequest(opPutBucketRequestPayment, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketRequestPaymentOutput{}
 	req.Data = output
 	return
@@ -1715,26 +1458,19 @@ func (c *S3) PutBucketRequestPaymentWithContext(ctx aws.Context, input *PutBucke
 	return out, err
 }
 
-var opPutBucketRequestPayment *aws.Operation
-
 // PutBucketTaggingRequest generates a request for the PutBucketTagging operation.
 func (c *S3) PutBucketTaggingRequest(input *PutBucketTaggingInput) (req *aws.Request, output *PutBucketTaggingOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketTagging == nil {
-		opPutBucketTagging = &aws.Operation{
-			Name:       "PutBucketTagging",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?tagging",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketTagging",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?tagging",
 	}
 
 	if input == nil {
 		input = &PutBucketTaggingInput{}
 	}
 
-	req = c.newRequest(opPutBucketTagging, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketTaggingOutput{}
 	req.Data = output
 	return
@@ -1754,26 +1490,19 @@ func (c *S3) PutBucketTaggingWithContext(ctx aws.Context, input *PutBucketTaggin
 	return out, err
 }
 
-var opPutBucketTagging *aws.Operation
-
 // PutBucketVersioningRequest generates a request for the PutBucketVersioning operation.
 func (c *S3) PutBucketVersioningRequest(input *PutBucketVersioningInput) (req *aws.Request, output *PutBucketVersioningOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketVersioning == nil {
-		opPutBucketVersioning = &aws.Operation{
-			Name:       "PutBucketVersioning",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?versioning",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketVersioning",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?versioning",
 	}
 
 	if input == nil {
 		input = &PutBucketVersioningInput{}
 	}
 
-	req = c.newRequest(opPutBucketVersioning, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketVersioningOutput{}
 	req.Data = output
 	return
@@ -1794,26 +1523,19 @@ func (c *S3) PutBucketVersioningWithContext(ctx aws.Context, input *PutBucketVer
 	return out, err
 }
 
-var opPutBucketVersioning *aws.Operation
-
 // PutBucketWebsiteRequest generates a request for the PutBucketWebsite operation.
 func (c *S3) PutBucketWebsiteRequest(input *PutBucketWebsiteInput) (req *aws.Request, output *PutBucketWebsiteOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketWebsite == nil {
-		opPutBucketWebsite = &aws.Operation{
-			Name:       "PutBucketWebsite",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?website",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketWebsite",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?website",
 	}
 
 	if input == nil {
 		input = &PutBucketWebsiteInput{}
 	}
 
-	req = c.newRequest(opPutBucketWebsite, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketWebsiteOutput{}
 	req.Data = output
 	return
@@ -1864,9 +1586,17 @@ type GeneratePresignedUrlInput struct {
 	// Sets the Expires header of the response.
 	ResponseExpires *time.Time `location:"querystring" locationName:"response-expires" type:"timestamp" timestampFormat:"iso8601"`
 
-	Headers map[string]*string `location:"headers" type:"map"`
+	// Deprecated, use ExtendHeaders instead.
+	Headers map[string]*string `location:"extendHeaders" type:"map"`
 
-	Parameters map[string]*string `location:"parameters" type:"map"`
+	// Deprecated, use ExtendQueryParams instead.
+	Parameters map[string]*string `location:"extendQueryParams" type:"map"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGeneratePresignedUrlInput `json:"-" xml:"-"`
 }
@@ -1888,26 +1618,19 @@ func (c *S3) PutBucketWebsiteWithContext(ctx aws.Context, input *PutBucketWebsit
 	return out, err
 }
 
-var opPutBucketWebsite *aws.Operation
-
 // PutObjectRequest generates a request for the PutObject operation.
 func (c *S3) PutObjectRequest(input *PutObjectInput) (req *aws.Request, output *PutObjectOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutObject == nil {
-		opPutObject = &aws.Operation{
-			Name:       "PutObject",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}/{Key+}",
-		}
+	op := &aws.Operation{
+		Name:       "PutObject",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}/{Key+}",
 	}
 
 	if input == nil {
 		input = &PutObjectInput{}
 	}
 
-	req = c.newRequest(opPutObject, input, output)
+	req = c.newRequest(op, input, output)
 	if c.Config.CrcCheckEnabled {
 		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
 	}
@@ -1933,36 +1656,38 @@ func (c *S3) PutObjectWithContext(ctx aws.Context, input *PutObjectInput) (*PutO
 	return out, err
 }
 
-func (c *S3) PutReaderRequest(input *PutReaderRequest) (req *aws.Request, output *PutObjectOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutObject == nil {
-		opPutObject = &aws.Operation{
-			Name:       "PutObject",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}/{Key+}",
-		}
+func (c *S3) PutReaderRequest(input *PutReaderInput) (req *aws.Request, output *PutObjectOutput) {
+	op := &aws.Operation{
+		Name:       "PutObject",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}/{Key+}",
 	}
 
 	if input == nil {
-		input = &PutReaderRequest{}
+		input = &PutReaderInput{}
 	}
+	input.Body = &Body{io.NopCloser(input.Body)}
 
-	req = c.newRequest(opPutObject, input, output)
+	req = c.newRequest(op, input, output)
+	if c.Config.CrcCheckEnabled {
+		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
+	}
+	if input.ProgressFn != nil {
+		req.ProgressFn = input.ProgressFn
+	}
 	output = &PutObjectOutput{}
 	req.Data = output
 	return
 }
 
 // PutReader Adds an object to a bucket.
-func (c *S3) PutReader(input *PutReaderRequest) (*PutObjectOutput, error) {
+func (c *S3) PutReader(input *PutReaderInput) (*PutObjectOutput, error) {
 	req, out := c.PutReaderRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-func (c *S3) PutReaderWithContext(ctx aws.Context, input *PutReaderRequest) (*PutObjectOutput, error) {
+func (c *S3) PutReaderWithContext(ctx aws.Context, input *PutReaderInput) (*PutObjectOutput, error) {
 	req, out := c.PutReaderRequest(input)
 	req.SetContext(ctx)
 	err := req.Send()
@@ -1971,37 +1696,54 @@ func (c *S3) PutReaderWithContext(ctx aws.Context, input *PutReaderRequest) (*Pu
 
 // GeneratePresignedUrl generates a presigned url for the object
 func (c *S3) GeneratePresignedUrl(input *GeneratePresignedUrlInput) (url string, err error) {
-	opGeneratePresigned := &aws.Operation{
+	op := &aws.Operation{
 		HTTPMethod: string(input.HTTPMethod),
 		HTTPPath:   "/{Bucket}/{Key+}",
 	}
+
+	if input == nil {
+		input = &GeneratePresignedUrlInput{}
+	}
+
+	if input.ExtendHeaders == nil {
+		input.ExtendHeaders = input.Headers
+	}
+
+	if input.ExtendQueryParams == nil {
+		input.ExtendQueryParams = input.Parameters
+	}
+
 	output := &GeneratePresignedUrlOutput{}
-	req := c.newRequest(opGeneratePresigned, input, output)
+	req := c.newRequest(op, input, output)
+
 	aws.ValidateParameters(req)
 	if req.Error != nil {
 		return "", req.Error
 	}
+
 	if string(input.HTTPMethod) == "" {
 		return "", apierr.New("InvalidParameter", "missing required parameter: HTTPMethod", nil)
 	}
-	now := time.Now().Unix()
+
 	if input.Expires <= 0 {
-		return "", apierr.New("InvalidParameter", "Expires is required and Expires must bigger than 0", nil)
+		return "", apierr.New("InvalidParameter", "Expires is required and must bigger than 0", nil)
 	}
-	if c.Config.SignerVersion == "V4" || c.Config.SignerVersion == "V4_UNSIGNED_PAYLOAD_SIGNER" {
+
+	if IsV4Signature(c.Config.SignerVersion) {
 		if input.Expires > 604800 {
 			return "", apierr.New("InvalidParameter", "Expires must between 1 and 604800 in V4 signature", nil)
 		}
 		req.ExpireTime = input.Expires
 	} else {
-		req.ExpireTime = input.Expires + now
+		req.ExpireTime = input.Expires + time.Now().Unix()
 	}
 	req.Sign()
+
 	return req.HTTPRequest.URL.String(), nil
 }
 
-// GeneratePresignedUrlInput generates a presigned url for the object.
-// This method has been deprecated, please use GeneratePresignedUrl instead.
+// GeneratePresignedUrlInput generates a presigned url for the object
+// Deprecated: Use GeneratePresignedUrl instead.
 func (c *S3) GeneratePresignedUrlInput(input *GeneratePresignedUrlInput) (url string) {
 	opGeneratePresigned := &aws.Operation{
 		HTTPMethod: string(input.HTTPMethod),
@@ -2025,26 +1767,19 @@ func (c *S3) PutObjectPreassignedInput(input *PutObjectInput) (*http.Request, er
 	return req.HTTPRequest, err
 }
 
-var opPutObject *aws.Operation
-
 // PutObjectACLRequest generates a request for the PutObjectACL operation.
 func (c *S3) PutObjectACLRequest(input *PutObjectACLInput) (req *aws.Request, output *PutObjectACLOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutObjectACL == nil {
-		opPutObjectACL = &aws.Operation{
-			Name:       "PutObjectAcl",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}/{Key+}?acl",
-		}
+	op := &aws.Operation{
+		Name:       "PutObjectAcl",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}/{Key+}?acl",
 	}
 
 	if input == nil {
 		input = &PutObjectACLInput{}
 	}
 
-	req = c.newRequest(opPutObjectACL, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutObjectACLOutput{}
 	req.Data = output
 	return
@@ -2065,26 +1800,19 @@ func (c *S3) PutObjectACLWithContext(ctx aws.Context, input *PutObjectACLInput) 
 	return out, err
 }
 
-var opPutObjectACL *aws.Operation
-
 // RestoreObjectRequest generates a request for the RestoreObject operation.
 func (c *S3) RestoreObjectRequest(input *RestoreObjectInput) (req *aws.Request, output *RestoreObjectOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opRestoreObject == nil {
-		opRestoreObject = &aws.Operation{
-			Name:       "RestoreObject",
-			HTTPMethod: "POST",
-			HTTPPath:   "/{Bucket}/{Key+}?restore",
-		}
+	op := &aws.Operation{
+		Name:       "RestoreObject",
+		HTTPMethod: "POST",
+		HTTPPath:   "/{Bucket}/{Key+}?restore",
 	}
 
 	if input == nil {
 		input = &RestoreObjectInput{}
 	}
 
-	req = c.newRequest(opRestoreObject, input, output)
+	req = c.newRequest(op, input, output)
 	output = &RestoreObjectOutput{}
 	req.Data = output
 	return
@@ -2103,26 +1831,19 @@ func (c *S3) RestoreObjectWithContext(ctx aws.Context, input *RestoreObjectInput
 	return out, err
 }
 
-var opRestoreObject *aws.Operation
-
 // UploadPartRequest generates a request for the UploadPart operation.
 func (c *S3) UploadPartRequest(input *UploadPartInput) (req *aws.Request, output *UploadPartOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opUploadPart == nil {
-		opUploadPart = &aws.Operation{
-			Name:       "UploadPart",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}/{Key+}",
-		}
+	op := &aws.Operation{
+		Name:       "UploadPart",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}/{Key+}",
 	}
 
 	if input == nil {
 		input = &UploadPartInput{}
 	}
 
-	req = c.newRequest(opUploadPart, input, output)
+	req = c.newRequest(op, input, output)
 	if c.Config.CrcCheckEnabled {
 		req.Handlers.CheckCrc64.PushBack(CheckUploadCrc64)
 	}
@@ -2154,19 +1875,12 @@ func (c *S3) UploadPartWithContext(ctx aws.Context, input *UploadPartInput) (*Up
 	return out, err
 }
 
-var opUploadPart *aws.Operation
-
 // UploadPartCopyRequest generates a request for the UploadPartCopy operation.
 func (c *S3) UploadPartCopyRequest(input *UploadPartCopyInput) (req *aws.Request, output *UploadPartCopyOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opUploadPartCopy == nil {
-		opUploadPartCopy = &aws.Operation{
-			Name:       "UploadPartCopy",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}/{Key+}",
-		}
+	op := &aws.Operation{
+		Name:       "UploadPartCopy",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}/{Key+}",
 	}
 
 	if input == nil {
@@ -2177,7 +1891,7 @@ func (c *S3) UploadPartCopyRequest(input *UploadPartCopyInput) (req *aws.Request
 	if input.CopySource == nil {
 		input.CopySource = aws.String(BuildCopySource(input.SourceBucket, input.SourceKey))
 	}
-	req = c.newRequest(opUploadPartCopy, input, output)
+	req = c.newRequest(op, input, output)
 	output = &UploadPartCopyOutput{}
 	req.Data = output
 	return
@@ -2197,8 +1911,6 @@ func (c *S3) UploadPartCopyWithContext(ctx aws.Context, input *UploadPartCopyInp
 	return out, err
 }
 
-var opUploadPartCopy *aws.Operation
-
 type AbortMultipartUploadInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -2213,6 +1925,12 @@ type AbortMultipartUploadInput struct {
 	UploadID *string `location:"querystring" locationName:"uploadId" type:"string" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataAbortMultipartUploadInput `json:"-" xml:"-"`
 }
@@ -2330,6 +2048,12 @@ type CompleteMultipartUploadInput struct {
 
 	// Specifies whether the object is forbidden to overwrite.
 	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataCompleteMultipartUploadInput `json:"-" xml:"-"`
 }
@@ -2573,6 +2297,12 @@ type CopyObjectInput struct {
 	// Specifies whether the object is forbidden to overwrite.
 	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataCopyObjectInput `json:"-" xml:"-"`
 }
 
@@ -2702,6 +2432,12 @@ type CreateBucketInput struct {
 
 	BucketType *string `location:"header" locationName:"x-amz-bucket-type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	MetadataCreateBucketInput `json:"-" xml:"-"`
 }
 
@@ -2813,6 +2549,12 @@ type CreateMultipartUploadInput struct {
 	// Specifies whether the object is forbidden to overwrite.
 	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataCreateMultipartUploadInput `json:"-" xml:"-"`
 }
 
@@ -2880,6 +2622,12 @@ type DeleteBucketInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataDeleteBucketInput `json:"-" xml:"-"`
 }
 
@@ -2903,6 +2651,12 @@ type DeleteBucketPolicyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataDeleteBucketPolicyInput `json:"-" xml:"-"`
 }
@@ -2928,6 +2682,12 @@ type DeleteBucketTaggingInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataDeleteBucketTaggingInput `json:"-" xml:"-"`
 }
 
@@ -2951,6 +2711,12 @@ type DeleteBucketWebsiteInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataDeleteBucketWebsiteInput `json:"-" xml:"-"`
 }
@@ -3014,6 +2780,12 @@ type DeleteObjectInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataDeleteObjectInput `json:"-" xml:"-"`
 }
 
@@ -3074,6 +2846,12 @@ type DeleteObjectsInput struct {
 	RequestPayer *string `location:"header" locationName:"x-amz-request-payer" type:"string"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataDeleteObjectsInput `json:"-" xml:"-"`
 }
@@ -3152,6 +2930,12 @@ type GetBucketACLInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataGetBucketACLInput `json:"-" xml:"-"`
 }
 
@@ -3181,6 +2965,12 @@ type GetBucketLocationInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataGetBucketLocationInput `json:"-" xml:"-"`
 }
 
@@ -3206,6 +2996,12 @@ type GetBucketLoggingInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetBucketLoggingInput `json:"-" xml:"-"`
 }
@@ -3244,6 +3040,12 @@ type GetBucketPolicyInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataGetBucketPolicyInput `json:"-" xml:"-"`
 }
 
@@ -3270,6 +3072,12 @@ type GetBucketRequestPaymentInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetBucketRequestPaymentInput `json:"-" xml:"-"`
 }
@@ -3298,6 +3106,12 @@ type GetBucketTaggingInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataGetBucketTaggingInput `json:"-" xml:"-"`
 }
 
@@ -3323,6 +3137,12 @@ type GetBucketVersioningInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetBucketVersioningInput `json:"-" xml:"-"`
 }
@@ -3355,6 +3175,12 @@ type GetBucketWebsiteInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetBucketWebsiteInput `json:"-" xml:"-"`
 }
@@ -3398,6 +3224,12 @@ type GetObjectACLInput struct {
 	VersionID *string `location:"querystring" locationName:"versionId" type:"string"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetObjectACLInput `json:"-" xml:"-"`
 }
@@ -3509,6 +3341,12 @@ type GetObjectInput struct {
 
 	// Progress callback function
 	ProgressFn aws.ProgressFunc `location:"function"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetObjectInput `json:"-" xml:"-"`
 }
@@ -3632,6 +3470,12 @@ type GetObjectTorrentInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataGetObjectTorrentInput `json:"-" xml:"-"`
 }
 
@@ -3697,6 +3541,12 @@ type HeadBucketInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataHeadBucketInput `json:"-" xml:"-"`
 }
@@ -3768,6 +3618,12 @@ type HeadObjectInput struct {
 	VersionID *string `location:"querystring" locationName:"versionId" type:"string"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataHeadObjectInput `json:"-" xml:"-"`
 }
@@ -3921,7 +3777,14 @@ type metadataLambdaFunctionConfiguration struct {
 }
 
 type ListBucketsInput struct {
-	ContentType              *string `location:"header" locationName:"Content-Type" type:"string"`
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataListBucketsInput `json:"-" xml:"-"`
 }
 
@@ -3978,6 +3841,12 @@ type ListMultipartUploadsInput struct {
 	UploadIDMarker *string `location:"querystring" locationName:"upload-id-marker" type:"string"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataListMultipartUploadsInput `json:"-" xml:"-"`
 }
@@ -4067,6 +3936,12 @@ type ListObjectVersionsInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataListObjectVersionsInput `json:"-" xml:"-"`
 }
 
@@ -4147,6 +4022,12 @@ type ListObjectsInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataListObjectsInput `json:"-" xml:"-"`
 }
 
@@ -4218,6 +4099,12 @@ type ListPartsInput struct {
 	UploadID *string `location:"querystring" locationName:"uploadId" type:"string" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataListPartsInput `json:"-" xml:"-"`
 }
@@ -4479,6 +4366,12 @@ type PutBucketACLInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataPutBucketACLInput `json:"-" xml:"-"`
 }
 
@@ -4504,6 +4397,12 @@ type PutBucketLoggingInput struct {
 	BucketLoggingStatus *BucketLoggingStatus `locationName:"BucketLoggingStatus" type:"structure" required:"true" xmlURI:"http://s3.amazonaws.com/doc/2006-03-01/"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketLoggingInput `json:"-" xml:"-"`
 }
@@ -4533,6 +4432,12 @@ type PutBucketNotificationConfigurationInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataPutBucketNotificationConfigurationInput `json:"-" xml:"-"`
 }
 
@@ -4558,6 +4463,12 @@ type PutBucketNotificationInput struct {
 	NotificationConfiguration *NotificationConfigurationDeprecated `locationName:"NotificationConfiguration" type:"structure" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketNotificationInput `json:"-" xml:"-"`
 }
@@ -4586,6 +4497,12 @@ type PutBucketPolicyInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataPutBucketPolicyInput `json:"-" xml:"-"`
 }
 
@@ -4612,6 +4529,12 @@ type PutBucketRequestPaymentInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataPutBucketRequestPaymentInput `json:"-" xml:"-"`
 }
 
@@ -4633,6 +4556,12 @@ type PutBucketTaggingInput struct {
 	Tagging *Tagging `locationName:"Tagging" type:"structure" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketTaggingInput `json:"-" xml:"-"`
 }
@@ -4664,6 +4593,12 @@ type PutBucketVersioningInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataPutBucketVersioningInput `json:"-" xml:"-"`
 }
 
@@ -4689,6 +4624,12 @@ type PutBucketWebsiteInput struct {
 	WebsiteConfiguration *WebsiteConfiguration `locationName:"WebsiteConfiguration" type:"structure" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketWebsiteInput `json:"-" xml:"-"`
 }
@@ -4742,6 +4683,12 @@ type PutObjectACLInput struct {
 	RequestPayer *string `location:"header" locationName:"x-amz-request-payer" type:"string"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutObjectACLInput `json:"-" xml:"-"`
 }
@@ -4876,9 +4823,16 @@ type PutObjectInput struct {
 	// Progress callback function
 	ProgressFn aws.ProgressFunc `location:"function"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataPutObjectInput `json:"-" xml:"-"`
 }
-type PutReaderRequest struct {
+
+type PutReaderInput struct {
 	// The canned ACL to apply to the object.
 	ACL *string `location:"header" locationName:"x-amz-acl" type:"string"`
 
@@ -4928,6 +4882,13 @@ type PutReaderRequest struct {
 	// A map of metadata to store with the object in S3.
 	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
 
+	// Specifies the object tag of the object. Multiple tags can be set at the same time, such as: TagA=A&TagB=B.
+	// Note: Key and Value need to be URL-encoded first. If an item does not have "=", the Value is considered to be an empty string.
+	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
+
+	// Specifies whether the object is forbidden to overwrite.
+	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
+
 	// Confirms that the requester knows that she or he will be charged for the
 	// request. Bucket owners need not specify this parameter in their requests.
 	// Documentation on downloading objects from requester pays buckets can be found
@@ -4970,8 +4931,22 @@ type PutReaderRequest struct {
 
 	ContentMaxLength *int64 `location:"header" locationName:"x-amz-content-maxlength" type:"integer"`
 
-	CallbackUrl  *string `location:"header" locationName:"x-kss-callbackurl" type:"string"`
+	CallbackUrl *string `location:"header" locationName:"x-kss-callbackurl" type:"string"`
+
 	CallbackBody *string `location:"header" locationName:"x-kss-callbackbody" type:"string"`
+
+	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"integer"`
+
+	ContentMD5 *string `location:"header" locationName:"Content-MD5" type:"string"`
+
+	// Progress callback function
+	ProgressFn aws.ProgressFunc `location:"function"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutObjectInput `json:"-" xml:"-"`
 }
@@ -5139,6 +5114,12 @@ type RestoreObjectInput struct {
 	VersionID *string `location:"querystring" locationName:"versionId" type:"string"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataRestoreObjectInput `json:"-" xml:"-"`
 }
@@ -5378,6 +5359,12 @@ type UploadPartCopyInput struct {
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataUploadPartCopyInput `json:"-" xml:"-"`
 }
 
@@ -5474,6 +5461,12 @@ type UploadPartInput struct {
 	// Progress callback function
 	ProgressFn aws.ProgressFunc `location:"function"`
 
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
 	metadataUploadPartInput `json:"-" xml:"-"`
 }
 
@@ -5554,22 +5547,17 @@ type metadataWebsiteConfiguration struct {
 }
 
 func (c *S3) DeleteObjectTaggingRequest(input *DeleteObjectTaggingInput) (req *aws.Request, output *DeleteObjectTaggingOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteObjectTagging == nil {
-		opDeleteObjectTagging = &aws.Operation{
-			Name:       "DeleteObjectTagging",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}/{Key+}?tagging",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteObjectTagging",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}/{Key+}?tagging",
 	}
 
 	if input == nil {
 		input = &DeleteObjectTaggingInput{}
 	}
 
-	req = c.newRequest(opDeleteObjectTagging, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DeleteObjectTaggingOutput{}
 	req.Data = output
 	return
@@ -5588,14 +5576,18 @@ func (c *S3) DeleteObjectTaggingWithContext(ctx aws.Context, input *DeleteObject
 	return out, err
 }
 
-var opDeleteObjectTagging *aws.Operation
-
 type DeleteObjectTaggingInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataDeleteObjectTaggingInput `json:"-" xml:"-"`
 }
@@ -5618,22 +5610,17 @@ type metadataDeleteObjectTaggingOutput struct {
 
 // GetObjectTaggingRequest generates a request for the GetObjectTagging operation.
 func (c *S3) GetObjectTaggingRequest(input *GetObjectTaggingInput) (req *aws.Request, output *GetObjectTaggingOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetObjectTagging == nil {
-		opGetObjectTagging = &aws.Operation{
-			Name:       "GetObjectTagging",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}/{Key+}?tagging",
-		}
+	op := &aws.Operation{
+		Name:       "GetObjectTagging",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}/{Key+}?tagging",
 	}
 
 	if input == nil {
 		input = &GetObjectTaggingInput{}
 	}
 
-	req = c.newRequest(opGetObjectTagging, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetObjectTaggingOutput{}
 	req.Data = output
 	return
@@ -5653,14 +5640,18 @@ func (c *S3) GetObjectTaggingWithContext(ctx aws.Context, input *GetObjectTaggin
 	return out, err
 }
 
-var opGetObjectTagging *aws.Operation
-
 type GetObjectTaggingInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataGetObjectTaggingInput `json:"-" xml:"-"`
 }
@@ -5685,22 +5676,17 @@ type metadataGetObjectTaggingOutput struct {
 
 // PutObjectTaggingRequest generates a request for the PutObjectTagging operation.
 func (c *S3) PutObjectTaggingRequest(input *PutObjectTaggingInput) (req *aws.Request, output *PutObjectTaggingOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutObjectTagging == nil {
-		opPutObjectTagging = &aws.Operation{
-			Name:       "PutObjectTagging",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}/{Key+}?tagging",
-		}
+	op := &aws.Operation{
+		Name:       "PutObjectTagging",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}/{Key+}?tagging",
 	}
 
 	if input == nil {
 		input = &PutObjectTaggingInput{}
 	}
 	input.ContentType = aws.String("application/xml")
-	req = c.newRequest(opPutObjectTagging, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutObjectTaggingOutput{}
 	req.Data = output
 	return
@@ -5720,8 +5706,6 @@ func (c *S3) PutObjectTaggingWithContext(ctx aws.Context, input *PutObjectTaggin
 	return out, err
 }
 
-var opPutObjectTagging *aws.Operation
-
 type PutObjectTaggingInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -5730,6 +5714,12 @@ type PutObjectTaggingInput struct {
 	Tagging *Tagging `locationName:"Tagging" type:"structure"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutObjectTaggingInput `json:"-" xml:"-"`
 }
@@ -5752,15 +5742,10 @@ type metadataPutObjectTaggingOutput struct {
 
 // FetchObjectRequest generates a request for the FetchObject operation.
 func (c *S3) FetchObjectRequest(input *FetchObjectInput) (req *aws.Request, output *FetchObjectOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opFetchObject == nil {
-		opFetchObject = &aws.Operation{
-			Name:       "FetchObject",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}/{Key+}?fetch",
-		}
+	op := &aws.Operation{
+		Name:       "FetchObject",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}/{Key+}?fetch",
 	}
 
 	if input == nil {
@@ -5770,7 +5755,7 @@ func (c *S3) FetchObjectRequest(input *FetchObjectInput) (req *aws.Request, outp
 	if input.SourceUrl != nil {
 		input.SourceUrl = aws.String(url.QueryEscape(*input.SourceUrl))
 	}
-	req = c.newRequest(opFetchObject, input, output)
+	req = c.newRequest(op, input, output)
 	output = &FetchObjectOutput{}
 	req.Data = output
 	return
@@ -5788,8 +5773,6 @@ func (c *S3) FetchObjectWithContext(ctx aws.Context, input *FetchObjectInput) (*
 	err := req.Send()
 	return out, err
 }
-
-var opFetchObject *aws.Operation
 
 type FetchObjectInput struct {
 	// The canned ACL to apply to the object.
@@ -5887,6 +5870,12 @@ type FetchObjectInput struct {
 	// Specifies the object tag of the object. Multiple tags can be set at the same time, such as: TagA=A&TagB=B.
 	// Note: Key and Value need to be URL-encoded first. If an item does not have "=", the Value is considered to be an empty string.
 	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataFetchObjectInput `json:"-" xml:"-"`
 }

@@ -4,19 +4,17 @@ import "github.com/ks3sdklib/aws-sdk-go/aws"
 
 // PutBucketDecompressPolicyRequest generates a request for the PutBucketDecompressPolicy operation.
 func (c *S3) PutBucketDecompressPolicyRequest(input *PutBucketDecompressPolicyInput) (req *aws.Request, output *PutBucketDecompressPolicyOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opPutBucketDecompressPolicy == nil {
-		opPutBucketDecompressPolicy = &aws.Operation{
-			Name:       "PutBucketDecompressPolicy",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?decompresspolicy",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketDecompressPolicy",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?decompresspolicy",
 	}
+
 	if input == nil {
 		input = &PutBucketDecompressPolicyInput{}
 	}
-	req = c.newRequest(opPutBucketDecompressPolicy, input, output)
+
+	req = c.newRequest(op, input, output)
 	req.ContentType = "application/json"
 	output = &PutBucketDecompressPolicyOutput{}
 	req.Data = output
@@ -37,14 +35,18 @@ func (c *S3) PutBucketDecompressPolicyWithContext(ctx aws.Context, input *PutBuc
 	return out, err
 }
 
-var opPutBucketDecompressPolicy *aws.Operation
-
 type PutBucketDecompressPolicyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	BucketDecompressPolicy *BucketDecompressPolicy `locationName:"BucketDecompressPolicy" type:"structure"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketDecompressPolicyInput `json:"-" xml:"-"`
 }
@@ -112,19 +114,17 @@ type PutBucketDecompressPolicyOutput struct {
 
 // GetBucketDecompressPolicyRequest generates a request for the GetBucketDecompressPolicy operation.
 func (c *S3) GetBucketDecompressPolicyRequest(input *GetBucketDecompressPolicyInput) (req *aws.Request, output *GetBucketDecompressPolicyOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opGetBucketDecompressPolicy == nil {
-		opGetBucketDecompressPolicy = &aws.Operation{
-			Name:       "GetBucketDecompressPolicy",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?decompresspolicy",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketDecompressPolicy",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?decompresspolicy",
 	}
+
 	if input == nil {
 		input = &GetBucketDecompressPolicyInput{}
 	}
-	req = c.newRequest(opGetBucketDecompressPolicy, input, output)
+
+	req = c.newRequest(op, input, output)
 	req.ContentType = "application/json"
 	output = &GetBucketDecompressPolicyOutput{
 		BucketDecompressPolicy: &BucketDecompressPolicy{},
@@ -147,10 +147,14 @@ func (c *S3) GetBucketDecompressPolicyWithContext(ctx aws.Context, input *GetBuc
 	return out, err
 }
 
-var opGetBucketDecompressPolicy *aws.Operation
-
 type GetBucketDecompressPolicyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type GetBucketDecompressPolicyOutput struct {
@@ -169,19 +173,17 @@ type metadataGetBucketDecompressPolicyOutput struct {
 
 // DeleteBucketDecompressPolicyRequest generates a request for the DeleteBucketDecompressPolicy operation.
 func (c *S3) DeleteBucketDecompressPolicyRequest(input *DeleteBucketDecompressPolicyInput) (req *aws.Request, output *DeleteBucketDecompressPolicyOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opDeleteBucketDecompressPolicy == nil {
-		opDeleteBucketDecompressPolicy = &aws.Operation{
-			Name:       "DeleteBucketDecompressPolicy",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?decompresspolicy",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteBucketDecompressPolicy",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}?decompresspolicy",
 	}
+
 	if input == nil {
 		input = &DeleteBucketDecompressPolicyInput{}
 	}
-	req = c.newRequest(opDeleteBucketDecompressPolicy, input, output)
+
+	req = c.newRequest(op, input, output)
 	output = &DeleteBucketDecompressPolicyOutput{}
 	req.Data = output
 	return
@@ -201,10 +203,14 @@ func (c *S3) DeleteBucketDecompressPolicyWithContext(ctx aws.Context, input *Del
 	return out, err
 }
 
-var opDeleteBucketDecompressPolicy *aws.Operation
-
 type DeleteBucketDecompressPolicyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 type DeleteBucketDecompressPolicyOutput struct {
 	Metadata map[string]*string `location:"headers" type:"map"`

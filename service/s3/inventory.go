@@ -4,15 +4,10 @@ import "github.com/ks3sdklib/aws-sdk-go/aws"
 
 // PutBucketInventoryRequest generates a request for the PutBucketInventory operation.
 func (c *S3) PutBucketInventoryRequest(input *PutBucketInventoryInput) (req *aws.Request, output *PutBucketInventoryOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutBucketInventory == nil {
-		opPutBucketInventory = &aws.Operation{
-			Name:       "PutBucketInventory",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?inventory",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketInventory",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?inventory",
 	}
 
 	if input == nil {
@@ -20,7 +15,7 @@ func (c *S3) PutBucketInventoryRequest(input *PutBucketInventoryInput) (req *aws
 	}
 
 	input.AutoFillMD5 = true
-	req = c.newRequest(opPutBucketInventory, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutBucketInventoryOutput{}
 	req.Data = output
 	return
@@ -40,8 +35,6 @@ func (c *S3) PutBucketInventoryWithContext(ctx aws.Context, input *PutBucketInve
 	return out, err
 }
 
-var opPutBucketInventory *aws.Operation
-
 type PutBucketInventoryInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -50,6 +43,12 @@ type PutBucketInventoryInput struct {
 	InventoryConfiguration *InventoryConfiguration `locationName:"InventoryConfiguration" type:"structure" required:"true"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketInventoryInput `json:"-" xml:"-"`
 }
@@ -135,22 +134,17 @@ type OptionalFields struct {
 
 // GetBucketInventoryRequest generates a request for the GetBucketInventory operation.
 func (c *S3) GetBucketInventoryRequest(input *GetBucketInventoryInput) (req *aws.Request, output *GetBucketInventoryOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetBucketInventory == nil {
-		opGetBucketInventory = &aws.Operation{
-			Name:       "GetBucketInventory",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?inventory",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketInventory",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?inventory",
 	}
 
 	if input == nil {
 		input = &GetBucketInventoryInput{}
 	}
 
-	req = c.newRequest(opGetBucketInventory, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetBucketInventoryOutput{}
 	req.Data = output
 	return
@@ -170,12 +164,16 @@ func (c *S3) GetBucketInventoryWithContext(ctx aws.Context, input *GetBucketInve
 	return out, err
 }
 
-var opGetBucketInventory *aws.Operation
-
 type GetBucketInventoryInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	Id *string `location:"querystring" locationName:"id" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type GetBucketInventoryOutput struct {
@@ -194,22 +192,17 @@ type metadataGetBucketInventoryOutput struct {
 
 // DeleteBucketInventoryRequest generates a request for the DeleteBucketInventory operation.
 func (c *S3) DeleteBucketInventoryRequest(input *DeleteBucketInventoryInput) (req *aws.Request, output *DeleteBucketInventoryOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteBucketInventory == nil {
-		opDeleteBucketInventory = &aws.Operation{
-			Name:       "DeleteBucketInventory",
-			HTTPMethod: "DELETE",
-			HTTPPath:   "/{Bucket}?inventory",
-		}
+	op := &aws.Operation{
+		Name:       "DeleteBucketInventory",
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/{Bucket}?inventory",
 	}
 
 	if input == nil {
 		input = &DeleteBucketInventoryInput{}
 	}
 
-	req = c.newRequest(opDeleteBucketInventory, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DeleteBucketInventoryOutput{}
 	req.Data = output
 	return
@@ -229,12 +222,16 @@ func (c *S3) DeleteBucketInventoryWithContext(ctx aws.Context, input *DeleteBuck
 	return out, err
 }
 
-var opDeleteBucketInventory *aws.Operation
-
 type DeleteBucketInventoryInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	Id *string `location:"querystring" locationName:"id" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 type DeleteBucketInventoryOutput struct {
 	Metadata map[string]*string `location:"headers"  type:"map"`
@@ -244,22 +241,17 @@ type DeleteBucketInventoryOutput struct {
 
 // ListBucketInventoryRequest generates a request for the ListBucketInventory operation.
 func (c *S3) ListBucketInventoryRequest(input *ListBucketInventoryInput) (req *aws.Request, output *ListBucketInventoryOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opListBucketInventory == nil {
-		opListBucketInventory = &aws.Operation{
-			Name:       "ListBucketInventory",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?inventory",
-		}
+	op := &aws.Operation{
+		Name:       "ListBucketInventory",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?inventory",
 	}
 
 	if input == nil {
 		input = &ListBucketInventoryInput{}
 	}
 
-	req = c.newRequest(opListBucketInventory, input, output)
+	req = c.newRequest(op, input, output)
 	output = &ListBucketInventoryOutput{}
 	req.Data = output
 	return
@@ -279,12 +271,16 @@ func (c *S3) ListBucketInventoryWithContext(ctx aws.Context, input *ListBucketIn
 	return out, err
 }
 
-var opListBucketInventory *aws.Operation
-
 type ListBucketInventoryInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	ContinuationToken *string `location:"querystring" locationName:"continuation-token" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type ListInventoryConfigurationsResult struct {

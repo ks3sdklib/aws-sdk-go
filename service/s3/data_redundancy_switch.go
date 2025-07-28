@@ -5,8 +5,6 @@ import (
 	"time"
 )
 
-var opPutBucketDataRedundancySwitch *aws.Operation
-
 type PutBucketDataRedundancySwitchInput struct {
 	// The name of the bucket.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
@@ -15,6 +13,12 @@ type PutBucketDataRedundancySwitchInput struct {
 	// LRS: local redundancy storage
 	// ZRS: zone redundancy storage
 	DataRedundancyType *string `location:"header" locationName:"x-amz-data-redundancy-type" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type PutBucketDataRedundancySwitchOutput struct {
@@ -26,19 +30,17 @@ type PutBucketDataRedundancySwitchOutput struct {
 
 // PutBucketDataRedundancySwitchRequest generates a request for the PutBucketDataRedundancySwitch operation.
 func (c *S3) PutBucketDataRedundancySwitchRequest(input *PutBucketDataRedundancySwitchInput) (req *aws.Request, output *PutBucketDataRedundancySwitchOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opPutBucketDataRedundancySwitch == nil {
-		opPutBucketDataRedundancySwitch = &aws.Operation{
-			Name:       "PutBucketDataRedundancySwitch",
-			HTTPMethod: "PUT",
-			HTTPPath:   "/{Bucket}?dataRedundancySwitch",
-		}
+	op := &aws.Operation{
+		Name:       "PutBucketDataRedundancySwitch",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?dataRedundancySwitch",
 	}
+
 	if input == nil {
 		input = &PutBucketDataRedundancySwitchInput{}
 	}
-	req = c.newRequest(opPutBucketDataRedundancySwitch, input, output)
+
+	req = c.newRequest(op, input, output)
 	output = &PutBucketDataRedundancySwitchOutput{}
 	req.Data = output
 	return
@@ -58,11 +60,15 @@ func (c *S3) PutBucketDataRedundancySwitchWithContext(ctx aws.Context, input *Pu
 	return out, err
 }
 
-var opGetBucketDataRedundancySwitch *aws.Operation
-
 type GetBucketDataRedundancySwitchInput struct {
 	// The name of the bucket.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type GetBucketDataRedundancySwitchOutput struct {
@@ -89,19 +95,17 @@ type metadataGetBucketDataRedundancySwitchOutput struct {
 
 // GetBucketDataRedundancySwitchRequest generates a request for the GetBucketDataRedundancySwitch operation.
 func (c *S3) GetBucketDataRedundancySwitchRequest(input *GetBucketDataRedundancySwitchInput) (req *aws.Request, output *GetBucketDataRedundancySwitchOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-	if opGetBucketDataRedundancySwitch == nil {
-		opGetBucketDataRedundancySwitch = &aws.Operation{
-			Name:       "GetBucketDataRedundancySwitch",
-			HTTPMethod: "GET",
-			HTTPPath:   "/{Bucket}?dataRedundancySwitch",
-		}
+	op := &aws.Operation{
+		Name:       "GetBucketDataRedundancySwitch",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?dataRedundancySwitch",
 	}
+
 	if input == nil {
 		input = &GetBucketDataRedundancySwitchInput{}
 	}
-	req = c.newRequest(opGetBucketDataRedundancySwitch, input, output)
+
+	req = c.newRequest(op, input, output)
 	output = &GetBucketDataRedundancySwitchOutput{}
 	req.Data = output
 	return

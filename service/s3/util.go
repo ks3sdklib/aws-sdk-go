@@ -101,3 +101,8 @@ func Min(a, b int64) int64 {
 	}
 	return b
 }
+
+// IsV4Signature checks if the signer is V4 or V4_UNSIGNED_PAYLOAD_SIGNER
+func IsV4Signature(signer string) bool {
+	return signer == "V4" || signer == "V4_UNSIGNED_PAYLOAD_SIGNER"
+}
