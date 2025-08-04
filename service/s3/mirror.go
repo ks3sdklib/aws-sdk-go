@@ -9,6 +9,8 @@ type BucketMirror struct {
 	UseDefaultRobots *bool              `json:"use_default_robots" locationName:"use_default_robots"`
 	AsyncMirrorRule  *AsyncMirrorRule   `json:"async_mirror_rule,omitempty" type:"structure" locationName:"async_mirror_rule"`
 	SyncMirrorRules  []*SyncMirrorRules `json:"sync_mirror_rules,omitempty" type:"list" locationName:"sync_mirror_rules"`
+	CreatedTime      *string            `json:"created_time,omitempty" type:"string" locationName:"created_time"`
+	LastModifiedTime *string            `json:"last_modified_time,omitempty" type:"string" locationName:"last_modified_time"`
 }
 type SavingSetting struct {
 	ACL *string `json:"acl,omitempty"  required:"true" locationName:"acl"`
