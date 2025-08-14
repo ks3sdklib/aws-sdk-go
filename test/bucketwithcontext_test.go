@@ -17,10 +17,10 @@ func (s *Ks3utilCommandSuite) TestPutBucketCORSWithContext(c *C) {
 	// 配置CORS规则
 	corsConfiguration := &s3.CORSConfiguration{
 		Rules: []*s3.CORSRule{{
-			AllowedHeader: []string{"*"},
-			AllowedMethod: []string{"GET"},
-			AllowedOrigin: []string{"*"},
-			MaxAgeSeconds: aws.Long(100)},
+			AllowedHeaders: []string{"*"},
+			AllowedMethods: []string{"GET"},
+			AllowedOrigins: []string{"*"},
+			MaxAgeSeconds:  aws.Long(100)},
 		},
 	}
 	// put,不通过context取消
@@ -61,10 +61,10 @@ func (s *Ks3utilCommandSuite) TestGetBucketCORSWithContext(c *C) {
 	// 配置CORS规则
 	corsConfiguration := &s3.CORSConfiguration{
 		Rules: []*s3.CORSRule{{
-			AllowedHeader: []string{"*"},
-			AllowedMethod: []string{"GET"},
-			AllowedOrigin: []string{"*"},
-			MaxAgeSeconds: aws.Long(100)},
+			AllowedHeaders: []string{"*"},
+			AllowedMethods: []string{"GET"},
+			AllowedOrigins: []string{"*"},
+			MaxAgeSeconds:  aws.Long(100)},
 		},
 	}
 	// put
@@ -98,10 +98,10 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketCORSWithContext(c *C) {
 	// 配置CORS规则
 	corsConfiguration := &s3.CORSConfiguration{
 		Rules: []*s3.CORSRule{{
-			AllowedHeader: []string{"*"},
-			AllowedMethod: []string{"GET"},
-			AllowedOrigin: []string{"*"},
-			MaxAgeSeconds: aws.Long(100)},
+			AllowedHeaders: []string{"*"},
+			AllowedMethods: []string{"GET"},
+			AllowedOrigins: []string{"*"},
+			MaxAgeSeconds:  aws.Long(100)},
 		},
 	}
 	// put

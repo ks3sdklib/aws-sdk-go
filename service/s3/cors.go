@@ -34,11 +34,11 @@ type CORSConfiguration struct {
 }
 
 type CORSRule struct {
-	AllowedHeader []string `locationName:"AllowedHeader" type:"list" flattened:"true"`
-	AllowedMethod []string `locationName:"AllowedMethod" type:"list" flattened:"true"`
-	AllowedOrigin []string `locationName:"AllowedOrigin" type:"list" flattened:"true"`
-	ExposeHeader  []string `locationName:"ExposeHeader" type:"list" flattened:"true"`
-	MaxAgeSeconds *int64   `locationName:"MaxAgeSeconds"`
+	AllowedHeaders []string `locationName:"AllowedHeader" type:"list" flattened:"true"`
+	AllowedMethods []string `locationName:"AllowedMethod" type:"list" flattened:"true"`
+	AllowedOrigins []string `locationName:"AllowedOrigin" type:"list" flattened:"true"`
+	ExposeHeaders  []string `locationName:"ExposeHeader" type:"list" flattened:"true"`
+	MaxAgeSeconds  *int64   `locationName:"MaxAgeSeconds"`
 }
 
 type PutBucketCORSOutput struct {

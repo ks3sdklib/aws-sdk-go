@@ -176,31 +176,31 @@ func (s *Ks3utilCommandSuite) TestBucketCors(c *C) {
 	corsConfiguration := &s3.CORSConfiguration{
 		Rules: []*s3.CORSRule{
 			{
-				AllowedHeader: []string{
+				AllowedHeaders: []string{
 					"*",
 				},
-				AllowedMethod: []string{
+				AllowedMethods: []string{
 					"PUT", "GET", "HEAD", "DELETE",
 				},
-				AllowedOrigin: []string{
+				AllowedOrigins: []string{
 					"*",
 				},
-				ExposeHeader: []string{
+				ExposeHeaders: []string{
 					"ETag", "x-kss-meta-test",
 				},
 				MaxAgeSeconds: aws.Long(100),
 			},
 			{
-				AllowedHeader: []string{
+				AllowedHeaders: []string{
 					"x-kss-meta-test1", "x-kss-meta-test2",
 				},
-				AllowedMethod: []string{
+				AllowedMethods: []string{
 					"GET", "HEAD",
 				},
-				AllowedOrigin: []string{
+				AllowedOrigins: []string{
 					"https://example1.com", "https://example2.com",
 				},
-				ExposeHeader: []string{
+				ExposeHeaders: []string{
 					"ETag", "x-kss-acl",
 				},
 				MaxAgeSeconds: aws.Long(200),
@@ -221,15 +221,15 @@ func (s *Ks3utilCommandSuite) TestBucketCors(c *C) {
 	})
 	c.Assert(err, IsNil)
 	c.Assert(len(resp.CORSConfiguration.Rules), Equals, 2)
-	c.Assert(resp.CORSConfiguration.Rules[0].AllowedHeader, DeepEquals, []string{"*"})
-	c.Assert(resp.CORSConfiguration.Rules[0].AllowedMethod, DeepEquals, []string{"PUT", "GET", "HEAD", "DELETE"})
-	c.Assert(resp.CORSConfiguration.Rules[0].AllowedOrigin, DeepEquals, []string{"*"})
-	c.Assert(resp.CORSConfiguration.Rules[0].ExposeHeader, DeepEquals, []string{"ETag", "x-kss-meta-test"})
+	c.Assert(resp.CORSConfiguration.Rules[0].AllowedHeaders, DeepEquals, []string{"*"})
+	c.Assert(resp.CORSConfiguration.Rules[0].AllowedMethods, DeepEquals, []string{"PUT", "GET", "HEAD", "DELETE"})
+	c.Assert(resp.CORSConfiguration.Rules[0].AllowedOrigins, DeepEquals, []string{"*"})
+	c.Assert(resp.CORSConfiguration.Rules[0].ExposeHeaders, DeepEquals, []string{"ETag", "x-kss-meta-test"})
 	c.Assert(*resp.CORSConfiguration.Rules[0].MaxAgeSeconds, Equals, int64(100))
-	c.Assert(resp.CORSConfiguration.Rules[1].AllowedHeader, DeepEquals, []string{"x-kss-meta-test1", "x-kss-meta-test2"})
-	c.Assert(resp.CORSConfiguration.Rules[1].AllowedMethod, DeepEquals, []string{"GET", "HEAD"})
-	c.Assert(resp.CORSConfiguration.Rules[1].AllowedOrigin, DeepEquals, []string{"https://example1.com", "https://example2.com"})
-	c.Assert(resp.CORSConfiguration.Rules[1].ExposeHeader, DeepEquals, []string{"ETag", "x-kss-acl"})
+	c.Assert(resp.CORSConfiguration.Rules[1].AllowedHeaders, DeepEquals, []string{"x-kss-meta-test1", "x-kss-meta-test2"})
+	c.Assert(resp.CORSConfiguration.Rules[1].AllowedMethods, DeepEquals, []string{"GET", "HEAD"})
+	c.Assert(resp.CORSConfiguration.Rules[1].AllowedOrigins, DeepEquals, []string{"https://example1.com", "https://example2.com"})
+	c.Assert(resp.CORSConfiguration.Rules[1].ExposeHeaders, DeepEquals, []string{"ETag", "x-kss-acl"})
 	c.Assert(*resp.CORSConfiguration.Rules[1].MaxAgeSeconds, Equals, int64(200))
 	c.Assert(*resp.CORSConfiguration.NonCrossOriginResponseVary, Equals, true)
 
