@@ -70,6 +70,10 @@ var signQuerys = map[string]bool{
 	"dataRedundancySwitch":         true,
 	"bucketqos":                    true,
 	"requesterqos":                 true,
+	"encryption":                   true,
+	"accessmonitor":                true,
+	"transferAcceleration":         true,
+	"VpcAccessBlock":               true,
 }
 
 type signer struct {

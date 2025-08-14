@@ -8,7 +8,7 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/aws/awsutil"
 )
 
-var reDomain = regexp.MustCompile(`^[a-z0-9][a-z0-9\.\-]{1,61}[a-z0-9]$`)
+var reDomain = regexp.MustCompile(`^[a-z0-9][a-z0-9\.\-\_]{1,61}[a-z0-9]$`)
 var reIPAddress = regexp.MustCompile(`^(\d+\.){3}\d+$`)
 
 // dnsCompatibleBucketName returns true if the bucket name is DNS compatible.

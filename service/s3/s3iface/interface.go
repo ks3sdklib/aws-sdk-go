@@ -45,6 +45,10 @@ type S3API interface {
 
 	DeleteRequesterQos(*s3.DeleteRequesterQosInput) (*s3.DeleteRequesterQosOutput, error)
 
+	DeleteBucketEncryption(*s3.DeleteBucketEncryptionInput) (*s3.DeleteBucketEncryptionOutput, error)
+
+	DeleteVpcAccessBlock(*s3.DeleteVpcAccessBlockInput) (*s3.DeleteVpcAccessBlockOutput, error)
+
 	DeleteObject(*s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 
 	DeleteObjects(*s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
@@ -54,6 +58,8 @@ type S3API interface {
 	GetBucketCORS(*s3.GetBucketCORSInput) (*s3.GetBucketCORSOutput, error)
 
 	GetBucketLifecycle(*s3.GetBucketLifecycleInput) (*s3.GetBucketLifecycleOutput, error)
+
+	GetBucketAccessMonitor(*s3.GetBucketAccessMonitorInput) (*s3.GetBucketAccessMonitorOutput, error)
 
 	GetBucketLocation(*s3.GetBucketLocationInput) (*s3.GetBucketLocationOutput, error)
 
@@ -87,6 +93,12 @@ type S3API interface {
 
 	GetRequesterQos(*s3.GetRequesterQosInput) (*s3.GetRequesterQosOutput, error)
 
+	GetBucketEncryption(*s3.GetBucketEncryptionInput) (*s3.GetBucketEncryptionOutput, error)
+
+	GetBucketTransferAcceleration(*s3.GetBucketTransferAccelerationInput) (*s3.GetBucketTransferAccelerationOutput, error)
+
+	GetVpcAccessBlock(*s3.GetVpcAccessBlockInput) (*s3.GetVpcAccessBlockOutput, error)
+
 	GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error)
 
 	GetObjectACL(*s3.GetObjectACLInput) (*s3.GetObjectACLOutput, error)
@@ -117,6 +129,8 @@ type S3API interface {
 
 	PutBucketLifecycle(*s3.PutBucketLifecycleInput) (*s3.PutBucketLifecycleOutput, error)
 
+	PutBucketAccessMonitor(*s3.PutBucketAccessMonitorInput) (*s3.PutBucketAccessMonitorOutput, error)
+
 	PutBucketLogging(*s3.PutBucketLoggingInput) (*s3.PutBucketLoggingOutput, error)
 
 	PutBucketNotification(*s3.PutBucketNotificationInput) (*s3.PutBucketNotificationOutput, error)
@@ -146,6 +160,12 @@ type S3API interface {
 	PutBucketQos(*s3.PutBucketQosInput) (*s3.PutBucketQosOutput, error)
 
 	PutRequesterQos(*s3.PutRequesterQosInput) (*s3.PutRequesterQosOutput, error)
+
+	PutBucketEncryption(*s3.PutBucketEncryptionInput) (*s3.PutBucketEncryptionOutput, error)
+
+	PutBucketTransferAcceleration(*s3.PutBucketTransferAccelerationInput) (*s3.PutBucketTransferAccelerationOutput, error)
+
+	PutVpcAccessBlock(*s3.PutVpcAccessBlockInput) (*s3.PutVpcAccessBlockOutput, error)
 
 	PutObject(*s3.PutObjectInput) (*s3.PutObjectOutput, error)
 

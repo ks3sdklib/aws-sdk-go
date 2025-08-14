@@ -61,6 +61,10 @@ type metadataPutBucketRetentionInput struct {
 }
 
 type BucketRetentionConfiguration struct {
+	// Whether to enable multiple versions in the recycle bin. When the request does not carry this parameter,
+	// multiple versions are enabled by default.
+	EnableMultipleVersion *bool `locationName:"EnableMultipleVersion" type:"boolean"`
+
 	// A container that contains a specific rule for the recycle bin.
 	Rule *RetentionRule `locationName:"Rule" type:"structure" required:"true"`
 }

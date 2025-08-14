@@ -55,23 +55,6 @@ func Unmarshal(r *aws.Request) {
 	}
 }
 
-type GetBucketCORSOutput struct {
-	CORSConfiguration *CORSConfiguration `xml:"CORSConfiguration"`
-	Metadata          map[string]*string `xml:"-"`
-}
-
-type CORSConfiguration struct {
-	Rules []*CORSRule `xml:"CORSRule"`
-}
-
-type CORSRule struct {
-	AllowedHeader []string `xml:"AllowedHeader"`
-	AllowedMethod []string `xml:"AllowedMethod"`
-	AllowedOrigin []string `xml:"AllowedOrigin"`
-	ExposeHeader  []string `xml:"ExposeHeader"`
-	MaxAgeSeconds int      `xml:"MaxAgeSeconds"`
-}
-
 // UnmarshalMeta unmarshals response headers for the REST XML protocol.
 func UnmarshalMeta(r *aws.Request) {
 	rest.Unmarshal(r)

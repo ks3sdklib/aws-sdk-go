@@ -266,38 +266,6 @@ func (c *S3) DeleteBucketPolicyWithContext(ctx aws.Context, input *DeleteBucketP
 	return out, err
 }
 
-// DeleteBucketTaggingRequest generates a request for the DeleteBucketTagging operation.
-func (c *S3) DeleteBucketTaggingRequest(input *DeleteBucketTaggingInput) (req *aws.Request, output *DeleteBucketTaggingOutput) {
-	op := &aws.Operation{
-		Name:       "DeleteBucketTagging",
-		HTTPMethod: "DELETE",
-		HTTPPath:   "/{Bucket}?tagging",
-	}
-
-	if input == nil {
-		input = &DeleteBucketTaggingInput{}
-	}
-
-	req = c.newRequest(op, input, output)
-	output = &DeleteBucketTaggingOutput{}
-	req.Data = output
-	return
-}
-
-// DeleteBucketTagging Deletes the tags from the bucket.
-func (c *S3) DeleteBucketTagging(input *DeleteBucketTaggingInput) (*DeleteBucketTaggingOutput, error) {
-	req, out := c.DeleteBucketTaggingRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-func (c *S3) DeleteBucketTaggingWithContext(ctx aws.Context, input *DeleteBucketTaggingInput) (*DeleteBucketTaggingOutput, error) {
-	req, out := c.DeleteBucketTaggingRequest(input)
-	req.SetContext(ctx)
-	err := req.Send()
-	return out, err
-}
-
 // DeleteBucketWebsiteRequest generates a request for the DeleteBucketWebsite operation.
 func (c *S3) DeleteBucketWebsiteRequest(input *DeleteBucketWebsiteInput) (req *aws.Request, output *DeleteBucketWebsiteOutput) {
 	op := &aws.Operation{
@@ -700,38 +668,6 @@ func (c *S3) GetBucketRequestPayment(input *GetBucketRequestPaymentInput) (*GetB
 
 func (c *S3) GetBucketRequestPaymentWithContext(ctx aws.Context, input *GetBucketRequestPaymentInput) (*GetBucketRequestPaymentOutput, error) {
 	req, out := c.GetBucketRequestPaymentRequest(input)
-	req.SetContext(ctx)
-	err := req.Send()
-	return out, err
-}
-
-// GetBucketTaggingRequest generates a request for the GetBucketTagging operation.
-func (c *S3) GetBucketTaggingRequest(input *GetBucketTaggingInput) (req *aws.Request, output *GetBucketTaggingOutput) {
-	op := &aws.Operation{
-		Name:       "GetBucketTagging",
-		HTTPMethod: "GET",
-		HTTPPath:   "/{Bucket}?tagging",
-	}
-
-	if input == nil {
-		input = &GetBucketTaggingInput{}
-	}
-
-	req = c.newRequest(op, input, output)
-	output = &GetBucketTaggingOutput{}
-	req.Data = output
-	return
-}
-
-// GetBucketTagging Returns the tag set associated with the bucket.
-func (c *S3) GetBucketTagging(input *GetBucketTaggingInput) (*GetBucketTaggingOutput, error) {
-	req, out := c.GetBucketTaggingRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-func (c *S3) GetBucketTaggingWithContext(ctx aws.Context, input *GetBucketTaggingInput) (*GetBucketTaggingOutput, error) {
-	req, out := c.GetBucketTaggingRequest(input)
 	req.SetContext(ctx)
 	err := req.Send()
 	return out, err
@@ -1458,38 +1394,6 @@ func (c *S3) PutBucketRequestPaymentWithContext(ctx aws.Context, input *PutBucke
 	return out, err
 }
 
-// PutBucketTaggingRequest generates a request for the PutBucketTagging operation.
-func (c *S3) PutBucketTaggingRequest(input *PutBucketTaggingInput) (req *aws.Request, output *PutBucketTaggingOutput) {
-	op := &aws.Operation{
-		Name:       "PutBucketTagging",
-		HTTPMethod: "PUT",
-		HTTPPath:   "/{Bucket}?tagging",
-	}
-
-	if input == nil {
-		input = &PutBucketTaggingInput{}
-	}
-
-	req = c.newRequest(op, input, output)
-	output = &PutBucketTaggingOutput{}
-	req.Data = output
-	return
-}
-
-// PutBucketTagging Sets the tags for a bucket.
-func (c *S3) PutBucketTagging(input *PutBucketTaggingInput) (*PutBucketTaggingOutput, error) {
-	req, out := c.PutBucketTaggingRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-func (c *S3) PutBucketTaggingWithContext(ctx aws.Context, input *PutBucketTaggingInput) (*PutBucketTaggingOutput, error) {
-	req, out := c.PutBucketTaggingRequest(input)
-	req.SetContext(ctx)
-	err := req.Send()
-	return out, err
-}
-
 // PutBucketVersioningRequest generates a request for the PutBucketVersioning operation.
 func (c *S3) PutBucketVersioningRequest(input *PutBucketVersioningInput) (req *aws.Request, output *PutBucketVersioningOutput) {
 	op := &aws.Operation{
@@ -1978,6 +1882,9 @@ type Bucket struct {
 
 	Type *string `type:"string"`
 
+	// Bucket visit type, NORMAL is the standard type, FREQUENTLIST is the high-frequency enumeration type.
+	VisitType *string `type:"string"`
+
 	// The bucket data redundancy type.
 	DataRedundancyType *string `type:"string"`
 
@@ -2432,6 +2339,9 @@ type CreateBucketInput struct {
 
 	BucketType *string `location:"header" locationName:"x-amz-bucket-type" type:"string"`
 
+	// Specify the bucket visit type.
+	BucketVisitType *string `location:"header" locationName:"x-amz-bucket-visit-type" type:"string"`
+
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
@@ -2674,36 +2584,6 @@ type DeleteBucketPolicyOutput struct {
 }
 
 type metadataDeleteBucketPolicyOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type DeleteBucketTaggingInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
-
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
-
-	metadataDeleteBucketTaggingInput `json:"-" xml:"-"`
-}
-
-type metadataDeleteBucketTaggingInput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type DeleteBucketTaggingOutput struct {
-	metadataDeleteBucketTaggingOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-
-	StatusCode *int64 `location:"statusCode" type:"integer"`
-}
-
-type metadataDeleteBucketTaggingOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
@@ -3098,38 +2978,6 @@ type GetBucketRequestPaymentOutput struct {
 }
 
 type metadataGetBucketRequestPaymentOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type GetBucketTaggingInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
-
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
-
-	metadataGetBucketTaggingInput `json:"-" xml:"-"`
-}
-
-type metadataGetBucketTaggingInput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type GetBucketTaggingOutput struct {
-	TagSet []*Tag `locationNameList:"Tag" type:"list" required:"true"`
-
-	metadataGetBucketTaggingOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-
-	StatusCode *int64 `location:"statusCode" type:"integer"`
-}
-
-type metadataGetBucketTaggingOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
@@ -4550,38 +4398,6 @@ type metadataPutBucketRequestPaymentOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-type PutBucketTaggingInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	Tagging *Tagging `locationName:"Tagging" type:"structure" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
-
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
-
-	metadataPutBucketTaggingInput `json:"-" xml:"-"`
-}
-
-type metadataPutBucketTaggingInput struct {
-	SDKShapeTraits bool `type:"structure" payload:"Tagging"`
-}
-
-type PutBucketTaggingOutput struct {
-	metadataPutBucketTaggingOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-
-	StatusCode *int64 `location:"statusCode" type:"integer"`
-}
-
-type metadataPutBucketTaggingOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type PutBucketVersioningInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -5260,25 +5076,6 @@ type TopicConfigurationDeprecated struct {
 }
 
 type metadataTopicConfigurationDeprecated struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type Transition struct {
-	// Indicates at what date the object is to be moved or deleted. Should be in
-	// GMT ISO 8601 Format.
-	Date *time.Time `type:"timestamp" timestampFormat:"iso8601"`
-
-	// Indicates the lifetime, in days, of the objects that are subject to the rule.
-	// The value must be a non-zero positive integer.
-	Days *int64 `type:"integer"`
-
-	// The class of storage used to store the object.
-	StorageClass *string `type:"string"`
-
-	metadataTransition `json:"-" xml:"-"`
-}
-
-type metadataTransition struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 

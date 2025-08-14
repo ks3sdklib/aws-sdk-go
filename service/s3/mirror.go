@@ -9,6 +9,8 @@ type BucketMirror struct {
 	UseDefaultRobots *bool              `json:"use_default_robots" locationName:"use_default_robots"`
 	AsyncMirrorRule  *AsyncMirrorRule   `json:"async_mirror_rule,omitempty" type:"structure" locationName:"async_mirror_rule"`
 	SyncMirrorRules  []*SyncMirrorRules `json:"sync_mirror_rules,omitempty" type:"list" locationName:"sync_mirror_rules"`
+	CreatedTime      *string            `json:"created_time,omitempty" type:"string" locationName:"created_time"`
+	LastModifiedTime *string            `json:"last_modified_time,omitempty" type:"string" locationName:"last_modified_time"`
 }
 type SavingSetting struct {
 	ACL *string `json:"acl,omitempty"  required:"true" locationName:"acl"`
@@ -16,6 +18,7 @@ type SavingSetting struct {
 type AsyncMirrorRule struct {
 	MirrorUrls    []*string      `json:"mirror_urls,omitempty" required:"true" locationName:"mirror_urls"`
 	SavingSetting *SavingSetting `json:"saving_setting,omitempty" required:"true" locationName:"saving_setting"`
+	MirrorType    *string        `json:"mirror_type,omitempty" locationName:"mirror_type"`
 }
 type MatchCondition struct {
 	HTTPCodes   []*string `json:"http_codes" locationName:"http_codes"`
@@ -47,6 +50,7 @@ type SyncMirrorRules struct {
 	MirrorURL            *string               `json:"mirror_url,omitempty" locationName:"mirror_url"`
 	MirrorRequestSetting *MirrorRequestSetting `json:"mirror_request_setting,omitempty" locationName:"mirror_request_setting"`
 	SavingSetting        *SavingSetting        `json:"saving_setting,omitempty" locationName:"saving_setting"`
+	MirrorType           *string               `json:"mirror_type,omitempty" locationName:"mirror_type"`
 }
 
 type PutBucketMirrorInput struct {

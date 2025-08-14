@@ -2,25 +2,28 @@ package s3
 
 // HTTP headers
 const (
-	HTTPHeaderAcceptEncoding        string = "Accept-Encoding"
-	HTTPHeaderAuthorization                = "Authorization"
-	HTTPHeaderCacheControl                 = "Cache-Control"
-	HTTPHeaderContentDisposition           = "Content-Disposition"
-	HTTPHeaderContentEncoding              = "Content-Encoding"
-	HTTPHeaderContentLength                = "Content-Length"
-	HTTPHeaderContentMD5                   = "Content-MD5"
-	HTTPHeaderContentType                  = "Content-Type"
-	HTTPHeaderContentLanguage              = "Content-Language"
-	HTTPHeaderLastModified                 = "Last-Modified"
-	HTTPHeaderDate                         = "Date"
-	HTTPHeaderEtag                         = "Etag"
-	HTTPHeaderExpires                      = "Expires"
-	HTTPHeaderHost                         = "Host"
-	HTTPHeaderAmzACL                       = "X-Amz-Acl"
-	HTTPHeaderAmzChecksumCrc64ecma         = "X-Amz-Checksum-Crc64ecma"
-	HTTPHeaderAmzStorageClass              = "X-Amz-Storage-Class"
-	HTTPHeaderAmzDataRedundancyType        = "X-Amz-Data-Redundancy-Type"
-	HTTPHeaderAmzZRSSwitchEnable           = "X-Amz-Zrs-Switch-Enable"
+	HTTPHeaderAcceptEncoding            string = "Accept-Encoding"
+	HTTPHeaderAuthorization                    = "Authorization"
+	HTTPHeaderCacheControl                     = "Cache-Control"
+	HTTPHeaderContentDisposition               = "Content-Disposition"
+	HTTPHeaderContentEncoding                  = "Content-Encoding"
+	HTTPHeaderContentLength                    = "Content-Length"
+	HTTPHeaderContentMD5                       = "Content-MD5"
+	HTTPHeaderContentType                      = "Content-Type"
+	HTTPHeaderContentLanguage                  = "Content-Language"
+	HTTPHeaderLastModified                     = "Last-Modified"
+	HTTPHeaderDate                             = "Date"
+	HTTPHeaderEtag                             = "Etag"
+	HTTPHeaderExpires                          = "Expires"
+	HTTPHeaderHost                             = "Host"
+	HTTPHeaderAmzACL                           = "X-Amz-Acl"
+	HTTPHeaderAmzChecksumCrc64ecma             = "X-Amz-Checksum-Crc64ecma"
+	HTTPHeaderAmzStorageClass                  = "X-Amz-Storage-Class"
+	HTTPHeaderAmzDataRedundancyType            = "X-Amz-Data-Redundancy-Type"
+	HTTPHeaderAmzZRSSwitchEnable               = "X-Amz-Zrs-Switch-Enable"
+	HTTPHeaderAmzAllowSameActionOverlap        = "X-Amz-Allow-Same-Action-Overlap"
+	HTTPHeaderAmzBucketType                    = "X-Amz-Bucket-Type"
+	HTTPHeaderAmzBucketVisitType               = "X-Amz-Bucket-Visit-Type"
 )
 
 // ACL
@@ -53,6 +56,11 @@ const (
 	BucketTypeArchive    string = "ARCHIVE"
 )
 
+const (
+	BucketVisitTypeNormal       string = "NORMAL"
+	BucketVisitTypeFrequentList string = "FREQUENTLIST"
+)
+
 type HTTPMethod string
 
 const (
@@ -76,4 +84,14 @@ const (
 const (
 	StorageMediumNormal  string = "Normal"
 	StorageMediumExtreme string = "Extreme"
+)
+
+const (
+	AlgorithmAES256 string = "AES256"
+	AlgorithmSM4    string = "SM4"
+)
+
+const (
+	StatusEnabled  string = "Enabled"
+	StatusDisabled string = "Disabled"
 )

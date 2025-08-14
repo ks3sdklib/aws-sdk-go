@@ -34,12 +34,16 @@ type BucketQosQuota struct {
 	// Extreme: SSD type storage medium
 	// Normal (default): HDD type storage medium
 	StorageMedium *string `locationName:"StorageMedium" type:"string"`
+
 	// External network upload bandwidth, in Gbps, the value must be a positive integer.
 	ExtranetUploadBandwidth *int64 `locationName:"ExtranetUploadBandwidth" type:"integer"`
+
 	// Intranet network upload bandwidth, in Gbps, the value must be a positive integer.
 	IntranetUploadBandwidth *int64 `locationName:"IntranetUploadBandwidth" type:"integer"`
+
 	// External network download bandwidth, in Gbps, the value must be a positive integer.
 	ExtranetDownloadBandwidth *int64 `locationName:"ExtranetDownloadBandwidth" type:"integer"`
+
 	// Intranet network download bandwidth, in Gbps, the value must be a positive integer.
 	IntranetDownloadBandwidth *int64 `locationName:"IntranetDownloadBandwidth" type:"integer"`
 }
@@ -47,6 +51,7 @@ type BucketQosQuota struct {
 type PutBucketQosOutput struct {
 	// The HTTP headers of the response.
 	Metadata map[string]*string `location:"headers" type:"map"`
+
 	// The HTTP status code of the response.
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
@@ -97,8 +102,10 @@ type GetBucketQosInput struct {
 type GetBucketQosOutput struct {
 	// Bucket flow control configuration container.
 	BucketQosConfiguration *BucketQosConfiguration `locationName:"BucketQosConfiguration" type:"structure"`
+
 	// The HTTP headers of the response.
 	Metadata map[string]*string `location:"headers" type:"map"`
+
 	// The HTTP status code of the response.
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 
@@ -155,6 +162,7 @@ type DeleteBucketQosInput struct {
 type DeleteBucketQosOutput struct {
 	// The HTTP headers of the response.
 	Metadata map[string]*string `location:"headers" type:"map"`
+
 	// The HTTP status code of the response.
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }

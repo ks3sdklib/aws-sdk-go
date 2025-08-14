@@ -17,10 +17,10 @@ func (s *Ks3utilCommandSuite) TestPutBucketCORSWithContext(c *C) {
 	// 配置CORS规则
 	corsConfiguration := &s3.CORSConfiguration{
 		Rules: []*s3.CORSRule{{
-			AllowedHeader: []string{"*"},
-			AllowedMethod: []string{"GET"},
-			AllowedOrigin: []string{"*"},
-			MaxAgeSeconds: 100},
+			AllowedHeaders: []string{"*"},
+			AllowedMethods: []string{"GET"},
+			AllowedOrigins: []string{"*"},
+			MaxAgeSeconds:  aws.Long(100)},
 		},
 	}
 	// put,不通过context取消
@@ -34,7 +34,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketCORSWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(awsutil.StringValue(resp.Rules), Equals, awsutil.StringValue(corsConfiguration.Rules))
+	c.Assert(awsutil.StringValue(resp.CORSConfiguration.Rules), Equals, awsutil.StringValue(corsConfiguration.Rules))
 	// delete
 	_, err = client.DeleteBucketCORSWithContext(context.Background(), &s3.DeleteBucketCORSInput{
 		Bucket: aws.String(bucket),
@@ -53,7 +53,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketCORSWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(awsutil.StringValue(resp.Rules), Equals, awsutil.StringValue([]string{}))
+	c.Assert(awsutil.StringValue(resp.CORSConfiguration.Rules), Equals, awsutil.StringValue([]string{}))
 }
 
 // GET Bucket CORS
@@ -61,10 +61,10 @@ func (s *Ks3utilCommandSuite) TestGetBucketCORSWithContext(c *C) {
 	// 配置CORS规则
 	corsConfiguration := &s3.CORSConfiguration{
 		Rules: []*s3.CORSRule{{
-			AllowedHeader: []string{"*"},
-			AllowedMethod: []string{"GET"},
-			AllowedOrigin: []string{"*"},
-			MaxAgeSeconds: 100},
+			AllowedHeaders: []string{"*"},
+			AllowedMethods: []string{"GET"},
+			AllowedOrigins: []string{"*"},
+			MaxAgeSeconds:  aws.Long(100)},
 		},
 	}
 	// put
@@ -78,7 +78,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketCORSWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(awsutil.StringValue(resp.Rules), Equals, awsutil.StringValue(corsConfiguration.Rules))
+	c.Assert(awsutil.StringValue(resp.CORSConfiguration.Rules), Equals, awsutil.StringValue(corsConfiguration.Rules))
 	// get，通过context取消
 	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
 	defer cancelFunc()
@@ -98,10 +98,10 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketCORSWithContext(c *C) {
 	// 配置CORS规则
 	corsConfiguration := &s3.CORSConfiguration{
 		Rules: []*s3.CORSRule{{
-			AllowedHeader: []string{"*"},
-			AllowedMethod: []string{"GET"},
-			AllowedOrigin: []string{"*"},
-			MaxAgeSeconds: 100},
+			AllowedHeaders: []string{"*"},
+			AllowedMethods: []string{"GET"},
+			AllowedOrigins: []string{"*"},
+			MaxAgeSeconds:  aws.Long(100)},
 		},
 	}
 	// put
@@ -115,7 +115,7 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketCORSWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(awsutil.StringValue(resp.Rules), Equals, awsutil.StringValue(corsConfiguration.Rules))
+	c.Assert(awsutil.StringValue(resp.CORSConfiguration.Rules), Equals, awsutil.StringValue(corsConfiguration.Rules))
 	// delete，通过context取消
 	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
 	defer cancelFunc()
@@ -133,19 +133,20 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketCORSWithContext(c *C) {
 // PUT Bucket Mirror
 func (s *Ks3utilCommandSuite) TestPutBucketMirrorWithContext(c *C) {
 	// 配置Mirror规则
-	BucketMirror := &s3.BucketMirror{
+	bucketMirror := &s3.BucketMirror{
 		Version:          aws.String("V3"),   //回源类型
 		UseDefaultRobots: aws.Boolean(false), //是否使用默认的robots.txt，如果为true则会在bucket下生成一个robots.txt。
 		//异步回源规则，该字段与sync_mirror_rules必须至少有一个，可同时存在。
 		AsyncMirrorRule: &s3.AsyncMirrorRule{
 			//一组源站url，数量不超过10个，url必须以http或者https开头，域名部分最多不超过256个字符，path部分最多不超过1024个字符。
 			MirrorUrls: []*string{
-				aws.String("http://abc.om"),
-				aws.String("http://abc.om"),
+				aws.String("https://example1.com"),
+				aws.String("https://example2.com"),
 			},
 			SavingSetting: &s3.SavingSetting{
 				ACL: aws.String("private"),
 			},
+			MirrorType: aws.String("V4"),
 		},
 		//一组同步回源规则，最多可配置20个。该字段与async_mirror_rule必须至少有一个，可同时存在。
 		SyncMirrorRules: []*s3.SyncMirrorRules{
@@ -162,7 +163,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketMirrorWithContext(c *C) {
 					},
 				},
 				//源站url,必须以http或者https开头，域名部分最多不超过256个字符，path部分最多不超过1024个字符。
-				MirrorURL: aws.String("http://v-ks-a-i.originalvod.com"),
+				MirrorURL: aws.String("https://v-ks-a-i.originalvod.com"),
 				//ks3请求源站时的配置，可不填。
 				MirrorRequestSetting: &s3.MirrorRequestSetting{
 					//ks3请求源站时是否将客户端请求ks3时的query string透传给源站。
@@ -201,13 +202,15 @@ func (s *Ks3utilCommandSuite) TestPutBucketMirrorWithContext(c *C) {
 				SavingSetting: &s3.SavingSetting{
 					ACL: aws.String("private"),
 				},
+				MirrorType: aws.String("V6"),
 			},
 		},
 	}
+
 	// put,不通过context取消
 	_, err := client.PutBucketMirrorWithContext(context.Background(), &s3.PutBucketMirrorInput{
 		Bucket:       aws.String(bucket),
-		BucketMirror: BucketMirror,
+		BucketMirror: bucketMirror,
 	})
 	c.Assert(err, IsNil)
 	// get
@@ -215,7 +218,31 @@ func (s *Ks3utilCommandSuite) TestPutBucketMirrorWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(awsutil.StringValue(resp.BucketMirror), Equals, awsutil.StringValue(BucketMirror))
+	c.Assert(*resp.BucketMirror.Version, Equals, "V3")
+	c.Assert(*resp.BucketMirror.UseDefaultRobots, Equals, false)
+	c.Assert(len(resp.BucketMirror.AsyncMirrorRule.MirrorUrls), Equals, 2)
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorUrls[0], Equals, "https://example1.com")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorUrls[1], Equals, "https://example2.com")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.SavingSetting.ACL, Equals, "private")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorType, Equals, "V4")
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MatchCondition.HTTPCodes[0], Equals, "404")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MatchCondition.KeyPrefixes[0], Equals, "abc")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorURL, Equals, "https://v-ks-a-i.originalvod.com")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.PassQueryString, Equals, false)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.Follow3Xx, Equals, false)
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders[0].Key, Equals, "a")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders[0].Value, Equals, "b")
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders), Equals, 2)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders[0].Key, Equals, "c")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders[1].Key, Equals, "d")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassAll, Equals, false)
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassHeaders), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassHeaders[0].Key, Equals, "key")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].SavingSetting.ACL, Equals, "private")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorType, Equals, "V6")
+
 	// delete
 	_, err = client.DeleteBucketMirrorWithContext(context.Background(), &s3.DeleteBucketMirrorInput{
 		Bucket: aws.String(bucket),
@@ -226,7 +253,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketMirrorWithContext(c *C) {
 	defer cancelFunc()
 	_, err = client.PutBucketMirrorWithContext(ctx, &s3.PutBucketMirrorInput{
 		Bucket:       aws.String(bucket),
-		BucketMirror: BucketMirror,
+		BucketMirror: bucketMirror,
 	})
 	c.Assert(err, NotNil)
 	// get
@@ -234,25 +261,26 @@ func (s *Ks3utilCommandSuite) TestPutBucketMirrorWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, NotNil)
-	c.Assert(awsutil.StringValue(resp.BucketMirror), Not(Equals), awsutil.StringValue(BucketMirror))
+	c.Assert(awsutil.StringValue(resp.BucketMirror), Not(Equals), awsutil.StringValue(bucketMirror))
 }
 
 // GET Bucket Mirror
 func (s *Ks3utilCommandSuite) TestGetBucketMirrorWithContext(c *C) {
 	// 配置Mirror规则
-	BucketMirror := &s3.BucketMirror{
+	bucketMirror := &s3.BucketMirror{
 		Version:          aws.String("V3"),   //回源类型
 		UseDefaultRobots: aws.Boolean(false), //是否使用默认的robots.txt，如果为true则会在bucket下生成一个robots.txt。
 		//异步回源规则，该字段与sync_mirror_rules必须至少有一个，可同时存在。
 		AsyncMirrorRule: &s3.AsyncMirrorRule{
 			//一组源站url，数量不超过10个，url必须以http或者https开头，域名部分最多不超过256个字符，path部分最多不超过1024个字符。
 			MirrorUrls: []*string{
-				aws.String("http://abc.om"),
-				aws.String("http://abc.om"),
+				aws.String("https://example1.com"),
+				aws.String("https://example2.com"),
 			},
 			SavingSetting: &s3.SavingSetting{
 				ACL: aws.String("private"),
 			},
+			MirrorType: aws.String("V4"),
 		},
 		//一组同步回源规则，最多可配置20个。该字段与async_mirror_rule必须至少有一个，可同时存在。
 		SyncMirrorRules: []*s3.SyncMirrorRules{
@@ -269,7 +297,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketMirrorWithContext(c *C) {
 					},
 				},
 				//源站url,必须以http或者https开头，域名部分最多不超过256个字符，path部分最多不超过1024个字符。
-				MirrorURL: aws.String("http://v-ks-a-i.originalvod.com"),
+				MirrorURL: aws.String("https://v-ks-a-i.originalvod.com"),
 				//ks3请求源站时的配置，可不填。
 				MirrorRequestSetting: &s3.MirrorRequestSetting{
 					//ks3请求源站时是否将客户端请求ks3时的query string透传给源站。
@@ -308,13 +336,15 @@ func (s *Ks3utilCommandSuite) TestGetBucketMirrorWithContext(c *C) {
 				SavingSetting: &s3.SavingSetting{
 					ACL: aws.String("private"),
 				},
+				MirrorType: aws.String("V6"),
 			},
 		},
 	}
+
 	// put
 	_, err := client.PutBucketMirrorWithContext(context.Background(), &s3.PutBucketMirrorInput{
 		Bucket:       aws.String(bucket),
-		BucketMirror: BucketMirror,
+		BucketMirror: bucketMirror,
 	})
 	c.Assert(err, IsNil)
 	// get，不通过context取消
@@ -322,7 +352,30 @@ func (s *Ks3utilCommandSuite) TestGetBucketMirrorWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(awsutil.StringValue(resp.BucketMirror), Equals, awsutil.StringValue(BucketMirror))
+	c.Assert(*resp.BucketMirror.Version, Equals, "V3")
+	c.Assert(*resp.BucketMirror.UseDefaultRobots, Equals, false)
+	c.Assert(len(resp.BucketMirror.AsyncMirrorRule.MirrorUrls), Equals, 2)
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorUrls[0], Equals, "https://example1.com")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorUrls[1], Equals, "https://example2.com")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.SavingSetting.ACL, Equals, "private")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorType, Equals, "V4")
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MatchCondition.HTTPCodes[0], Equals, "404")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MatchCondition.KeyPrefixes[0], Equals, "abc")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorURL, Equals, "https://v-ks-a-i.originalvod.com")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.PassQueryString, Equals, false)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.Follow3Xx, Equals, false)
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders[0].Key, Equals, "a")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders[0].Value, Equals, "b")
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders), Equals, 2)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders[0].Key, Equals, "c")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders[1].Key, Equals, "d")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassAll, Equals, false)
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassHeaders), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassHeaders[0].Key, Equals, "key")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].SavingSetting.ACL, Equals, "private")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorType, Equals, "V6")
 	// get，通过context取消
 	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
 	defer cancelFunc()
@@ -340,19 +393,20 @@ func (s *Ks3utilCommandSuite) TestGetBucketMirrorWithContext(c *C) {
 // Delete Bucket Mirror
 func (s *Ks3utilCommandSuite) TestDeleteBucketMirrorWithContext(c *C) {
 	// 配置Mirror规则
-	BucketMirror := &s3.BucketMirror{
+	bucketMirror := &s3.BucketMirror{
 		Version:          aws.String("V3"),   //回源类型
 		UseDefaultRobots: aws.Boolean(false), //是否使用默认的robots.txt，如果为true则会在bucket下生成一个robots.txt。
 		//异步回源规则，该字段与sync_mirror_rules必须至少有一个，可同时存在。
 		AsyncMirrorRule: &s3.AsyncMirrorRule{
 			//一组源站url，数量不超过10个，url必须以http或者https开头，域名部分最多不超过256个字符，path部分最多不超过1024个字符。
 			MirrorUrls: []*string{
-				aws.String("http://abc.om"),
-				aws.String("http://abc.om"),
+				aws.String("https://example1.com"),
+				aws.String("https://example2.com"),
 			},
 			SavingSetting: &s3.SavingSetting{
 				ACL: aws.String("private"),
 			},
+			MirrorType: aws.String("V4"),
 		},
 		//一组同步回源规则，最多可配置20个。该字段与async_mirror_rule必须至少有一个，可同时存在。
 		SyncMirrorRules: []*s3.SyncMirrorRules{
@@ -369,7 +423,7 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketMirrorWithContext(c *C) {
 					},
 				},
 				//源站url,必须以http或者https开头，域名部分最多不超过256个字符，path部分最多不超过1024个字符。
-				MirrorURL: aws.String("http://v-ks-a-i.originalvod.com"),
+				MirrorURL: aws.String("https://v-ks-a-i.originalvod.com"),
 				//ks3请求源站时的配置，可不填。
 				MirrorRequestSetting: &s3.MirrorRequestSetting{
 					//ks3请求源站时是否将客户端请求ks3时的query string透传给源站。
@@ -408,13 +462,15 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketMirrorWithContext(c *C) {
 				SavingSetting: &s3.SavingSetting{
 					ACL: aws.String("private"),
 				},
+				MirrorType: aws.String("V6"),
 			},
 		},
 	}
+
 	// put
 	_, err := client.PutBucketMirrorWithContext(context.Background(), &s3.PutBucketMirrorInput{
 		Bucket:       aws.String(bucket),
-		BucketMirror: BucketMirror,
+		BucketMirror: bucketMirror,
 	})
 	c.Assert(err, IsNil)
 	// get
@@ -422,7 +478,31 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketMirrorWithContext(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(awsutil.StringValue(resp.BucketMirror), Equals, awsutil.StringValue(BucketMirror))
+	c.Assert(*resp.BucketMirror.Version, Equals, "V3")
+	c.Assert(*resp.BucketMirror.UseDefaultRobots, Equals, false)
+	c.Assert(len(resp.BucketMirror.AsyncMirrorRule.MirrorUrls), Equals, 2)
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorUrls[0], Equals, "https://example1.com")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorUrls[1], Equals, "https://example2.com")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.SavingSetting.ACL, Equals, "private")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorType, Equals, "V4")
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MatchCondition.HTTPCodes[0], Equals, "404")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MatchCondition.KeyPrefixes[0], Equals, "abc")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorURL, Equals, "https://v-ks-a-i.originalvod.com")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.PassQueryString, Equals, false)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.Follow3Xx, Equals, false)
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders[0].Key, Equals, "a")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders[0].Value, Equals, "b")
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders), Equals, 2)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders[0].Key, Equals, "c")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders[1].Key, Equals, "d")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassAll, Equals, false)
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassHeaders), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassHeaders[0].Key, Equals, "key")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].SavingSetting.ACL, Equals, "private")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorType, Equals, "V6")
+
 	// delete，通过context取消
 	ctx, cancelFunc := context.WithTimeout(context.Background(), bucketTimeout)
 	defer cancelFunc()
@@ -453,8 +533,10 @@ func (s *Ks3utilCommandSuite) TestPutBucketLifecycleWithContext(c *C) {
 				},
 				Transitions: []*s3.Transition{
 					{
-						StorageClass: aws.String(s3.StorageClassIA),
-						Days:         aws.Long(30),
+						StorageClass:         aws.String(s3.StorageClassIA),
+						Days:                 aws.Long(30),
+						IsAccessTime:         aws.Boolean(false),
+						ReturnToStdWhenVisit: aws.Boolean(false),
 					},
 				},
 				AbortIncompleteMultipartUpload: &s3.AbortIncompleteMultipartUpload{
@@ -512,8 +594,10 @@ func (s *Ks3utilCommandSuite) TestGetBucketLifecycleWithContext(c *C) {
 				},
 				Transitions: []*s3.Transition{
 					{
-						StorageClass: aws.String(s3.StorageClassIA),
-						Days:         aws.Long(30),
+						StorageClass:         aws.String(s3.StorageClassIA),
+						Days:                 aws.Long(30),
+						IsAccessTime:         aws.Boolean(false),
+						ReturnToStdWhenVisit: aws.Boolean(false),
 					},
 				},
 				AbortIncompleteMultipartUpload: &s3.AbortIncompleteMultipartUpload{
@@ -564,8 +648,10 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketLifecycleWithContext(c *C) {
 				},
 				Transitions: []*s3.Transition{
 					{
-						StorageClass: aws.String(s3.StorageClassIA),
-						Days:         aws.Long(30),
+						StorageClass:         aws.String(s3.StorageClassIA),
+						Days:                 aws.Long(30),
+						IsAccessTime:         aws.Boolean(false),
+						ReturnToStdWhenVisit: aws.Boolean(false),
 					},
 				},
 				AbortIncompleteMultipartUpload: &s3.AbortIncompleteMultipartUpload{

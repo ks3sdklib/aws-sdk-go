@@ -12,10 +12,11 @@ func (s *Ks3utilCommandSuite) TestBucket(c *C) {
 	// 创建bucket
 	bucketName := commonNamePrefix + randLowStr(10)
 	_, err := client.CreateBucket(&s3.CreateBucketInput{
-		ACL:    aws.String("public-read"),
 		Bucket: aws.String(bucketName),
+		ACL:    aws.String(s3.ACLPublicRead),
 		//ProjectId:  aws.String("1232"), //项目ID
-		BucketType: aws.String(s3.BucketTypeNormal),
+		BucketType:      aws.String(s3.BucketTypeNormal),
+		BucketVisitType: aws.String(s3.BucketVisitTypeNormal),
 	})
 	c.Assert(err, IsNil)
 
@@ -25,21 +26,28 @@ func (s *Ks3utilCommandSuite) TestBucket(c *C) {
 	c.Assert(exist, Equals, true)
 
 	// 获取bucket信息
-	_, err = client.HeadBucket(&s3.HeadBucketInput{
+	headResp, err := client.HeadBucket(&s3.HeadBucketInput{
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
+	c.Assert(*headResp.Metadata[s3.HTTPHeaderAmzBucketType], Equals, s3.BucketTypeNormal)
+	c.Assert(*headResp.Metadata[s3.HTTPHeaderAmzBucketVisitType], Equals, s3.BucketVisitTypeNormal)
+
+	// 获取bucket列表
+	listResp, err := client.ListBuckets(&s3.ListBucketsInput{})
+	c.Assert(err, IsNil)
+	for _, bucketInfo := range listResp.Buckets {
+		if *bucketInfo.Name == bucketName {
+			c.Assert(*bucketInfo.Type, Equals, s3.BucketTypeNormal)
+			c.Assert(*bucketInfo.VisitType, Equals, s3.BucketVisitTypeNormal)
+			c.Assert(*bucketInfo.DataRedundancyType, Equals, s3.DataRedundancyTypeLRS)
+		}
+	}
 
 	// 删除bucket
 	_, err = client.DeleteBucket(&s3.DeleteBucketInput{
 		Bucket: aws.String(bucketName),
 	})
-	c.Assert(err, IsNil)
-}
-
-// TestListBuckets 获取bucket列表
-func (s *Ks3utilCommandSuite) TestListBuckets(c *C) {
-	_, err := client.ListBuckets(&s3.ListBucketsInput{})
 	c.Assert(err, IsNil)
 }
 
@@ -60,15 +68,30 @@ func (s *Ks3utilCommandSuite) TestBucketAcl(c *C) {
 
 // TestBucketLifecycle bucket lifecycle
 func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
-	// 配置生命周期规则
+	// 设置桶访问追踪配置
+	_, err := client.PutBucketAccessMonitor(&s3.PutBucketAccessMonitorInput{
+		Bucket: aws.String(bucket),
+		AccessMonitorConfiguration: &s3.AccessMonitorConfiguration{
+			Status: aws.String(s3.StatusEnabled),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取桶访问追踪配置
+	accessMonitorResp, err := client.GetBucketAccessMonitor(&s3.GetBucketAccessMonitorInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*accessMonitorResp.AccessMonitorConfiguration.Status, Equals, s3.StatusEnabled)
+
 	lifecycleConfiguration := &s3.LifecycleConfiguration{
 		Rules: []*s3.LifecycleRule{
 			{
 				ID: aws.String("rule1"),
 				Filter: &s3.LifecycleFilter{
-					Prefix: aws.String("prefix1"),
+					Prefix: aws.String("prefix1/"),
 				},
-				Status: aws.String("Enabled"),
+				Status: aws.String(s3.StatusEnabled),
 				Expiration: &s3.LifecycleExpiration{
 					Days: aws.Long(90),
 				},
@@ -82,29 +105,65 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 					DaysAfterInitiation: aws.Long(60),
 				},
 			},
+			{
+				ID: aws.String("rule2"),
+				Filter: &s3.LifecycleFilter{
+					And: &s3.And{
+						Prefix: aws.String("prefix2/"),
+						Tags: []*s3.Tag{
+							{
+								Key:   aws.String("key1"),
+								Value: aws.String("value1"),
+							},
+						},
+					},
+				},
+				Status: aws.String(s3.StatusEnabled),
+				Transitions: []*s3.Transition{
+					{
+						Days:                 aws.Long(30),
+						StorageClass:         aws.String(s3.StorageClassIA),
+						IsAccessTime:         aws.Boolean(true),
+						ReturnToStdWhenVisit: aws.Boolean(true),
+					},
+				},
+			},
 		},
 	}
-	_, err := client.PutBucketLifecycle(&s3.PutBucketLifecycleInput{
+	// 设置桶生命周期规则
+	_, err = client.PutBucketLifecycle(&s3.PutBucketLifecycleInput{
 		Bucket:                 aws.String(bucket),
 		LifecycleConfiguration: lifecycleConfiguration,
+		AllowSameActionOverlap: aws.Boolean(true),
 	})
 	c.Assert(err, IsNil)
 
-	// 获取生命周期规则
+	// 获取桶生命周期规则
 	resp, err := client.GetBucketLifecycle(&s3.GetBucketLifecycleInput{
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(len(resp.Rules), Equals, 1)
+	c.Assert(len(resp.Rules), Equals, 2)
 	c.Assert(*resp.Rules[0].ID, Equals, "rule1")
-	c.Assert(*resp.Rules[0].Filter.Prefix, Equals, "prefix1")
-	c.Assert(*resp.Rules[0].Status, Equals, "Enabled")
+	c.Assert(*resp.Rules[0].Filter.Prefix, Equals, "prefix1/")
+	c.Assert(*resp.Rules[0].Status, Equals, s3.StatusEnabled)
 	c.Assert(*resp.Rules[0].Expiration.Days, Equals, int64(90))
 	c.Assert(*resp.Rules[0].Transitions[0].StorageClass, Equals, s3.StorageClassIA)
 	c.Assert(*resp.Rules[0].Transitions[0].Days, Equals, int64(30))
 	c.Assert(*resp.Rules[0].AbortIncompleteMultipartUpload.DaysAfterInitiation, Equals, int64(60))
+	c.Assert(*resp.Rules[1].ID, Equals, "rule2")
+	c.Assert(*resp.Rules[1].Filter.And.Prefix, Equals, "prefix2/")
+	c.Assert(len(resp.Rules[1].Filter.And.Tags), Equals, 1)
+	c.Assert(*resp.Rules[1].Filter.And.Tags[0].Key, Equals, "key1")
+	c.Assert(*resp.Rules[1].Filter.And.Tags[0].Value, Equals, "value1")
+	c.Assert(*resp.Rules[1].Status, Equals, s3.StatusEnabled)
+	c.Assert(*resp.Rules[1].Transitions[0].StorageClass, Equals, s3.StorageClassIA)
+	c.Assert(*resp.Rules[1].Transitions[0].Days, Equals, int64(30))
+	c.Assert(*resp.Rules[1].Transitions[0].IsAccessTime, Equals, true)
+	c.Assert(*resp.Rules[1].Transitions[0].ReturnToStdWhenVisit, Equals, true)
+	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzAllowSameActionOverlap], Equals, "true")
 
-	// 删除生命周期规则
+	// 删除桶生命周期规则
 	_, err = client.DeleteBucketLifecycle(&s3.DeleteBucketLifecycleInput{
 		Bucket: aws.String(bucket),
 	})
@@ -117,18 +176,37 @@ func (s *Ks3utilCommandSuite) TestBucketCors(c *C) {
 	corsConfiguration := &s3.CORSConfiguration{
 		Rules: []*s3.CORSRule{
 			{
-				AllowedHeader: []string{
+				AllowedHeaders: []string{
 					"*",
 				},
-				AllowedMethod: []string{
-					"GET",
+				AllowedMethods: []string{
+					"PUT", "GET", "HEAD", "DELETE",
 				},
-				AllowedOrigin: []string{
+				AllowedOrigins: []string{
 					"*",
 				},
-				MaxAgeSeconds: 100,
+				ExposeHeaders: []string{
+					"ETag", "x-kss-meta-test",
+				},
+				MaxAgeSeconds: aws.Long(100),
+			},
+			{
+				AllowedHeaders: []string{
+					"x-kss-meta-test1", "x-kss-meta-test2",
+				},
+				AllowedMethods: []string{
+					"GET", "HEAD",
+				},
+				AllowedOrigins: []string{
+					"https://example1.com", "https://example2.com",
+				},
+				ExposeHeaders: []string{
+					"ETag", "x-kss-acl",
+				},
+				MaxAgeSeconds: aws.Long(200),
 			},
 		},
+		NonCrossOriginResponseVary: aws.Boolean(true),
 	}
 	// 设置桶的CORS配置
 	_, err := client.PutBucketCORS(&s3.PutBucketCORSInput{
@@ -138,10 +216,22 @@ func (s *Ks3utilCommandSuite) TestBucketCors(c *C) {
 	c.Assert(err, IsNil)
 
 	// 获取桶的CORS配置
-	_, err = client.GetBucketCORS(&s3.GetBucketCORSInput{
+	resp, err := client.GetBucketCORS(&s3.GetBucketCORSInput{
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
+	c.Assert(len(resp.CORSConfiguration.Rules), Equals, 2)
+	c.Assert(resp.CORSConfiguration.Rules[0].AllowedHeaders, DeepEquals, []string{"*"})
+	c.Assert(resp.CORSConfiguration.Rules[0].AllowedMethods, DeepEquals, []string{"PUT", "GET", "HEAD", "DELETE"})
+	c.Assert(resp.CORSConfiguration.Rules[0].AllowedOrigins, DeepEquals, []string{"*"})
+	c.Assert(resp.CORSConfiguration.Rules[0].ExposeHeaders, DeepEquals, []string{"ETag", "x-kss-meta-test"})
+	c.Assert(*resp.CORSConfiguration.Rules[0].MaxAgeSeconds, Equals, int64(100))
+	c.Assert(resp.CORSConfiguration.Rules[1].AllowedHeaders, DeepEquals, []string{"x-kss-meta-test1", "x-kss-meta-test2"})
+	c.Assert(resp.CORSConfiguration.Rules[1].AllowedMethods, DeepEquals, []string{"GET", "HEAD"})
+	c.Assert(resp.CORSConfiguration.Rules[1].AllowedOrigins, DeepEquals, []string{"https://example1.com", "https://example2.com"})
+	c.Assert(resp.CORSConfiguration.Rules[1].ExposeHeaders, DeepEquals, []string{"ETag", "x-kss-acl"})
+	c.Assert(*resp.CORSConfiguration.Rules[1].MaxAgeSeconds, Equals, int64(200))
+	c.Assert(*resp.CORSConfiguration.NonCrossOriginResponseVary, Equals, true)
 
 	// 删除桶的CORS配置
 	_, err = client.DeleteBucketCORS(&s3.DeleteBucketCORSInput{
@@ -179,12 +269,13 @@ func (s *Ks3utilCommandSuite) TestBucketMirror(c *C) {
 		AsyncMirrorRule: &s3.AsyncMirrorRule{
 			//一组源站url，数量不超过10个，url必须以http或者https开头，域名部分最多不超过256个字符，path部分最多不超过1024个字符。
 			MirrorUrls: []*string{
-				aws.String("http://abc.om"),
-				aws.String("http://abc.om"),
+				aws.String("https://example1.com"),
+				aws.String("https://example2.com"),
 			},
 			SavingSetting: &s3.SavingSetting{
 				ACL: aws.String("private"),
 			},
+			MirrorType: aws.String("V4"),
 		},
 		//一组同步回源规则，最多可配置20个。该字段与async_mirror_rule必须至少有一个，可同时存在。
 		SyncMirrorRules: []*s3.SyncMirrorRules{
@@ -201,7 +292,7 @@ func (s *Ks3utilCommandSuite) TestBucketMirror(c *C) {
 					},
 				},
 				//源站url,必须以http或者https开头，域名部分最多不超过256个字符，path部分最多不超过1024个字符。
-				MirrorURL: aws.String("http://v-ks-a-i.originalvod.com"),
+				MirrorURL: aws.String("https://v-ks-a-i.originalvod.com"),
 				//ks3请求源站时的配置，可不填。
 				MirrorRequestSetting: &s3.MirrorRequestSetting{
 					//ks3请求源站时是否将客户端请求ks3时的query string透传给源站。
@@ -240,6 +331,7 @@ func (s *Ks3utilCommandSuite) TestBucketMirror(c *C) {
 				SavingSetting: &s3.SavingSetting{
 					ACL: aws.String("private"),
 				},
+				MirrorType: aws.String("V6"),
 			},
 		},
 	}
@@ -257,6 +349,29 @@ func (s *Ks3utilCommandSuite) TestBucketMirror(c *C) {
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*resp.BucketMirror.Version, Equals, "V3")
+	c.Assert(*resp.BucketMirror.UseDefaultRobots, Equals, false)
+	c.Assert(len(resp.BucketMirror.AsyncMirrorRule.MirrorUrls), Equals, 2)
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorUrls[0], Equals, "https://example1.com")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorUrls[1], Equals, "https://example2.com")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.SavingSetting.ACL, Equals, "private")
+	c.Assert(*resp.BucketMirror.AsyncMirrorRule.MirrorType, Equals, "V4")
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MatchCondition.HTTPCodes[0], Equals, "404")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MatchCondition.KeyPrefixes[0], Equals, "abc")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorURL, Equals, "https://v-ks-a-i.originalvod.com")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.PassQueryString, Equals, false)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.Follow3Xx, Equals, false)
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders[0].Key, Equals, "a")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.SetHeaders[0].Value, Equals, "b")
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders), Equals, 2)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders[0].Key, Equals, "c")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.RemoveHeaders[1].Key, Equals, "d")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassAll, Equals, false)
+	c.Assert(len(resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassHeaders), Equals, 1)
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorRequestSetting.HeaderSetting.PassHeaders[0].Key, Equals, "key")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].SavingSetting.ACL, Equals, "private")
+	c.Assert(*resp.BucketMirror.SyncMirrorRules[0].MirrorType, Equals, "V6")
 
 	// 删除桶的镜像回源规则
 	_, err = client.DeleteBucketMirror(&s3.DeleteBucketMirrorInput{
@@ -336,6 +451,7 @@ func (s *Ks3utilCommandSuite) TestBucketRetention(c *C) {
 	_, err := client.PutBucketRetention(&s3.PutBucketRetentionInput{
 		Bucket: aws.String(retentionBucket),
 		RetentionConfiguration: &s3.BucketRetentionConfiguration{
+			EnableMultipleVersion: aws.Boolean(true),
 			Rule: &s3.RetentionRule{
 				Status: aws.String("Enabled"),
 				Days:   aws.Long(30),
@@ -348,6 +464,7 @@ func (s *Ks3utilCommandSuite) TestBucketRetention(c *C) {
 		Bucket: aws.String(retentionBucket),
 	})
 	c.Assert(err, IsNil)
+	c.Assert(*resp.RetentionConfiguration.EnableMultipleVersion, Equals, true)
 	c.Assert(*resp.RetentionConfiguration.Rule.Status, Equals, "Enabled")
 	c.Assert(*resp.RetentionConfiguration.Rule.Days, Equals, int64(30))
 
@@ -693,5 +810,129 @@ func (s *Ks3utilCommandSuite) TestRequesterQos(c *C) {
 	_, err = client.DeleteRequesterQos(&s3.DeleteRequesterQosInput{
 		Bucket: aws.String(bucket),
 	})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestBucketTagging(c *C) {
+	// 设置桶标签
+	_, err := client.PutBucketTagging(&s3.PutBucketTaggingInput{
+		Bucket: aws.String(bucket),
+		Tagging: &s3.Tagging{
+			TagSet: []*s3.Tag{
+				{
+					Key:   aws.String("key1"),
+					Value: aws.String("value1"),
+				},
+				{
+					Key:   aws.String("key2"),
+					Value: aws.String("value2"),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取桶标签
+	resp, err := client.GetBucketTagging(&s3.GetBucketTaggingInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.Tagging.TagSet), Equals, 2)
+	c.Assert(*resp.Tagging.TagSet[0].Key, Equals, "key1")
+	c.Assert(*resp.Tagging.TagSet[0].Value, Equals, "value1")
+	c.Assert(*resp.Tagging.TagSet[1].Key, Equals, "key2")
+	c.Assert(*resp.Tagging.TagSet[1].Value, Equals, "value2")
+
+	// 删除桶标签
+	_, err = client.DeleteBucketTagging(&s3.DeleteBucketTaggingInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestBucketEncryption(c *C) {
+	// 设置桶加密配置
+	_, err := client.PutBucketEncryption(&s3.PutBucketEncryptionInput{
+		Bucket: aws.String(bucket),
+		ServerSideEncryptionConfiguration: &s3.ServerSideEncryptionConfiguration{
+			Rule: &s3.BucketEncryptionRule{
+				ApplyServerSideEncryptionByDefault: &s3.ApplyServerSideEncryptionByDefault{
+					SSEAlgorithm: aws.String(s3.AlgorithmAES256),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取桶加密配置
+	resp, err := client.GetBucketEncryption(&s3.GetBucketEncryptionInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.ServerSideEncryptionConfiguration.Rule.ApplyServerSideEncryptionByDefault.SSEAlgorithm, Equals, s3.AlgorithmAES256)
+
+	// 删除桶加密配置
+	_, err = client.DeleteBucketEncryption(&s3.DeleteBucketEncryptionInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestBucketTransferAcceleration(c *C) {
+	// 设置桶传输加速配置
+	_, err := client.PutBucketTransferAcceleration(&s3.PutBucketTransferAccelerationInput{
+		Bucket: aws.String(bucket),
+		TransferAccelerationConfiguration: &s3.TransferAccelerationConfiguration{
+			Enabled: aws.Boolean(true),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取桶传输加速配置
+	resp, err := client.GetBucketTransferAcceleration(&s3.GetBucketTransferAccelerationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.TransferAccelerationConfiguration.Enabled, Equals, true)
+}
+
+func (s *Ks3utilCommandSuite) TestBucketVpcAccessBlock(c *C) {
+	c.Skip("Skip TestBucketVpcAccessBlock")
+	// 设置阻止VPC访问配置
+	_, err := client.PutVpcAccessBlock(&s3.PutVpcAccessBlockInput{
+		VpcAccessBlockConfiguration: &s3.VpcAccessBlockConfiguration{
+			Rules: []*s3.VpcAccessBlockRule{
+				{
+					RuleID: aws.String("rule-1"),
+					Region: aws.String("cn-beijing-6"),
+					VPC: &s3.VPC{
+						IDs: []string{"vpc-1", "vpc-2"},
+					},
+					BucketAllowAccess: &s3.BucketAllowAccess{
+						Names: []string{"bucket1", "bucket2"},
+					},
+					Status: aws.String(s3.StatusEnabled),
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取阻止VPC访问配置
+	resp, err := client.GetVpcAccessBlock(&s3.GetVpcAccessBlockInput{})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.VpcAccessBlockConfiguration.Rules), Equals, 1)
+	c.Assert(*resp.VpcAccessBlockConfiguration.Rules[0].RuleID, Equals, "rule-1")
+	c.Assert(*resp.VpcAccessBlockConfiguration.Rules[0].Region, Equals, "cn-beijing-6")
+	c.Assert(len(resp.VpcAccessBlockConfiguration.Rules[0].VPC.IDs), Equals, 2)
+	c.Assert(resp.VpcAccessBlockConfiguration.Rules[0].VPC.IDs[0], Equals, "vpc-1")
+	c.Assert(resp.VpcAccessBlockConfiguration.Rules[0].VPC.IDs[1], Equals, "vpc-2")
+	c.Assert(len(resp.VpcAccessBlockConfiguration.Rules[0].BucketAllowAccess.Names), Equals, 2)
+	c.Assert(resp.VpcAccessBlockConfiguration.Rules[0].BucketAllowAccess.Names[0], Equals, "bucket1")
+	c.Assert(resp.VpcAccessBlockConfiguration.Rules[0].BucketAllowAccess.Names[1], Equals, "bucket2")
+	c.Assert(*resp.VpcAccessBlockConfiguration.Rules[0].Status, Equals, s3.StatusEnabled)
+
+	// 删除阻止VPC访问配置
+	_, err = client.DeleteVpcAccessBlock(&s3.DeleteVpcAccessBlockInput{})
 	c.Assert(err, IsNil)
 }
