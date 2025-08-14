@@ -63,7 +63,7 @@ type LifecycleFilter struct {
 
 type And struct {
 	Prefix *string `type:"string"`
-	Tag    []*Tag  `locationNameList:"Tag" type:"list" flattened:"true"`
+	Tags    []*Tag  `locationNameList:"Tag" type:"list" flattened:"true"`
 }
 
 type LifecycleExpiration struct {

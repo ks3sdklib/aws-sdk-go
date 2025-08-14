@@ -110,7 +110,7 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 				Filter: &s3.LifecycleFilter{
 					And: &s3.And{
 						Prefix: aws.String("prefix2/"),
-						Tag: []*s3.Tag{
+						Tags: []*s3.Tag{
 							{
 								Key:   aws.String("key1"),
 								Value: aws.String("value1"),
@@ -153,9 +153,9 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 	c.Assert(*resp.Rules[0].AbortIncompleteMultipartUpload.DaysAfterInitiation, Equals, int64(60))
 	c.Assert(*resp.Rules[1].ID, Equals, "rule2")
 	c.Assert(*resp.Rules[1].Filter.And.Prefix, Equals, "prefix2/")
-	c.Assert(len(resp.Rules[1].Filter.And.Tag), Equals, 1)
-	c.Assert(*resp.Rules[1].Filter.And.Tag[0].Key, Equals, "key1")
-	c.Assert(*resp.Rules[1].Filter.And.Tag[0].Value, Equals, "value1")
+	c.Assert(len(resp.Rules[1].Filter.And.Tags), Equals, 1)
+	c.Assert(*resp.Rules[1].Filter.And.Tags[0].Key, Equals, "key1")
+	c.Assert(*resp.Rules[1].Filter.And.Tags[0].Value, Equals, "value1")
 	c.Assert(*resp.Rules[1].Status, Equals, s3.StatusEnabled)
 	c.Assert(*resp.Rules[1].Transitions[0].StorageClass, Equals, s3.StorageClassIA)
 	c.Assert(*resp.Rules[1].Transitions[0].Days, Equals, int64(30))
