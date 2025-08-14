@@ -42,12 +42,6 @@ type LifecycleRule struct {
 	// is not currently being applied.
 	Status *string `type:"string" required:"true"`
 
-	// Specifies the prefix that matches the lifecycle rules.
-	Prefix *string `type:"string"`
-
-	// Specifies the tags that match the lifecycle rules.
-	Tags []*Tag `locationNameList:"Tag" type:"list" flattened:"true"`
-
 	// Specifies the prefix, each Rule can only have one Filter, and the prefixes of different
 	// Rules cannot conflict.
 	Filter *LifecycleFilter `type:"structure"`
