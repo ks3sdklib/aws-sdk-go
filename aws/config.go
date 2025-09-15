@@ -31,6 +31,7 @@ const DefaultMaxRetries = 3
 var DefaultConfig = &Config{
 	Credentials:                    DefaultChainCredentials,
 	Endpoint:                       "",
+	Ks3BillEndpoint:                "ks3bill.api.ksyun.com",
 	Region:                         "",
 	DisableSSL:                     false,
 	ManualSend:                     false,
@@ -55,6 +56,7 @@ var DefaultConfig = &Config{
 type Config struct {
 	Credentials                    *credentials.Credentials
 	Endpoint                       string
+	Ks3BillEndpoint                string
 	Region                         string
 	DisableSSL                     bool
 	ManualSend                     bool
@@ -80,6 +82,7 @@ func (c Config) Copy() Config {
 	dst := Config{}
 	dst.Credentials = c.Credentials
 	dst.Endpoint = c.Endpoint
+	dst.Ks3BillEndpoint = c.Ks3BillEndpoint
 	dst.Region = c.Region
 	dst.DisableSSL = c.DisableSSL
 	dst.ManualSend = c.ManualSend
@@ -123,6 +126,12 @@ func (c Config) Merge(newcfg *Config) *Config {
 		cfg.Endpoint = newcfg.Endpoint
 	} else {
 		cfg.Endpoint = c.Endpoint
+	}
+
+	if newcfg.Ks3BillEndpoint != "" {
+		cfg.Ks3BillEndpoint = newcfg.Ks3BillEndpoint
+	} else {
+		cfg.Ks3BillEndpoint = c.Ks3BillEndpoint
 	}
 
 	if newcfg.Region != "" {
