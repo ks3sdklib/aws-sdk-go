@@ -16,7 +16,7 @@ type QueryKs3DataInput struct {
 	DateType *string `location:"querystring" locationName:"DateType" type:"string"`
 
 	// 存储空间名称，最多支持同时查询5个存储桶的用量明细
-	BucketNames []string `location:"querystrings" locationName:"Bucketname" type:"string" required:"true"`
+	BucketNames []string `location:"querystrings" locationName:"Bucketname" type:"list" required:"true"`
 
 	// 可以查询单个或多个计费项，如果不填，则查询除带宽外的所有计费项
 	// DataSize：存储量
@@ -38,13 +38,13 @@ type QueryKs3DataInput struct {
 	// IntranetFlowUp：内网上行流量
 	// IntranetFlowDown：内网下行流量
 	// ObjectNum：桶内的对象数量
-	Ks3Products []string `location:"querystrings" locationName:"Ks3Product" type:"string"`
+	Ks3Products []string `location:"querystrings" locationName:"Ks3Product" type:"list"`
 
 	// 可以查询单个或多个统计项的流量情况，可选值：Object、Referer、IP、UA，返回TOP200数据
-	Transfers []string `location:"querystrings" locationName:"Transfer" type:"string"`
+	Transfers []string `location:"querystrings" locationName:"Transfer" type:"list"`
 
 	// 可以查询单个或多个统计项的请求次数情况，可选值：Object、Referer、IP、UA，返回TOP200数据
-	Requests []string `location:"querystrings" locationName:"Request" type:"string"`
+	Requests []string `location:"querystrings" locationName:"Request" type:"list"`
 }
 
 type QueryKs3DataOutput struct {
@@ -336,7 +336,7 @@ type QueryBucketRankInput struct {
 	// Flow：外网下行流量
 	// RequestsGet：GET类请求次数
 	// RequestsPut：PUT类请求次数
-	Ks3Products []string `location:"querystrings" locationName:"Ks3Product" type:"string"`
+	Ks3Products []string `location:"querystrings" locationName:"Ks3Product" type:"list"`
 
 	// TOP排序的Bucket数量，取值范围为[1-500]，默认值为200
 	Number *int64 `location:"querystring" locationName:"Number" type:"integer"`
