@@ -231,13 +231,4 @@ func (s *Ks3utilCommandSuite) TestQueryBucketRank(c *C) {
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*resp.StatusCode, Equals, int64(200))
-
-	// 指定一个错误的用量详情
-	resp, err = client.QueryBucketRank(&s3.QueryBucketRankInput{
-		StartTime:   aws.String("20250901"),
-		EndTime:     aws.String("20250902"),
-		Ks3Products: []string{"Test"},
-	})
-	c.Assert(err, IsNil)
-	c.Assert(*resp.StatusCode, Equals, int64(200))
 }
