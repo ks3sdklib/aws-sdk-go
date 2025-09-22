@@ -1,6 +1,7 @@
 package query
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/internal/apierr"
@@ -18,17 +19,60 @@ type XmlErrorResponse struct {
 	RequestID  string   `xml:"RequestId"`
 }
 
+type Ks3BillJsonErrorResponse struct {
+	XMLName   xml.Name `xml:"Error"`
+	Code      string   `xml:"Code"`
+	Message   string   `xml:"Message"`
+	RequestID string   `xml:"RequestId"`
+}
+
+type Ks3BillXmlErrorResponse struct {
+	XMLName   xml.Name        `xml:"ErrorResponse"`
+	RequestID string          `xml:"RequestId"`
+	Error     Ks3BillXmlError `xml:"Error"`
+}
+
+type Ks3BillXmlError struct {
+	XMLName xml.Name `xml:"Error"`
+	Code    string   `xml:"Code"`
+	Message string   `xml:"Message"`
+}
+
 // UnmarshalError unmarshal an error response for an AWS Query service.
 func UnmarshalError(r *aws.Request) {
 	defer r.HTTPResponse.Body.Close()
 
-	resp := &XmlErrorResponse{}
 	body, err := io.ReadAll(r.HTTPResponse.Body)
 	if err != nil {
 		r.Error = apierr.New("Unmarshal", "failed to read body", err)
 		return
 	}
 
+	if r.RequestType == "ks3bill" {
+		if strings.Contains(r.HTTPResponse.Header.Get("Content-Type"), "application/xml") {
+			resp := &Ks3BillXmlErrorResponse{}
+			err = xml.Unmarshal(body, &resp)
+			if err != nil && err != io.EOF {
+				r.Error = apierr.New("Unmarshal", "failed to decode ks3bill xml error response", err)
+				return
+			}
+
+			r.Error = apierr.NewRequestError(apierr.New(resp.Error.Code, resp.Error.Message, nil), r.HTTPResponse.StatusCode, resp.RequestID)
+			return
+		}
+
+		resp := &Ks3BillJsonErrorResponse{}
+		err = json.Unmarshal(body, &resp)
+		if err != nil && err != io.EOF {
+			r.Error = apierr.New("Unmarshal", "failed to decode ks3bill json error response", err)
+			return
+		}
+
+		r.Error = apierr.NewRequestError(apierr.New(resp.Code, resp.Message, nil), r.HTTPResponse.StatusCode, resp.RequestID)
+		return
+	}
+
+	resp := &XmlErrorResponse{}
 	// 如果响应类型是html，则解析html文本
 	if strings.Contains(r.HTTPResponse.Header.Get("Content-Type"), "text/html") {
 		// 获取HTML文本中title标签的内容

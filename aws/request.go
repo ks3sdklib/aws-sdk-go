@@ -36,6 +36,7 @@ type Request struct {
 	Crc64        hash.Hash64
 	ProgressFn   ProgressFunc
 	ContentType  string
+	RequestType  string
 }
 
 // An Operation is the service API operation to be made.

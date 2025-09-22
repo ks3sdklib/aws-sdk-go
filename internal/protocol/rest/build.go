@@ -167,6 +167,8 @@ func buildLocationElements(r *aws.Request, v reflect.Value) {
 				buildURI(r, m, name)
 			case "querystring":
 				buildQueryString(r, m, name, query)
+			case "querystrings":
+				buildQueryStrings(r, m, name, query)
 			}
 		}
 		if r.Error != nil {
@@ -290,6 +292,23 @@ func buildQueryString(r *aws.Request, v reflect.Value, name string, query url.Va
 		query.Set(name, *str)
 	} else if str == nil {
 		query.Set(name, "")
+	}
+}
+
+func buildQueryStrings(r *aws.Request, v reflect.Value, name string, query url.Values) {
+	if v.Kind() == reflect.Slice {
+		var valSlice []string
+		for i := 0; i < v.Len(); i++ {
+			str, err := convertType(v.Index(i))
+			if err != nil {
+				r.Error = apierr.New("Marshal", "failed to encode REST request", err)
+				return
+			}
+			valSlice = append(valSlice, *str)
+		}
+		if len(valSlice) > 0 {
+			query.Set(name, strings.Join(valSlice, ","))
+		}
 	}
 }
 
