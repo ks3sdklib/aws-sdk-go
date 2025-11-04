@@ -703,18 +703,15 @@ func (s *Ks3utilCommandSuite) TestBucketQos(c *C) {
 		BucketQosConfiguration: &s3.BucketQosConfiguration{
 			Quotas: []*s3.BucketQosQuota{
 				{
-					StorageMedium:             aws.String(s3.StorageMediumNormal),
-					ExtranetUploadBandwidth:   aws.Long(10),
-					IntranetUploadBandwidth:   aws.Long(10),
-					ExtranetDownloadBandwidth: aws.Long(10),
-					IntranetDownloadBandwidth: aws.Long(10),
-				},
-				{
-					StorageMedium:             aws.String(s3.StorageMediumExtreme),
-					ExtranetUploadBandwidth:   aws.Long(10),
-					IntranetUploadBandwidth:   aws.Long(10),
-					ExtranetDownloadBandwidth: aws.Long(10),
-					IntranetDownloadBandwidth: aws.Long(10),
+					StorageMedium:                   aws.String(s3.StorageMediumNormal),
+					ExtranetUploadBandwidth:         aws.Long(10),
+					IntranetUploadBandwidth:         aws.Long(10),
+					ExtranetDownloadBandwidth:       aws.Long(10),
+					IntranetDownloadBandwidth:       aws.Long(10),
+					OccupyExtranetUploadBandwidth:   aws.Long(10),
+					OccupyIntranetUploadBandwidth:   aws.Long(10),
+					OccupyExtranetDownloadBandwidth: aws.Long(10),
+					OccupyIntranetDownloadBandwidth: aws.Long(10),
 				},
 			},
 		},
@@ -726,17 +723,16 @@ func (s *Ks3utilCommandSuite) TestBucketQos(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(len(resp.BucketQosConfiguration.Quotas), Equals, 2)
+	c.Assert(len(resp.BucketQosConfiguration.Quotas), Equals, 1)
 	c.Assert(*resp.BucketQosConfiguration.Quotas[0].StorageMedium, Equals, s3.StorageMediumNormal)
 	c.Assert(*resp.BucketQosConfiguration.Quotas[0].ExtranetUploadBandwidth, Equals, int64(10))
 	c.Assert(*resp.BucketQosConfiguration.Quotas[0].IntranetUploadBandwidth, Equals, int64(10))
 	c.Assert(*resp.BucketQosConfiguration.Quotas[0].ExtranetDownloadBandwidth, Equals, int64(10))
 	c.Assert(*resp.BucketQosConfiguration.Quotas[0].IntranetDownloadBandwidth, Equals, int64(10))
-	c.Assert(*resp.BucketQosConfiguration.Quotas[1].StorageMedium, Equals, s3.StorageMediumExtreme)
-	c.Assert(*resp.BucketQosConfiguration.Quotas[1].ExtranetUploadBandwidth, Equals, int64(10))
-	c.Assert(*resp.BucketQosConfiguration.Quotas[1].IntranetUploadBandwidth, Equals, int64(10))
-	c.Assert(*resp.BucketQosConfiguration.Quotas[1].ExtranetDownloadBandwidth, Equals, int64(10))
-	c.Assert(*resp.BucketQosConfiguration.Quotas[1].IntranetDownloadBandwidth, Equals, int64(10))
+	c.Assert(*resp.BucketQosConfiguration.Quotas[0].OccupyExtranetUploadBandwidth, Equals, int64(10))
+	c.Assert(*resp.BucketQosConfiguration.Quotas[0].OccupyIntranetUploadBandwidth, Equals, int64(10))
+	c.Assert(*resp.BucketQosConfiguration.Quotas[0].OccupyExtranetDownloadBandwidth, Equals, int64(10))
+	c.Assert(*resp.BucketQosConfiguration.Quotas[0].OccupyIntranetDownloadBandwidth, Equals, int64(10))
 
 	// 删除桶流控配置
 	_, err = client.DeleteBucketQos(&s3.DeleteBucketQosInput{
@@ -757,11 +753,15 @@ func (s *Ks3utilCommandSuite) TestRequesterQos(c *C) {
 					Krn:      aws.String("12345678/user1"),
 					Quotas: []*s3.BucketQosQuota{
 						{
-							StorageMedium:             aws.String(s3.StorageMediumNormal),
-							ExtranetUploadBandwidth:   aws.Long(1),
-							IntranetUploadBandwidth:   aws.Long(1),
-							ExtranetDownloadBandwidth: aws.Long(1),
-							IntranetDownloadBandwidth: aws.Long(1),
+							StorageMedium:                   aws.String(s3.StorageMediumNormal),
+							ExtranetUploadBandwidth:         aws.Long(1),
+							IntranetUploadBandwidth:         aws.Long(1),
+							ExtranetDownloadBandwidth:       aws.Long(1),
+							IntranetDownloadBandwidth:       aws.Long(1),
+							OccupyExtranetUploadBandwidth:   aws.Long(1),
+							OccupyIntranetUploadBandwidth:   aws.Long(1),
+							OccupyExtranetDownloadBandwidth: aws.Long(1),
+							OccupyIntranetDownloadBandwidth: aws.Long(1),
 						},
 					},
 				},
@@ -770,11 +770,15 @@ func (s *Ks3utilCommandSuite) TestRequesterQos(c *C) {
 					Krn:      aws.String("12345678/role1"),
 					Quotas: []*s3.BucketQosQuota{
 						{
-							StorageMedium:             aws.String(s3.StorageMediumExtreme),
-							ExtranetUploadBandwidth:   aws.Long(1),
-							IntranetUploadBandwidth:   aws.Long(1),
-							ExtranetDownloadBandwidth: aws.Long(1),
-							IntranetDownloadBandwidth: aws.Long(1),
+							StorageMedium:                   aws.String(s3.StorageMediumNormal),
+							ExtranetUploadBandwidth:         aws.Long(1),
+							IntranetUploadBandwidth:         aws.Long(1),
+							ExtranetDownloadBandwidth:       aws.Long(1),
+							IntranetDownloadBandwidth:       aws.Long(1),
+							OccupyExtranetUploadBandwidth:   aws.Long(1),
+							OccupyIntranetUploadBandwidth:   aws.Long(1),
+							OccupyExtranetDownloadBandwidth: aws.Long(1),
+							OccupyIntranetDownloadBandwidth: aws.Long(1),
 						},
 					},
 				},
@@ -797,14 +801,22 @@ func (s *Ks3utilCommandSuite) TestRequesterQos(c *C) {
 	c.Assert(*resp.RequesterQosConfiguration.Rules[0].Quotas[0].IntranetUploadBandwidth, Equals, int64(1))
 	c.Assert(*resp.RequesterQosConfiguration.Rules[0].Quotas[0].ExtranetDownloadBandwidth, Equals, int64(1))
 	c.Assert(*resp.RequesterQosConfiguration.Rules[0].Quotas[0].IntranetDownloadBandwidth, Equals, int64(1))
+	c.Assert(*resp.RequesterQosConfiguration.Rules[0].Quotas[0].OccupyExtranetUploadBandwidth, Equals, int64(1))
+	c.Assert(*resp.RequesterQosConfiguration.Rules[0].Quotas[0].OccupyIntranetUploadBandwidth, Equals, int64(1))
+	c.Assert(*resp.RequesterQosConfiguration.Rules[0].Quotas[0].OccupyExtranetDownloadBandwidth, Equals, int64(1))
+	c.Assert(*resp.RequesterQosConfiguration.Rules[0].Quotas[0].OccupyIntranetDownloadBandwidth, Equals, int64(1))
 	c.Assert(*resp.RequesterQosConfiguration.Rules[1].UserType, Equals, "Role")
 	c.Assert(*resp.RequesterQosConfiguration.Rules[1].Krn, Equals, "12345678/role1")
 	c.Assert(len(resp.RequesterQosConfiguration.Rules[1].Quotas), Equals, 1)
-	c.Assert(*resp.RequesterQosConfiguration.Rules[1].Quotas[0].StorageMedium, Equals, s3.StorageMediumExtreme)
+	c.Assert(*resp.RequesterQosConfiguration.Rules[1].Quotas[0].StorageMedium, Equals, s3.StorageMediumNormal)
 	c.Assert(*resp.RequesterQosConfiguration.Rules[1].Quotas[0].ExtranetUploadBandwidth, Equals, int64(1))
 	c.Assert(*resp.RequesterQosConfiguration.Rules[1].Quotas[0].IntranetUploadBandwidth, Equals, int64(1))
 	c.Assert(*resp.RequesterQosConfiguration.Rules[1].Quotas[0].ExtranetDownloadBandwidth, Equals, int64(1))
 	c.Assert(*resp.RequesterQosConfiguration.Rules[1].Quotas[0].IntranetDownloadBandwidth, Equals, int64(1))
+	c.Assert(*resp.RequesterQosConfiguration.Rules[1].Quotas[0].OccupyExtranetUploadBandwidth, Equals, int64(1))
+	c.Assert(*resp.RequesterQosConfiguration.Rules[1].Quotas[0].OccupyIntranetUploadBandwidth, Equals, int64(1))
+	c.Assert(*resp.RequesterQosConfiguration.Rules[1].Quotas[0].OccupyExtranetDownloadBandwidth, Equals, int64(1))
+	c.Assert(*resp.RequesterQosConfiguration.Rules[1].Quotas[0].OccupyIntranetDownloadBandwidth, Equals, int64(1))
 
 	// 删除请求者流控配置
 	_, err = client.DeleteRequesterQos(&s3.DeleteRequesterQosInput{

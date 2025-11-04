@@ -46,6 +46,18 @@ type BucketQosQuota struct {
 
 	// Intranet network download bandwidth, in Gbps, the value must be a positive integer.
 	IntranetDownloadBandwidth *int64 `locationName:"IntranetDownloadBandwidth" type:"integer"`
+
+	// The occupied extranet upload bandwidth, in Gbps, the value must be a positive integer.
+	OccupyExtranetUploadBandwidth *int64 `locationName:"OccupyExtranetUploadBandwidth" type:"integer"`
+
+	// The occupied intranet upload bandwidth, in Gbps, the value must be a positive integer.
+	OccupyIntranetUploadBandwidth *int64 `locationName:"OccupyIntranetUploadBandwidth" type:"integer"`
+
+	// The occupied extranet download bandwidth, in Gbps, the value must be a positive integer.
+	OccupyExtranetDownloadBandwidth *int64 `locationName:"OccupyExtranetDownloadBandwidth" type:"integer"`
+
+	// The occupied intranet download bandwidth, in Gbps, the value must be a positive integer.
+	OccupyIntranetDownloadBandwidth *int64 `locationName:"OccupyIntranetDownloadBandwidth" type:"integer"`
 }
 
 type PutBucketQosOutput struct {
