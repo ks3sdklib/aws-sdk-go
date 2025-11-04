@@ -77,6 +77,9 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 	})
 	c.Assert(err, IsNil)
 
+	// 等待配置生效
+	time.Sleep(time.Second * 60)
+
 	// 获取桶访问追踪配置
 	accessMonitorResp, err := client.GetBucketAccessMonitor(&s3.GetBucketAccessMonitorInput{
 		Bucket: aws.String(bucket),
