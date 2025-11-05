@@ -49,6 +49,8 @@ type S3API interface {
 
 	DeleteVpcAccessBlock(*s3.DeleteVpcAccessBlockInput) (*s3.DeleteVpcAccessBlockOutput, error)
 
+	DeleteBucketQuota(*s3.DeleteBucketQuotaInput) (*s3.DeleteBucketQuotaOutput, error)
+
 	DeleteObject(*s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 
 	DeleteObjects(*s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
@@ -98,6 +100,8 @@ type S3API interface {
 	GetBucketTransferAcceleration(*s3.GetBucketTransferAccelerationInput) (*s3.GetBucketTransferAccelerationOutput, error)
 
 	GetVpcAccessBlock(*s3.GetVpcAccessBlockInput) (*s3.GetVpcAccessBlockOutput, error)
+
+	GetBucketQuota(*s3.GetBucketQuotaInput) (*s3.GetBucketQuotaOutput, error)
 
 	GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error)
 
@@ -166,6 +170,8 @@ type S3API interface {
 	PutBucketTransferAcceleration(*s3.PutBucketTransferAccelerationInput) (*s3.PutBucketTransferAccelerationOutput, error)
 
 	PutVpcAccessBlock(*s3.PutVpcAccessBlockInput) (*s3.PutVpcAccessBlockOutput, error)
+
+	PutBucketQuota(*s3.PutBucketQuotaInput) (*s3.PutBucketQuotaOutput, error)
 
 	PutObject(*s3.PutObjectInput) (*s3.PutObjectOutput, error)
 

@@ -74,6 +74,7 @@ var signQuerys = map[string]bool{
 	"accessmonitor":                true,
 	"transferAcceleration":         true,
 	"VpcAccessBlock":               true,
+	"quota":                        true,
 }
 
 type signer struct {
