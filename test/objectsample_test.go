@@ -1592,3 +1592,190 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithExtendQueryParams(c *C) {
 	s.DeleteObject(object, c)
 	os.Remove(object)
 }
+
+func (s *Ks3utilCommandSuite) TestObjectMigration(c *C) {
+	c.Skip("Skip TestObjectMigration")
+	var cre = credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "")
+	client := s3.New(&aws.Config{
+		Credentials: cre,
+		Region:      "BEIJING",
+		Endpoint:    "ks3-extreme-cn-beijing-internal.ksyuncs.com",
+	})
+	srcBucketName := "test-bucket1"
+	srcObjectKey := "test-file1"
+	dstBucketName := "test-bucket2"
+	dstObjectKey := "test-file2"
+
+	// 上传源对象
+	_, err := client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(srcBucketName),
+		Key:    aws.String(srcObjectKey),
+		Body:   strings.NewReader(content),
+	})
+	c.Assert(err, IsNil)
+
+	// 创建迁移任务
+	_, err = client.PutObjectMigration(&s3.PutObjectMigrationInput{
+		SourceBucket: aws.String(srcBucketName),
+		SourceKey:    aws.String(srcObjectKey),
+		Bucket:       aws.String(dstBucketName),
+		Key:          aws.String(dstObjectKey),
+		StorageClass: aws.String(s3.StorageClassIA),
+	})
+	c.Assert(err, IsNil)
+
+	// 等待迁移任务完成
+	time.Sleep(time.Second * 3)
+
+	// 查看迁移任务状态
+	resp, err := client.GetObjectMigration(&s3.GetObjectMigrationInput{
+		Bucket: aws.String(dstBucketName),
+		Key:    aws.String(dstObjectKey),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.MigrationConfiguration.Status, Equals, "Succeed")
+
+	// 查看目标对象是否存在
+	headResp, err := client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(dstBucketName),
+		Key:    aws.String(dstObjectKey),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*headResp.Metadata[s3.HTTPHeaderAmzStorageClass], Equals, s3.StorageClassIA)
+
+	// 删除源对象
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(srcBucketName),
+		Key:    aws.String(srcObjectKey),
+	})
+	c.Assert(err, IsNil)
+
+	// 删除目标对象
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(dstBucketName),
+		Key:    aws.String(dstObjectKey),
+	})
+	c.Assert(err, IsNil)
+
+	// 上传源对象，设置服务端加密
+	putResp, err := client.PutObject(&s3.PutObjectInput{
+		Bucket:               aws.String(srcBucketName),
+		Key:                  aws.String(srcObjectKey),
+		Body:                 strings.NewReader(content),
+		ServerSideEncryption: aws.String(s3.AlgorithmAES256),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*putResp.ServerSideEncryption, Equals, s3.AlgorithmAES256)
+
+	// 创建迁移任务
+	_, err = client.PutObjectMigration(&s3.PutObjectMigrationInput{
+		SourceBucket:         aws.String(srcBucketName),
+		SourceKey:            aws.String(srcObjectKey),
+		Bucket:               aws.String(dstBucketName),
+		Key:                  aws.String(dstObjectKey),
+		ServerSideEncryption: aws.String(s3.AlgorithmAES256),
+		StorageClass:         aws.String(s3.StorageClassIA),
+	})
+	c.Assert(err, IsNil)
+
+	// 等待迁移任务完成
+	time.Sleep(time.Second * 3)
+
+	// 查看迁移任务状态
+	resp, err = client.GetObjectMigration(&s3.GetObjectMigrationInput{
+		Bucket: aws.String(dstBucketName),
+		Key:    aws.String(dstObjectKey),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.MigrationConfiguration.Status, Equals, "Succeed")
+
+	// 查看目标对象是否存在
+	headResp, err = client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(dstBucketName),
+		Key:    aws.String(dstObjectKey),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*headResp.Metadata[s3.HTTPHeaderAmzStorageClass], Equals, s3.StorageClassIA)
+	c.Assert(*headResp.ServerSideEncryption, Equals, s3.AlgorithmAES256)
+
+	// 删除源对象
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(srcBucketName),
+		Key:    aws.String(srcObjectKey),
+	})
+	c.Assert(err, IsNil)
+
+	// 	// 删除目标对象
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(dstBucketName),
+		Key:    aws.String(dstObjectKey),
+	})
+	c.Assert(err, IsNil)
+
+	// 上传源对象，设置客户端加密
+	putResp, err = client.PutObject(&s3.PutObjectInput{
+		Bucket:               aws.String(srcBucketName),
+		Key:                  aws.String(srcObjectKey),
+		Body:                 strings.NewReader(content),
+		SSECustomerAlgorithm: aws.String(s3.AlgorithmAES256),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*putResp.SSECustomerAlgorithm, Equals, s3.AlgorithmAES256)
+	c.Assert(*putResp.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
+
+	// 创建迁移任务
+	_, err = client.PutObjectMigration(&s3.PutObjectMigrationInput{
+		SourceBucket:               aws.String(srcBucketName),
+		SourceKey:                  aws.String(srcObjectKey),
+		Bucket:                     aws.String(dstBucketName),
+		Key:                        aws.String(dstObjectKey),
+		SourceSSECustomerAlgorithm: aws.String(s3.AlgorithmAES256),
+		SourceSSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SourceSSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
+		SSECustomerAlgorithm:       aws.String(s3.AlgorithmAES256),
+		SSECustomerKey:             aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:          aws.String(s3.GetBase64MD5Str(customerKey)),
+		StorageClass:               aws.String(s3.StorageClassIA),
+	})
+	c.Assert(err, IsNil)
+
+	// 等待迁移任务完成
+	time.Sleep(time.Second * 3)
+
+	// 查看迁移任务状态
+	resp, err = client.GetObjectMigration(&s3.GetObjectMigrationInput{
+		Bucket: aws.String(dstBucketName),
+		Key:    aws.String(dstObjectKey),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.MigrationConfiguration.Status, Equals, "Succeed")
+
+	// 查看目标对象是否存在
+	headResp, err = client.HeadObject(&s3.HeadObjectInput{
+		Bucket:               aws.String(dstBucketName),
+		Key:                  aws.String(dstObjectKey),
+		SSECustomerAlgorithm: aws.String(s3.AlgorithmAES256),
+		SSECustomerKey:       aws.String(s3.GetBase64Str(customerKey)),
+		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*headResp.Metadata[s3.HTTPHeaderAmzStorageClass], Equals, s3.StorageClassIA)
+	c.Assert(*headResp.SSECustomerAlgorithm, Equals, s3.AlgorithmAES256)
+	c.Assert(*headResp.SSECustomerKeyMD5, Equals, s3.GetBase64MD5Str(customerKey))
+
+	// 删除源对象
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(srcBucketName),
+		Key:    aws.String(srcObjectKey),
+	})
+	c.Assert(err, IsNil)
+
+	// 	// 删除目标对象
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(dstBucketName),
+		Key:    aws.String(dstObjectKey),
+	})
+	c.Assert(err, IsNil)
+}

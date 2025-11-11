@@ -105,6 +105,8 @@ type S3API interface {
 
 	GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error)
 
+	GetObjectMigration(*s3.GetObjectMigrationInput) (*s3.GetObjectMigrationOutput, error)
+
 	GetObjectACL(*s3.GetObjectACLInput) (*s3.GetObjectACLOutput, error)
 
 	GetObjectTorrent(*s3.GetObjectTorrentInput) (*s3.GetObjectTorrentOutput, error)
@@ -172,6 +174,8 @@ type S3API interface {
 	PutBucketQuota(*s3.PutBucketQuotaInput) (*s3.PutBucketQuotaOutput, error)
 
 	PutObject(*s3.PutObjectInput) (*s3.PutObjectOutput, error)
+
+	PutObjectMigration(*s3.PutObjectMigrationInput) (*s3.PutObjectMigrationOutput, error)
 
 	PutObjectACL(*s3.PutObjectACLInput) (*s3.PutObjectACLOutput, error)
 
