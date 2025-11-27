@@ -59,8 +59,7 @@ func (c *S3) GenerateShareUrl(input *GenerateShareUrlInput) (string, error) {
 		input.ExtendQueryParams = make(map[string]*string)
 	}
 
-	output := &GeneratePresignedUrlOutput{}
-	req := c.newRequest(op, input, output)
+	req := c.newRequest(op, input, nil)
 	req.SignType = "share"
 
 	var policy string
@@ -83,8 +82,9 @@ func (c *S3) GenerateShareUrl(input *GenerateShareUrlInput) (string, error) {
 	req.Sign()
 	url := req.HTTPRequest.URL.String()
 
-	if input.AccessCode != nil && *input.AccessCode != "" {
-		token, err := EncryptUrlToToken(url, *input.AccessCode)
+	accessCode := aws.ToString(input.AccessCode)
+	if accessCode != "" {
+		token, err := EncryptUrlToToken(url, accessCode)
 		if err != nil {
 			return "", err
 		}
