@@ -1595,12 +1595,6 @@ func (s *Ks3utilCommandSuite) TestPutObjectWithExtendQueryParams(c *C) {
 
 func (s *Ks3utilCommandSuite) TestObjectMigration(c *C) {
 	c.Skip("Skip TestObjectMigration")
-	var cre = credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "")
-	client := s3.New(&aws.Config{
-		Credentials: cre,
-		Region:      "BEIJING",
-		Endpoint:    "ks3-extreme-cn-beijing-internal.ksyuncs.com",
-	})
 	srcBucketName := "test-bucket1"
 	srcObjectKey := "test-file1"
 	dstBucketName := "test-bucket2"
@@ -1778,4 +1772,438 @@ func (s *Ks3utilCommandSuite) TestObjectMigration(c *C) {
 		Key:    aws.String(dstObjectKey),
 	})
 	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestCreateJob(c *C) {
+	c.Skip("Skip TestCreateJob")
+	// 新建设置对象ACL操作，设置预定义ACL
+	createJobInput := &s3.CreateJobInput{
+		CreateJobRequest: &s3.CreateJobRequest{
+			Description: aws.String("this-is-a-test-job"),
+			Priority:    aws.Long(100),
+			Operation: &s3.JobOperation{
+				KS3PutObjectAcl: &s3.KS3PutObjectAcl{
+					CannedAccessControlList: aws.String(s3.ACLPublicRead),
+				},
+			},
+			Manifest: &s3.JobManifest{
+				Location: &s3.ManifestLocation{
+					Filters: []*s3.LocationFilter{
+						{
+							Bucket:   aws.String("krn:ksc:ks3:::test-bucket"),
+							Prefixes: []string{"prefix1/"},
+						},
+					},
+				},
+				Spec: &s3.ManifestSpec{
+					Format: aws.String("KS3BatchOperations_Bucket_V1"),
+				},
+			},
+			Report: &s3.JobReport{
+				Bucket:      aws.String("krn:ksc:ks3:::test-bucket"),
+				Prefix:      aws.String("result/"),
+				Enabled:     aws.Boolean(true),
+				ReportScope: aws.String("FailedTasksOnly"),
+			},
+		},
+	}
+	createResp, err := client.CreateJob(createJobInput)
+	c.Assert(err, IsNil)
+	jobId1 := *createResp.CreateJobResult.JobId
+
+	resp, err := client.DescribeJob(&s3.DescribeJobInput{
+		JobId: aws.String(jobId1),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.DescribeJobResult.JobId, Equals, jobId1)
+	c.Assert(*resp.DescribeJobResult.Description, Equals, "this-is-a-test-job")
+	c.Assert(*resp.DescribeJobResult.Priority, Equals, int64(100))
+	c.Assert(len(resp.DescribeJobResult.Manifest.Location.Filters), Equals, 1)
+	c.Assert(*resp.DescribeJobResult.Manifest.Location.Filters[0].Bucket, Equals, "krn:ksc:ks3:::test-bucket")
+	c.Assert(len(resp.DescribeJobResult.Manifest.Location.Filters[0].Prefixes), Equals, 1)
+	c.Assert(resp.DescribeJobResult.Manifest.Location.Filters[0].Prefixes[0], Equals, "prefix1/")
+	c.Assert(*resp.DescribeJobResult.Manifest.Spec.Format, Equals, "KS3BatchOperations_Bucket_V1")
+	c.Assert(*resp.DescribeJobResult.Operation.KS3PutObjectAcl.CannedAccessControlList, Equals, "public-read")
+	c.Assert(*resp.DescribeJobResult.Report.Bucket, Equals, "krn:ksc:ks3:::test-bucket")
+	c.Assert(*resp.DescribeJobResult.Report.Prefix, Equals, "result/")
+	c.Assert(*resp.DescribeJobResult.Report.Enabled, Equals, true)
+	c.Assert(*resp.DescribeJobResult.Report.ReportScope, Equals, "FailedTasksOnly")
+
+	// 新建设置对象ACL操作，设置自定义ACL
+	createJobInput.CreateJobRequest.ClientRequestToken = nil
+	createJobInput.CreateJobRequest.Operation = &s3.JobOperation{
+		KS3PutObjectAcl: &s3.KS3PutObjectAcl{
+			AccessControlList: &s3.JobAccessControlList{
+				Grants: []*s3.JobGrant{
+					{
+						Grantee:    aws.String("12345678"),
+						Permission: aws.String("READ"),
+					},
+				},
+			},
+		},
+	}
+	createJobInput.CreateJobRequest.Manifest.Location.Filters[0].Prefixes = []string{"prefix2/"}
+	createResp, err = client.CreateJob(createJobInput)
+	c.Assert(err, IsNil)
+	jobId2 := *createResp.CreateJobResult.JobId
+
+	resp, err = client.DescribeJob(&s3.DescribeJobInput{
+		JobId: aws.String(jobId2),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.DescribeJobResult.JobId, Equals, jobId2)
+	c.Assert(len(resp.DescribeJobResult.Operation.KS3PutObjectAcl.AccessControlList.Grants), Equals, 1)
+	c.Assert(*resp.DescribeJobResult.Operation.KS3PutObjectAcl.AccessControlList.Grants[0].Grantee, Equals, "12345678")
+	c.Assert(*resp.DescribeJobResult.Operation.KS3PutObjectAcl.AccessControlList.Grants[0].Permission, Equals, "READ")
+
+	// 新建解冻操作
+	createJobInput.CreateJobRequest.ClientRequestToken = nil
+	createJobInput.CreateJobRequest.Operation = &s3.JobOperation{
+		KS3RestoreObject: &s3.KS3RestoreObject{
+			StorageClass: aws.String(s3.StorageClassArchive),
+			Tier:         aws.String("Expedited"),
+			Days:         aws.Long(7),
+		},
+	}
+	createJobInput.CreateJobRequest.Manifest.Location.Filters[0].Prefixes = []string{"prefix3/"}
+	createResp, err = client.CreateJob(createJobInput)
+	c.Assert(err, IsNil)
+	jobId3 := *createResp.CreateJobResult.JobId
+
+	resp, err = client.DescribeJob(&s3.DescribeJobInput{
+		JobId: aws.String(jobId3),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.DescribeJobResult.JobId, Equals, jobId3)
+	c.Assert(*resp.DescribeJobResult.Operation.KS3RestoreObject.StorageClass, Equals, s3.StorageClassArchive)
+	c.Assert(*resp.DescribeJobResult.Operation.KS3RestoreObject.Tier, Equals, "Expedited")
+	c.Assert(*resp.DescribeJobResult.Operation.KS3RestoreObject.Days, Equals, int64(7))
+
+	// 新建删除操作
+	createJobInput.CreateJobRequest.ClientRequestToken = nil
+	createJobInput.CreateJobRequest.Operation = &s3.JobOperation{
+		KS3DeleteObject: &s3.KS3DeleteObject{},
+	}
+	createJobInput.CreateJobRequest.Manifest.Location.Filters[0].Prefixes = []string{"prefix4/"}
+	createResp, err = client.CreateJob(createJobInput)
+	c.Assert(err, IsNil)
+	jobId4 := *createResp.CreateJobResult.JobId
+
+	resp, err = client.DescribeJob(&s3.DescribeJobInput{
+		JobId: aws.String(jobId4),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.DescribeJobResult.JobId, Equals, jobId4)
+	c.Assert(*resp.DescribeJobResult.Operation.KS3DeleteObject, NotNil)
+
+	listResp, err := client.ListJobs(&s3.ListJobsInput{
+		MaxResults: aws.Long(100),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(listResp.ListJobsResult.Jobs.Members) >= 4, Equals, true)
+
+	_, err = client.DeleteJob(&s3.DeleteJobInput{
+		JobId: aws.String(jobId1),
+	})
+	c.Assert(err, IsNil)
+
+	_, err = client.DeleteJob(&s3.DeleteJobInput{
+		JobId: aws.String(jobId2),
+	})
+	c.Assert(err, IsNil)
+
+	_, err = client.DeleteJob(&s3.DeleteJobInput{
+		JobId: aws.String(jobId3),
+	})
+	c.Assert(err, IsNil)
+
+	_, err = client.DeleteJob(&s3.DeleteJobInput{
+		JobId: aws.String(jobId4),
+	})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestUpdateJob(c *C) {
+	c.Skip("Skip TestUpdateJob")
+	// 新建设置对象ACL操作，设置对象ACL
+	createJobInput := &s3.CreateJobInput{
+		CreateJobRequest: &s3.CreateJobRequest{
+			Description: aws.String("this-is-a-test-job"),
+			Priority:    aws.Long(100),
+			Operation: &s3.JobOperation{
+				KS3RestoreObject: &s3.KS3RestoreObject{
+					StorageClass: aws.String(s3.StorageClassArchive),
+					Tier:         aws.String("Expedited"),
+					Days:         aws.Long(7),
+				},
+			},
+			Manifest: &s3.JobManifest{
+				Location: &s3.ManifestLocation{
+					Filters: []*s3.LocationFilter{
+						{
+							Bucket:   aws.String("krn:ksc:ks3:::test-bucket"),
+							Prefixes: []string{"prefix6/"},
+						},
+					},
+				},
+				Spec: &s3.ManifestSpec{
+					Format: aws.String("KS3BatchOperations_Bucket_V1"),
+				},
+			},
+			Report: &s3.JobReport{
+				Bucket:      aws.String("krn:ksc:ks3:::test-bucket"),
+				Prefix:      aws.String("result/"),
+				Enabled:     aws.Boolean(true),
+				ReportScope: aws.String("FailedTasksOnly"),
+			},
+		},
+	}
+	// 创建任务
+	createResp, err := client.CreateJob(createJobInput)
+	c.Assert(err, IsNil)
+	jobId1 := *createResp.CreateJobResult.JobId
+
+	//查看任务详情
+	resp, err := client.DescribeJob(&s3.DescribeJobInput{
+		JobId: aws.String(jobId1),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.DescribeJobResult.JobId, Equals, jobId1)
+	c.Assert(*resp.DescribeJobResult.Priority, Equals, int64(100))
+
+	// 更新任务优先级
+	updateResp, err := client.UpdateJobPriority(&s3.UpdateJobPriorityInput{
+		JobId:    aws.String(jobId1),
+		Priority: aws.Long(50),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*updateResp.UpdateJobPriorityResult.JobId, Equals, jobId1)
+	c.Assert(*updateResp.UpdateJobPriorityResult.Priority, Equals, int64(50))
+
+	// 删除任务
+	_, err = client.DeleteJob(&s3.DeleteJobInput{
+		JobId: aws.String(jobId1),
+	})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestGenerateShareUrl(c *C) {
+	var signerVersions = []string{"V2", "V4", "V4_UNSIGNED_PAYLOAD_SIGNER"}
+	var cre = credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "")
+	for _, sigVer := range signerVersions {
+		client := s3.New(&aws.Config{
+			Credentials:   cre,
+			Region:        region,
+			Endpoint:      endpoint,
+			SignerVersion: sigVer,
+		})
+
+		objectName := "test/" + sigVer
+		s.PutObject(objectName, c)
+
+		urlStr, err := client.GenerateShareUrl(&s3.GenerateShareUrlInput{})
+		c.Assert(err, NotNil)
+		c.Assert(err.Error(), Equals, "bucket is required")
+
+		urlStr, err = client.GenerateShareUrl(&s3.GenerateShareUrlInput{
+			Bucket: aws.String(bucket),
+			Prefix: aws.String("test/"),
+		})
+		c.Assert(err, IsNil)
+
+		resp, err := sendRequestByShareUrl("GET", urlStr)
+		c.Assert(err, IsNil)
+		body, err := io.ReadAll(resp.Body)
+		c.Assert(err, IsNil)
+		out := &s3.ListObjectsOutput{}
+		err = xml.Unmarshal(body, out)
+		resp.Body.Close()
+		c.Assert(err, IsNil)
+		c.Assert(len(out.Contents), Equals, 1)
+
+		url, err := url.Parse(urlStr)
+		c.Assert(err, IsNil)
+
+		url.Path = objectName
+		resp, err = sendRequestByShareUrl("GET", url.String())
+		c.Assert(err, IsNil)
+		text, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		c.Assert(err, IsNil)
+		c.Assert(string(text), Equals, content)
+
+		resp, err = sendRequestByShareUrl("HEAD", url.String())
+		resp.Body.Close()
+		c.Assert(err, IsNil)
+		c.Assert(resp.Header.Get(s3.HTTPHeaderContentLength), Equals, "3")
+
+		token, err := s3.EncryptUrlToToken(urlStr, "")
+		c.Assert(err, NotNil)
+		c.Assert(err.Error(), Equals, "accessCode is required")
+
+		token, err = s3.EncryptUrlToToken(urlStr, "123")
+		c.Assert(err, NotNil)
+		c.Assert(err.Error(), Equals, "accessCode must be 6 characters long and contain letters and numbers only")
+
+		token, err = s3.EncryptUrlToToken(urlStr, "123456")
+		c.Assert(err, IsNil)
+
+		urlStr2, err := s3.DecryptTokenToUrl(token, "111111")
+		c.Assert(err, NotNil)
+
+		urlStr2, err = s3.DecryptTokenToUrl(token, "123456")
+		c.Assert(err, IsNil)
+		c.Assert(urlStr, Equals, urlStr2)
+
+		s.DeleteObject(objectName, c)
+	}
+}
+
+func (s *Ks3utilCommandSuite) TestGenerateShareUrlWithAccessCode(c *C) {
+	var signerVersions = []string{"V2", "V4", "V4_UNSIGNED_PAYLOAD_SIGNER"}
+	var cre = credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "")
+	for _, sigVer := range signerVersions {
+		client := s3.New(&aws.Config{
+			Credentials:   cre,
+			Region:        region,
+			Endpoint:      endpoint,
+			SignerVersion: sigVer,
+		})
+
+		objectName := "test/" + sigVer
+		s.PutObject(objectName, c)
+
+		htmlShareUrl, err := client.GenerateShareUrl(&s3.GenerateShareUrlInput{
+			Bucket:     aws.String(bucket),
+			Prefix:     aws.String("test/"),
+			AccessCode: aws.String("123456"),
+		})
+		c.Assert(err, IsNil)
+
+		token := htmlShareUrl[strings.Index(htmlShareUrl, "token=")+6:]
+		urlStr, err := s3.DecryptTokenToUrl(token, "123456")
+		c.Assert(err, IsNil)
+
+		resp, err := sendRequestByShareUrl("GET", urlStr)
+		c.Assert(err, IsNil)
+		body, err := io.ReadAll(resp.Body)
+		c.Assert(err, IsNil)
+		out := &s3.ListObjectsOutput{}
+		err = xml.Unmarshal(body, out)
+		resp.Body.Close()
+		c.Assert(err, IsNil)
+		c.Assert(len(out.Contents), Equals, 1)
+
+		url, err := url.Parse(urlStr)
+		c.Assert(err, IsNil)
+
+		url.Path = objectName
+		resp, err = sendRequestByShareUrl("GET", url.String())
+		c.Assert(err, IsNil)
+		text, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		c.Assert(err, IsNil)
+		c.Assert(string(text), Equals, content)
+
+		resp, err = sendRequestByShareUrl("HEAD", url.String())
+		resp.Body.Close()
+		c.Assert(err, IsNil)
+		c.Assert(resp.Header.Get(s3.HTTPHeaderContentLength), Equals, "3")
+
+		s.DeleteObject(objectName, c)
+	}
+}
+
+func (s *Ks3utilCommandSuite) TestGenerateShareUrlByPolicy(c *C) {
+	var signerVersions = []string{"V2", "V4", "V4_UNSIGNED_PAYLOAD_SIGNER"}
+	var cre = credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "")
+	for _, sigVer := range signerVersions {
+		client := s3.New(&aws.Config{
+			Credentials:   cre,
+			Region:        region,
+			Endpoint:      endpoint,
+			SignerVersion: sigVer,
+		})
+
+		objectName := "test/" + sigVer
+		s.PutObject(objectName, c)
+
+		policy, err := s3.BuildPolicy("", []string{}, []string{})
+		c.Assert(err, NotNil)
+		c.Assert(err.Error(), Equals, "bucketName is required")
+
+		policy, err = s3.BuildPolicy(bucket, []string{}, []string{})
+		c.Assert(err, NotNil)
+		c.Assert(err.Error(), Equals, "prefixes or keys must be provided")
+
+		policy, err = s3.BuildPolicy(bucket, []string{"test/"}, []string{})
+		c.Assert(err, IsNil)
+
+		urlStr, err := client.GenerateShareUrl(&s3.GenerateShareUrlInput{
+			Bucket: aws.String(bucket),
+			Policy: aws.String(policy),
+		})
+		c.Assert(err, IsNil)
+		urlStr += "&prefix=test%2F"
+
+		resp, err := sendRequestByShareUrl("GET", urlStr)
+		c.Assert(err, IsNil)
+		c.Assert(resp.StatusCode, Equals, 200)
+		body, err := io.ReadAll(resp.Body)
+		c.Assert(err, IsNil)
+		out := &s3.ListObjectsOutput{}
+		err = xml.Unmarshal(body, out)
+		resp.Body.Close()
+		c.Assert(err, IsNil)
+		c.Assert(len(out.Contents), Equals, 1)
+
+		url, err := url.Parse(urlStr)
+		c.Assert(err, IsNil)
+
+		url.Path = objectName
+		resp, err = sendRequestByShareUrl("GET", url.String())
+		c.Assert(err, IsNil)
+		text, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		c.Assert(err, IsNil)
+		c.Assert(string(text), Equals, content)
+
+		resp, err = sendRequestByShareUrl("HEAD", url.String())
+		resp.Body.Close()
+		c.Assert(err, IsNil)
+		c.Assert(resp.Header.Get(s3.HTTPHeaderContentLength), Equals, "3")
+
+		policy, err = s3.BuildPolicy(bucket, []string{}, []string{objectName})
+		c.Assert(err, IsNil)
+
+		urlStr, err = client.GenerateShareUrl(&s3.GenerateShareUrlInput{
+			Bucket: aws.String(bucket),
+			Policy: aws.String(policy),
+		})
+		c.Assert(err, IsNil)
+		urlStr += "&prefix=test%2F"
+
+		resp, err = sendRequestByShareUrl("GET", urlStr)
+		c.Assert(err, IsNil)
+		c.Assert(resp.StatusCode, Equals, 400)
+
+		url, err = url.Parse(urlStr)
+		c.Assert(err, IsNil)
+
+		url.Path = objectName
+		resp, err = sendRequestByShareUrl("GET", url.String())
+		c.Assert(err, IsNil)
+		text, err = io.ReadAll(resp.Body)
+		resp.Body.Close()
+		c.Assert(err, IsNil)
+		c.Assert(string(text), Equals, content)
+
+		resp, err = sendRequestByShareUrl("HEAD", url.String())
+		resp.Body.Close()
+		c.Assert(err, IsNil)
+		c.Assert(resp.Header.Get(s3.HTTPHeaderContentLength), Equals, "3")
+
+		s.DeleteObject(objectName, c)
+	}
 }

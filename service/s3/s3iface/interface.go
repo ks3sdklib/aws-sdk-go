@@ -21,6 +21,8 @@ type S3API interface {
 
 	CreateMultipartUpload(*s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error)
 
+	CreateJob(*s3.CreateJobInput) (*s3.CreateJobOutput, error)
+
 	ClearObject(*s3.ClearObjectInput) (*s3.ClearObjectOutput, error)
 
 	DeleteBucket(*s3.DeleteBucketInput) (*s3.DeleteBucketOutput, error)
@@ -56,6 +58,10 @@ type S3API interface {
 	DeleteObject(*s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 
 	DeleteObjects(*s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
+
+	DeleteJob(*s3.DeleteJobInput) (*s3.DeleteJobOutput, error)
+
+	DescribeJob(*s3.DescribeJobInput) (*s3.DescribeJobOutput, error)
 
 	GetBucketACL(*s3.GetBucketACLInput) (*s3.GetBucketACLOutput, error)
 
@@ -129,6 +135,8 @@ type S3API interface {
 
 	ListBucketInventory(*s3.ListBucketInventoryInput) (*s3.ListBucketInventoryOutput, error)
 
+	ListJobs(*s3.ListJobsInput) (*s3.ListJobsOutput, error)
+
 	PutBucketACL(*s3.PutBucketACLInput) (*s3.PutBucketACLOutput, error)
 
 	PutBucketCORS(*s3.PutBucketCORSInput) (*s3.PutBucketCORSOutput, error)
@@ -186,4 +194,6 @@ type S3API interface {
 	UploadPart(*s3.UploadPartInput) (*s3.UploadPartOutput, error)
 
 	UploadPartCopy(*s3.UploadPartCopyInput) (*s3.UploadPartCopyOutput, error)
+
+	UpdateJobPriority(*s3.UpdateJobPriorityInput) (*s3.UpdateJobPriorityOutput, error)
 }

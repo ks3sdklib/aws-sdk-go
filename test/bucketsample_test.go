@@ -985,6 +985,7 @@ func (s *Ks3utilCommandSuite) TestBucketNotification(c *C) {
 			Notifications: []*s3.Notification{
 				{
 					RuleId: aws.String("test_rule1"),
+					Method: aws.String("POST"),
 					Events: []string{"ks3:ObjectCreated:PutObject", "ks3:ObjectCreated:PostObject"},
 					Resources: []*s3.NotificationResource{
 						{
@@ -1021,6 +1022,7 @@ func (s *Ks3utilCommandSuite) TestBucketNotification(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(len(resp.BucketNotification.Notifications), Equals, 1)
 	c.Assert(*resp.BucketNotification.Notifications[0].RuleId, Equals, "test_rule1")
+	c.Assert(*resp.BucketNotification.Notifications[0].Method, Equals, "POST")
 	c.Assert(len(resp.BucketNotification.Notifications[0].Events), Equals, 2)
 	c.Assert(resp.BucketNotification.Notifications[0].Events[0], Equals, "ks3:ObjectCreated:PostObject")
 	c.Assert(resp.BucketNotification.Notifications[0].Events[1], Equals, "ks3:ObjectCreated:PutObject")

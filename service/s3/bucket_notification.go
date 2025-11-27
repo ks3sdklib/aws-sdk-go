@@ -5,16 +5,16 @@ import (
 )
 
 type PutBucketNotificationInput struct {
-	// The name of the bucket.
+	// 存储桶名称。
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	// Bucket notification configuration container.
+	// 存储桶事件通知规则的容器。
 	BucketNotification *BucketNotification `locationName:"Notification" type:"structure" required:"true"`
 
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	// 设置扩展请求头。如果现有字段不支持设置所需的请求头，您可以通过此字段进行设置。
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	// 设置扩展查询参数。如果现有字段不支持设置所需的查询参数，您可以通过此字段进行设置。
 	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketNotificationInput `json:"-" xml:"-"`
@@ -106,10 +106,10 @@ type NotificationReport struct {
 }
 
 type PutBucketNotificationOutput struct {
-	// The HTTP headers of the response.
+	// http响应头。
 	Metadata map[string]*string `location:"headers" type:"map"`
 
-	// The HTTP status code of the response.
+	// http响应状态码。
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
@@ -147,24 +147,24 @@ func (c *S3) PutBucketNotificationWithContext(ctx aws.Context, input *PutBucketN
 }
 
 type GetBucketNotificationInput struct {
-	// The name of the bucket.
+	// 存储桶名称。
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	// 设置扩展请求头。如果现有字段不支持设置所需的请求头，您可以通过此字段进行设置。
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	// 设置扩展查询参数。如果现有字段不支持设置所需的查询参数，您可以通过此字段进行设置。
 	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type GetBucketNotificationOutput struct {
-	// Bucket notification configuration container.
+	// 存储桶事件通知规则的容器。
 	BucketNotification *BucketNotification `locationName:"Notification" type:"structure"`
 
-	// The HTTP headers of the response.
+	// http响应头。
 	Metadata map[string]*string `location:"headers" type:"map"`
 
-	// The HTTP status code of the response.
+	// http响应状态码。
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 
 	metadataGetBucketNotificationOutput `json:"-" xml:"-"`
@@ -210,21 +210,21 @@ func (c *S3) GetBucketNotificationWithContext(ctx aws.Context, input *GetBucketN
 }
 
 type DeleteBucketNotificationInput struct {
-	// The name of the bucket.
+	// 存储桶名称。
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	// 设置扩展请求头。如果现有字段不支持设置所需的请求头，您可以通过此字段进行设置。
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	// 设置扩展查询参数。如果现有字段不支持设置所需的查询参数，您可以通过此字段进行设置。
 	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type DeleteBucketNotificationOutput struct {
-	// The HTTP headers of the response.
+	// http响应头。
 	Metadata map[string]*string `location:"headers" type:"map"`
 
-	// The HTTP status code of the response.
+	// http响应状态码。
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 

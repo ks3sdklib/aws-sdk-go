@@ -32,6 +32,8 @@ var ignoredHeaders = map[string]bool{
 	"User-Agent":     true,
 }
 
+var ShareUrlQuery = []string{"X-Amz-Algorithm", "X-Amz-Credential", "X-Amz-Date", "X-Amz-Expires", "X-Amz-Policy", "X-Amz-Security-Token"}
+
 type signer struct {
 	Service     *aws.Service
 	Request     *http.Request
@@ -45,6 +47,7 @@ type signer struct {
 	Body        io.ReadSeeker
 	Debug       uint
 	Logger      io.Writer
+	awsRequest  *aws.Request
 
 	isPresign          bool
 	isSignBody         bool
@@ -94,6 +97,7 @@ func Sign(req *aws.Request) {
 		Credentials: req.Service.Config.Credentials,
 		Debug:       req.Service.Config.LogLevel,
 		Logger:      req.Service.Config.Logger,
+		awsRequest:  req,
 	}
 	if req.Service.Config.SignerVersion == "V4_UNSIGNED_PAYLOAD_SIGNER" {
 		s.isSignBody = false
@@ -241,7 +245,7 @@ func (v4 *signer) buildCanonicalHeaders() {
 
 	v4.signedHeaders = strings.Join(headers, ";")
 
-	if v4.isPresign {
+	if v4.isPresign && v4.awsRequest.SignType != "share" {
 		v4.Query.Set("X-Amz-SignedHeaders", v4.signedHeaders)
 	}
 
@@ -274,14 +278,29 @@ func (v4 *signer) buildCanonicalString() {
 		uri = rest.EscapePath(uri, false)
 	}
 
-	v4.canonicalString = strings.Join([]string{
-		v4.Request.Method,
-		uri,
-		v4.Request.URL.RawQuery,
-		v4.canonicalHeaders + "\n",
-		v4.signedHeaders,
-		v4.bodyDigest(),
-	}, "\n")
+	if v4.awsRequest.SignType == "share" {
+		var querys = url.Values{}
+		for _, key := range ShareUrlQuery {
+			if value := v4.Query.Get(key); value != "" {
+				querys.Set(key, value)
+			}
+		}
+		v4.Query = querys
+
+		v4.canonicalString = strings.Join([]string{
+			v4.Query.Encode(),
+			v4.bodyDigest(),
+		}, "\n")
+	} else {
+		v4.canonicalString = strings.Join([]string{
+			v4.Request.Method,
+			uri,
+			v4.Request.URL.RawQuery,
+			v4.canonicalHeaders + "\n",
+			v4.signedHeaders,
+			v4.bodyDigest(),
+		}, "\n")
+	}
 }
 
 func (v4 *signer) buildStringToSign() {

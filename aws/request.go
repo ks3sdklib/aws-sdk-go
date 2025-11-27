@@ -37,6 +37,7 @@ type Request struct {
 	ProgressFn   ProgressFunc
 	ContentType  string
 	RequestType  string
+	SignType     string
 }
 
 // An Operation is the service API operation to be made.

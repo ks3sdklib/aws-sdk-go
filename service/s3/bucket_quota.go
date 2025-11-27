@@ -5,16 +5,16 @@ import (
 )
 
 type PutBucketQuotaInput struct {
-	// The name of the bucket.
+	// 存储桶名称。
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	// Bucket quota configuration container.
+	// 存储桶配额规则的容器。
 	BucketQuota *BucketQuota `locationName:"Quota" type:"structure" required:"true"`
 
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	// 设置扩展请求头。如果现有字段不支持设置所需的请求头，您可以通过此字段进行设置。
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	// 设置扩展查询参数。如果现有字段不支持设置所需的查询参数，您可以通过此字段进行设置。
 	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataPutBucketQuotaInput `json:"-" xml:"-"`
@@ -25,16 +25,15 @@ type metadataPutBucketQuotaInput struct {
 }
 
 type BucketQuota struct {
-	// Specifies the bucket space quota value in bytes. The value must be a positive integer.
-	// The value range is 1 to 9223372036854775807 (2^63-1).
+	// 指定桶空间配额值，单位为字节，取值必须为正整数。取值范围为1~9223372036854775807。
 	StorageQuota *int64 `locationName:"StorageQuota" type:"integer" required:"true"`
 }
 
 type PutBucketQuotaOutput struct {
-	// The HTTP headers of the response.
+	// http响应头。
 	Metadata map[string]*string `location:"headers" type:"map"`
 
-	// The HTTP status code of the response.
+	// http响应状态码。
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
@@ -71,24 +70,24 @@ func (c *S3) PutBucketQuotaWithContext(ctx aws.Context, input *PutBucketQuotaInp
 }
 
 type GetBucketQuotaInput struct {
-	// The name of the bucket.
+	// 存储桶名称。
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	// 设置扩展请求头。如果现有字段不支持设置所需的请求头，您可以通过此字段进行设置。
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	// 设置扩展查询参数。如果现有字段不支持设置所需的查询参数，您可以通过此字段进行设置。
 	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type GetBucketQuotaOutput struct {
-	// Bucket quota configuration container.
+	// 存储桶配额规则的容器。
 	BucketQuota *BucketQuota `locationName:"Quota" type:"structure"`
 
-	// The HTTP headers of the response.
+	// http响应头。
 	Metadata map[string]*string `location:"headers" type:"map"`
 
-	// The HTTP status code of the response.
+	// http响应状态码。
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 
 	metadataGetBucketQuotaOutput `json:"-" xml:"-"`
@@ -131,21 +130,21 @@ func (c *S3) GetBucketQuotaWithContext(ctx aws.Context, input *GetBucketQuotaInp
 }
 
 type DeleteBucketQuotaInput struct {
-	// The name of the bucket.
+	// 存储桶名称。
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	// 设置扩展请求头。如果现有字段不支持设置所需的请求头，您可以通过此字段进行设置。
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	// 设置扩展查询参数。如果现有字段不支持设置所需的查询参数，您可以通过此字段进行设置。
 	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 }
 
 type DeleteBucketQuotaOutput struct {
-	// The HTTP headers of the response.
+	// http响应头。
 	Metadata map[string]*string `location:"headers" type:"map"`
 
-	// The HTTP status code of the response.
+	// http响应状态码。
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 

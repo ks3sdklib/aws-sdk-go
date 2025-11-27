@@ -23,7 +23,7 @@ type PutObjectMigrationInput struct {
 
 	// 若源文件为极速类型文件，目标文件必须设置为非极速类型文件，若源文件为非极速类型文件，目标文件必须设置为极速类型文件。
 	// 若目标桶为非极速类型桶，不支持将目标文件设置为极速类型。不设置时默认与存储桶一致。
-	StorageClass *string `location:"header" locationName:"x-amz-storage-class" type:"string"`
+	StorageClass *string `location:"header" locationName:"x-amz-storage-class" type:"string" required:"true"`
 
 	// KS3解密时对数据源对象使用的解密算法。可选值：AES256、SM4。如果源对象使用客户提供的密钥加密，则需要提供。
 	SourceSSECustomerAlgorithm *string `location:"header" locationName:"x-amz-migration-source-server-side-encryption-customer-algorithm" type:"string"`
@@ -97,10 +97,10 @@ func (c *S3) PutObjectMigrationWithContext(ctx aws.Context, input *PutObjectMigr
 }
 
 type GetObjectMigrationInput struct {
-	// 指定存储桶名。
+	// 存储桶名称。
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	// 指定对象的Key。
+	// 对象的Key。
 	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
 
 	// 设置扩展请求头。如果现有字段不支持设置所需的请求头，您可以通过此字段进行设置。
