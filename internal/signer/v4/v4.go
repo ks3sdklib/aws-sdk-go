@@ -245,7 +245,7 @@ func (v4 *signer) buildCanonicalHeaders() {
 
 	v4.signedHeaders = strings.Join(headers, ";")
 
-	if v4.isPresign && v4.awsRequest.SignType != "share" {
+	if v4.isPresign && v4.awsRequest.SignType != "policy" {
 		v4.Query.Set("X-Amz-SignedHeaders", v4.signedHeaders)
 	}
 
@@ -278,7 +278,7 @@ func (v4 *signer) buildCanonicalString() {
 		uri = rest.EscapePath(uri, false)
 	}
 
-	if v4.awsRequest.SignType == "share" {
+	if v4.awsRequest.SignType == "policy" {
 		var querys = url.Values{}
 		for _, key := range ShareUrlQuery {
 			if value := v4.Query.Get(key); value != "" {

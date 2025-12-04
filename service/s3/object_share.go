@@ -60,7 +60,7 @@ func (c *S3) GenerateShareUrl(input *GenerateShareUrlInput) (string, error) {
 	}
 
 	req := c.newRequest(op, input, nil)
-	req.SignType = "share"
+	req.SignType = "policy"
 
 	var policy string
 	if IsEmpty(input.Policy) {

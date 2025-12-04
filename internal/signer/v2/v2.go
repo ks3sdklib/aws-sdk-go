@@ -339,7 +339,7 @@ func (v2 *signer) buildStringToSign() {
 	signItems = append(signItems, v2.canonicalResource)
 
 	v2.stringToSign = strings.Join(signItems, "\n")
-	if v2.awsRequest.SignType == "share" {
+	if v2.awsRequest.SignType == "policy" {
 		v2.stringToSign = strings.Join([]string{v2.Query["Expires"][0], v2.canonicalResource}, "\n")
 	}
 }
