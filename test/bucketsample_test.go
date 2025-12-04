@@ -78,7 +78,7 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 	c.Assert(err, IsNil)
 
 	// 等待配置生效
-	time.Sleep(time.Second * 60)
+	time.Sleep(time.Second * 120)
 
 	// 获取桶访问追踪配置
 	accessMonitorResp, err := client.GetBucketAccessMonitor(&s3.GetBucketAccessMonitorInput{
@@ -961,6 +961,9 @@ func (s *Ks3utilCommandSuite) TestBucketQuota(c *C) {
 		},
 	})
 	c.Assert(err, IsNil)
+
+	// 等待桶配额生效
+	time.Sleep(time.Second * 120)
 
 	// 获取桶配额
 	resp, err := client.GetBucketQuota(&s3.GetBucketQuotaInput{
