@@ -957,7 +957,7 @@ func (s *Ks3utilCommandSuite) TestBucketQuota(c *C) {
 	_, err := client.PutBucketQuota(&s3.PutBucketQuotaInput{
 		Bucket: aws.String(bucket),
 		BucketQuota: &s3.BucketQuota{
-			StorageQuota: aws.Long(10240000),
+			StorageQuota: aws.Long(10240000000),
 		},
 	})
 	c.Assert(err, IsNil)
@@ -967,7 +967,7 @@ func (s *Ks3utilCommandSuite) TestBucketQuota(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(*resp.BucketQuota.StorageQuota, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.StorageQuota, Equals, int64(10240000000))
 
 	// 删除桶配额
 	_, err = client.DeleteBucketQuota(&s3.DeleteBucketQuotaInput{
