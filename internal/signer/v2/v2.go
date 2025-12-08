@@ -74,6 +74,13 @@ var signQuerys = map[string]bool{
 	"accessmonitor":                true,
 	"transferAcceleration":         true,
 	"VpcAccessBlock":               true,
+	"quota":                        true,
+	"migration":                    true,
+	"jobs":                         true,
+	"jobId":                        true,
+	"X-Amz-Policy":                 true,
+	"action":                       true,
+	"priority":                     true,
 }
 
 type signer struct {
@@ -332,7 +339,9 @@ func (v2 *signer) buildStringToSign() {
 	signItems = append(signItems, v2.canonicalResource)
 
 	v2.stringToSign = strings.Join(signItems, "\n")
-
+	if v2.awsRequest.SignType == "policy" {
+		v2.stringToSign = strings.Join([]string{v2.Query["Expires"][0], v2.canonicalResource}, "\n")
+	}
 }
 
 func (v2 *signer) buildSignature() {

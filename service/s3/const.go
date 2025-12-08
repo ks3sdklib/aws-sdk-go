@@ -95,3 +95,8 @@ const (
 	StatusEnabled  string = "Enabled"
 	StatusDisabled string = "Disabled"
 )
+
+const (
+	ShareUrl = "https://ks3.console.ksyun.com/doc-share.html"
+	Iv       = "ks3-share12345v1"
+)

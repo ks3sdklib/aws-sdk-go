@@ -144,7 +144,8 @@ func (b *xmlBuilder) buildStruct(value reflect.Value, current *XMLNode, tag refl
 		fieldAdded = true
 	}
 
-	if fieldAdded { // only append this child if we have one ore more valid members
+	useEmpty := tag.Get("useEmpty") != ""
+	if fieldAdded || useEmpty { // only append this child if we have one or more valid members
 		current.AddChild(child)
 	}
 

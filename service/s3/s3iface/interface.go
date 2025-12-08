@@ -21,6 +21,8 @@ type S3API interface {
 
 	CreateMultipartUpload(*s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error)
 
+	CreateJob(*s3.CreateJobInput) (*s3.CreateJobOutput, error)
+
 	ClearObject(*s3.ClearObjectInput) (*s3.ClearObjectOutput, error)
 
 	DeleteBucket(*s3.DeleteBucketInput) (*s3.DeleteBucketOutput, error)
@@ -28,6 +30,8 @@ type S3API interface {
 	DeleteBucketCORS(*s3.DeleteBucketCORSInput) (*s3.DeleteBucketCORSOutput, error)
 
 	DeleteBucketLifecycle(*s3.DeleteBucketLifecycleInput) (*s3.DeleteBucketLifecycleOutput, error)
+
+	DeleteBucketNotification(*s3.DeleteBucketNotificationInput) (*s3.DeleteBucketNotificationOutput, error)
 
 	DeleteBucketPolicy(*s3.DeleteBucketPolicyInput) (*s3.DeleteBucketPolicyOutput, error)
 
@@ -49,9 +53,15 @@ type S3API interface {
 
 	DeleteVpcAccessBlock(*s3.DeleteVpcAccessBlockInput) (*s3.DeleteVpcAccessBlockOutput, error)
 
+	DeleteBucketQuota(*s3.DeleteBucketQuotaInput) (*s3.DeleteBucketQuotaOutput, error)
+
 	DeleteObject(*s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 
 	DeleteObjects(*s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
+
+	DeleteJob(*s3.DeleteJobInput) (*s3.DeleteJobOutput, error)
+
+	DescribeJob(*s3.DescribeJobInput) (*s3.DescribeJobOutput, error)
 
 	GetBucketACL(*s3.GetBucketACLInput) (*s3.GetBucketACLOutput, error)
 
@@ -65,9 +75,7 @@ type S3API interface {
 
 	GetBucketLogging(*s3.GetBucketLoggingInput) (*s3.GetBucketLoggingOutput, error)
 
-	GetBucketNotification(*s3.GetBucketNotificationConfigurationRequest) (*s3.NotificationConfigurationDeprecated, error)
-
-	GetBucketNotificationConfiguration(*s3.GetBucketNotificationConfigurationRequest) (*s3.NotificationConfiguration, error)
+	GetBucketNotification(*s3.GetBucketNotificationInput) (*s3.GetBucketNotificationOutput, error)
 
 	GetBucketPolicy(*s3.GetBucketPolicyInput) (*s3.GetBucketPolicyOutput, error)
 
@@ -99,7 +107,11 @@ type S3API interface {
 
 	GetVpcAccessBlock(*s3.GetVpcAccessBlockInput) (*s3.GetVpcAccessBlockOutput, error)
 
+	GetBucketQuota(*s3.GetBucketQuotaInput) (*s3.GetBucketQuotaOutput, error)
+
 	GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error)
+
+	GetObjectMigration(*s3.GetObjectMigrationInput) (*s3.GetObjectMigrationOutput, error)
 
 	GetObjectACL(*s3.GetObjectACLInput) (*s3.GetObjectACLOutput, error)
 
@@ -123,6 +135,8 @@ type S3API interface {
 
 	ListBucketInventory(*s3.ListBucketInventoryInput) (*s3.ListBucketInventoryOutput, error)
 
+	ListJobs(*s3.ListJobsInput) (*s3.ListJobsOutput, error)
+
 	PutBucketACL(*s3.PutBucketACLInput) (*s3.PutBucketACLOutput, error)
 
 	PutBucketCORS(*s3.PutBucketCORSInput) (*s3.PutBucketCORSOutput, error)
@@ -134,8 +148,6 @@ type S3API interface {
 	PutBucketLogging(*s3.PutBucketLoggingInput) (*s3.PutBucketLoggingOutput, error)
 
 	PutBucketNotification(*s3.PutBucketNotificationInput) (*s3.PutBucketNotificationOutput, error)
-
-	PutBucketNotificationConfiguration(*s3.PutBucketNotificationConfigurationInput) (*s3.PutBucketNotificationConfigurationOutput, error)
 
 	PutBucketPolicy(*s3.PutBucketPolicyInput) (*s3.PutBucketPolicyOutput, error)
 
@@ -167,7 +179,11 @@ type S3API interface {
 
 	PutVpcAccessBlock(*s3.PutVpcAccessBlockInput) (*s3.PutVpcAccessBlockOutput, error)
 
+	PutBucketQuota(*s3.PutBucketQuotaInput) (*s3.PutBucketQuotaOutput, error)
+
 	PutObject(*s3.PutObjectInput) (*s3.PutObjectOutput, error)
+
+	PutObjectMigration(*s3.PutObjectMigrationInput) (*s3.PutObjectMigrationOutput, error)
 
 	PutObjectACL(*s3.PutObjectACLInput) (*s3.PutObjectACLOutput, error)
 
@@ -178,4 +194,6 @@ type S3API interface {
 	UploadPart(*s3.UploadPartInput) (*s3.UploadPartOutput, error)
 
 	UploadPartCopy(*s3.UploadPartCopyInput) (*s3.UploadPartCopyOutput, error)
+
+	UpdateJobPriority(*s3.UpdateJobPriorityInput) (*s3.UpdateJobPriorityOutput, error)
 }

@@ -545,70 +545,6 @@ func (c *S3) GetBucketLoggingWithContext(ctx aws.Context, input *GetBucketLoggin
 	return out, err
 }
 
-// GetBucketNotificationRequest generates a request for the GetBucketNotification operation.
-func (c *S3) GetBucketNotificationRequest(input *GetBucketNotificationConfigurationRequest) (req *aws.Request, output *NotificationConfigurationDeprecated) {
-	op := &aws.Operation{
-		Name:       "GetBucketNotification",
-		HTTPMethod: "GET",
-		HTTPPath:   "/{Bucket}?notification",
-	}
-
-	if input == nil {
-		input = &GetBucketNotificationConfigurationRequest{}
-	}
-
-	req = c.newRequest(op, input, output)
-	output = &NotificationConfigurationDeprecated{}
-	req.Data = output
-	return
-}
-
-// GetBucketNotification Deprecated, see the GetBucketNotificationConfiguration operation.
-func (c *S3) GetBucketNotification(input *GetBucketNotificationConfigurationRequest) (*NotificationConfigurationDeprecated, error) {
-	req, out := c.GetBucketNotificationRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-func (c *S3) GetBucketNotificationWithContext(ctx aws.Context, input *GetBucketNotificationConfigurationRequest) (*NotificationConfigurationDeprecated, error) {
-	req, out := c.GetBucketNotificationRequest(input)
-	req.SetContext(ctx)
-	err := req.Send()
-	return out, err
-}
-
-// GetBucketNotificationConfigurationRequest generates a request for the GetBucketNotificationConfiguration operation.
-func (c *S3) GetBucketNotificationConfigurationRequest(input *GetBucketNotificationConfigurationRequest) (req *aws.Request, output *NotificationConfiguration) {
-	op := &aws.Operation{
-		Name:       "GetBucketNotificationConfiguration",
-		HTTPMethod: "GET",
-		HTTPPath:   "/{Bucket}?notification",
-	}
-
-	if input == nil {
-		input = &GetBucketNotificationConfigurationRequest{}
-	}
-
-	req = c.newRequest(op, input, output)
-	output = &NotificationConfiguration{}
-	req.Data = output
-	return
-}
-
-// GetBucketNotificationConfiguration Returns the notification configuration of a bucket.
-func (c *S3) GetBucketNotificationConfiguration(input *GetBucketNotificationConfigurationRequest) (*NotificationConfiguration, error) {
-	req, out := c.GetBucketNotificationConfigurationRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-func (c *S3) GetBucketNotificationConfigurationWithContext(ctx aws.Context, input *GetBucketNotificationConfigurationRequest) (*NotificationConfiguration, error) {
-	req, out := c.GetBucketNotificationConfigurationRequest(input)
-	req.SetContext(ctx)
-	err := req.Send()
-	return out, err
-}
-
 // GetBucketPolicyRequest generates a request for the GetBucketPolicy operation.
 func (c *S3) GetBucketPolicyRequest(input *GetBucketPolicyInput) (req *aws.Request, output *GetBucketPolicyOutput) {
 	op := &aws.Operation{
@@ -1262,70 +1198,6 @@ func (c *S3) PutBucketLoggingWithContext(ctx aws.Context, input *PutBucketLoggin
 	return out, err
 }
 
-// PutBucketNotificationRequest generates a request for the PutBucketNotification operation.
-func (c *S3) PutBucketNotificationRequest(input *PutBucketNotificationInput) (req *aws.Request, output *PutBucketNotificationOutput) {
-	op := &aws.Operation{
-		Name:       "PutBucketNotification",
-		HTTPMethod: "PUT",
-		HTTPPath:   "/{Bucket}?notification",
-	}
-
-	if input == nil {
-		input = &PutBucketNotificationInput{}
-	}
-
-	req = c.newRequest(op, input, output)
-	output = &PutBucketNotificationOutput{}
-	req.Data = output
-	return
-}
-
-// PutBucketNotification Deprecated, see the PutBucketNotificationConfiguraiton operation.
-func (c *S3) PutBucketNotification(input *PutBucketNotificationInput) (*PutBucketNotificationOutput, error) {
-	req, out := c.PutBucketNotificationRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-func (c *S3) PutBucketNotificationWithContext(ctx aws.Context, input *PutBucketNotificationInput) (*PutBucketNotificationOutput, error) {
-	req, out := c.PutBucketNotificationRequest(input)
-	req.SetContext(ctx)
-	err := req.Send()
-	return out, err
-}
-
-// PutBucketNotificationConfigurationRequest generates a request for the PutBucketNotificationConfiguration operation.
-func (c *S3) PutBucketNotificationConfigurationRequest(input *PutBucketNotificationConfigurationInput) (req *aws.Request, output *PutBucketNotificationConfigurationOutput) {
-	op := &aws.Operation{
-		Name:       "PutBucketNotificationConfiguration",
-		HTTPMethod: "PUT",
-		HTTPPath:   "/{Bucket}?notification",
-	}
-
-	if input == nil {
-		input = &PutBucketNotificationConfigurationInput{}
-	}
-
-	req = c.newRequest(op, input, output)
-	output = &PutBucketNotificationConfigurationOutput{}
-	req.Data = output
-	return
-}
-
-// PutBucketNotificationConfiguration Enables notifications of specified events for a bucket.
-func (c *S3) PutBucketNotificationConfiguration(input *PutBucketNotificationConfigurationInput) (*PutBucketNotificationConfigurationOutput, error) {
-	req, out := c.PutBucketNotificationConfigurationRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-func (c *S3) PutBucketNotificationConfigurationWithContext(ctx aws.Context, input *PutBucketNotificationConfigurationInput) (*PutBucketNotificationConfigurationOutput, error) {
-	req, out := c.PutBucketNotificationConfigurationRequest(input)
-	req.SetContext(ctx)
-	err := req.Send()
-	return out, err
-}
-
 // PutBucketPolicyRequest generates a request for the PutBucketPolicy operation.
 func (c *S3) PutBucketPolicyRequest(input *PutBucketPolicyInput) (req *aws.Request, output *PutBucketPolicyOutput) {
 	op := &aws.Operation{
@@ -1902,27 +1774,6 @@ type BucketLoggingStatus struct {
 }
 
 type metadataBucketLoggingStatus struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type CloudFunctionConfiguration struct {
-	CloudFunction *string `type:"string"`
-
-	// Bucket event for which to send notifications.
-	Event *string `type:"string"`
-
-	Events []*string `locationName:"Event" type:"list" flattened:"true"`
-
-	// Optional unique identifier for configurations in a notification configuration.
-	// If you don't provide one, Amazon S3 will assign an ID.
-	ID *string `locationName:"Id" type:"string"`
-
-	InvocationRole *string `type:"string"`
-
-	metadataCloudFunctionConfiguration `json:"-" xml:"-"`
-}
-
-type metadataCloudFunctionConfiguration struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
@@ -2904,17 +2755,6 @@ type metadataGetBucketLoggingOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-type GetBucketNotificationConfigurationRequest struct {
-	// Name of the buket to get the notification configuration for.
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	metadataGetBucketNotificationConfigurationRequest `json:"-" xml:"-"`
-}
-
-type metadataGetBucketNotificationConfigurationRequest struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type GetBucketPolicyInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -3605,25 +3445,6 @@ type metadataInitiator struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-// LambdaFunctionConfiguration Container for specifying the AWS Lambda notification configuration.
-type LambdaFunctionConfiguration struct {
-	Events []*string `locationName:"Event" type:"list" flattened:"true" required:"true"`
-
-	// Optional unique identifier for configurations in a notification configuration.
-	// If you don't provide one, Amazon S3 will assign an ID.
-	ID *string `locationName:"Id" type:"string"`
-
-	// Lambda cloud function ARN that Amazon S3 can invoke when it detects events
-	// of the specified type.
-	LambdaFunctionARN *string `locationName:"CloudFunction" type:"string" required:"true"`
-
-	metadataLambdaFunctionConfiguration `json:"-" xml:"-"`
-}
-
-type metadataLambdaFunctionConfiguration struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type ListBucketsInput struct {
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
 
@@ -4057,36 +3878,6 @@ type metadataMultipartUpload struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-// NotificationConfiguration Container for specifying the notification configuration of the bucket. If
-// this element is empty, notifications are turned off on the bucket.
-type NotificationConfiguration struct {
-	LambdaFunctionConfigurations []*LambdaFunctionConfiguration `locationName:"CloudFunctionConfiguration" type:"list" flattened:"true"`
-
-	QueueConfigurations []*QueueConfiguration `locationName:"QueueConfiguration" type:"list" flattened:"true"`
-
-	TopicConfigurations []*TopicConfiguration `locationName:"TopicConfiguration" type:"list" flattened:"true"`
-
-	metadataNotificationConfiguration `json:"-" xml:"-"`
-}
-
-type metadataNotificationConfiguration struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type NotificationConfigurationDeprecated struct {
-	CloudFunctionConfiguration *CloudFunctionConfiguration `type:"structure"`
-
-	QueueConfiguration *QueueConfigurationDeprecated `type:"structure"`
-
-	TopicConfiguration *TopicConfigurationDeprecated `type:"structure"`
-
-	metadataNotificationConfigurationDeprecated `json:"-" xml:"-"`
-}
-
-type metadataNotificationConfigurationDeprecated struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type Object struct {
 	ETag *string `type:"string"`
 
@@ -4268,72 +4059,6 @@ type PutBucketLoggingOutput struct {
 }
 
 type metadataPutBucketLoggingOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type PutBucketNotificationConfigurationInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	// Container for specifying the notification configuration of the bucket. If
-	// this element is empty, notifications are turned off on the bucket.
-	NotificationConfiguration *NotificationConfiguration `locationName:"NotificationConfiguration" type:"structure" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
-
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
-
-	metadataPutBucketNotificationConfigurationInput `json:"-" xml:"-"`
-}
-
-type metadataPutBucketNotificationConfigurationInput struct {
-	SDKShapeTraits bool `type:"structure" payload:"NotificationConfiguration"`
-}
-
-type PutBucketNotificationConfigurationOutput struct {
-	metadataPutBucketNotificationConfigurationOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-
-	StatusCode *int64 `location:"statusCode" type:"integer"`
-}
-
-type metadataPutBucketNotificationConfigurationOutput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type PutBucketNotificationInput struct {
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
-
-	NotificationConfiguration *NotificationConfigurationDeprecated `locationName:"NotificationConfiguration" type:"structure" required:"true"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
-
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
-
-	metadataPutBucketNotificationInput `json:"-" xml:"-"`
-}
-
-type metadataPutBucketNotificationInput struct {
-	SDKShapeTraits bool `type:"structure" payload:"NotificationConfiguration"`
-}
-
-type PutBucketNotificationOutput struct {
-	metadataPutBucketNotificationOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-
-	StatusCode *int64 `location:"statusCode" type:"integer"`
-}
-
-type metadataPutBucketNotificationOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
@@ -4817,45 +4542,6 @@ type metadataPutObjectOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-// QueueConfiguration Container for specifying an configuration when you want Amazon S3 to publish
-// events to an Amazon Simple Queue Service (Amazon SQS) queue.
-type QueueConfiguration struct {
-	Events []*string `locationName:"Event" type:"list" flattened:"true" required:"true"`
-
-	// Optional unique identifier for configurations in a notification configuration.
-	// If you don't provide one, Amazon S3 will assign an ID.
-	ID *string `locationName:"Id" type:"string"`
-
-	// Amazon SQS queue ARN to which Amazon S3 will publish a message when it detects
-	// events of specified type.
-	QueueARN *string `locationName:"Queue" type:"string" required:"true"`
-
-	metadataQueueConfiguration `json:"-" xml:"-"`
-}
-
-type metadataQueueConfiguration struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type QueueConfigurationDeprecated struct {
-	// Bucket event for which to send notifications.
-	Event *string `type:"string"`
-
-	Events []*string `locationName:"Event" type:"list" flattened:"true"`
-
-	// Optional unique identifier for configurations in a notification configuration.
-	// If you don't provide one, Amazon S3 will assign an ID.
-	ID *string `locationName:"Id" type:"string"`
-
-	Queue *string `type:"string"`
-
-	metadataQueueConfigurationDeprecated `json:"-" xml:"-"`
-}
-
-type metadataQueueConfigurationDeprecated struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
 type Redirect struct {
 	// The HTTP redirect code to use on the response. Not required if one of the
 	// siblings is present.
@@ -5035,47 +4721,6 @@ type TargetGrant struct {
 }
 
 type metadataTargetGrant struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-// TopicConfiguration Container for specifying the configuration when you want Amazon S3 to publish
-// events to an Amazon Simple Notification Service (Amazon SNS) topic.
-type TopicConfiguration struct {
-	Events []*string `locationName:"Event" type:"list" flattened:"true" required:"true"`
-
-	// Optional unique identifier for configurations in a notification configuration.
-	// If you don't provide one, Amazon S3 will assign an ID.
-	ID *string `locationName:"Id" type:"string"`
-
-	// Amazon SNS topic ARN to which Amazon S3 will publish a message when it detects
-	// events of specified type.
-	TopicARN *string `locationName:"Topic" type:"string" required:"true"`
-
-	metadataTopicConfiguration `json:"-" xml:"-"`
-}
-
-type metadataTopicConfiguration struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type TopicConfigurationDeprecated struct {
-	// Bucket event for which to send notifications.
-	Event *string `type:"string"`
-
-	Events []*string `locationName:"Event" type:"list" flattened:"true"`
-
-	// Optional unique identifier for configurations in a notification configuration.
-	// If you don't provide one, Amazon S3 will assign an ID.
-	ID *string `locationName:"Id" type:"string"`
-
-	// Amazon SNS topic to which Amazon S3 will publish a message to report the
-	// specified events for the bucket.
-	Topic *string `type:"string"`
-
-	metadataTopicConfigurationDeprecated `json:"-" xml:"-"`
-}
-
-type metadataTopicConfigurationDeprecated struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 

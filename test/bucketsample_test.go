@@ -78,7 +78,7 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 	c.Assert(err, IsNil)
 
 	// 等待配置生效
-	time.Sleep(time.Second * 60)
+	time.Sleep(time.Second * 120)
 
 	// 获取桶访问追踪配置
 	accessMonitorResp, err := client.GetBucketAccessMonitor(&s3.GetBucketAccessMonitorInput{
@@ -949,5 +949,102 @@ func (s *Ks3utilCommandSuite) TestBucketVpcAccessBlock(c *C) {
 
 	// 删除阻止VPC访问配置
 	_, err = client.DeleteVpcAccessBlock(&s3.DeleteVpcAccessBlockInput{})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestBucketQuota(c *C) {
+	// 设置桶配额
+	_, err := client.PutBucketQuota(&s3.PutBucketQuotaInput{
+		Bucket: aws.String(bucket),
+		BucketQuota: &s3.BucketQuota{
+			StorageQuota: aws.Long(10240000000),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 等待桶配额生效
+	time.Sleep(time.Second * 120)
+
+	// 获取桶配额
+	resp, err := client.GetBucketQuota(&s3.GetBucketQuotaInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.BucketQuota.StorageQuota, Equals, int64(10240000000))
+
+	// 删除桶配额
+	_, err = client.DeleteBucketQuota(&s3.DeleteBucketQuotaInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestBucketNotification(c *C) {
+	c.Skip("Skip TestBucketNotification")
+	// 设置桶事件通知规则
+	_, err := client.PutBucketNotification(&s3.PutBucketNotificationInput{
+		Bucket: aws.String(bucket),
+		BucketNotification: &s3.BucketNotification{
+			Notifications: []*s3.Notification{
+				{
+					RuleId: aws.String("test_rule1"),
+					Method: aws.String("POST"),
+					Events: []string{"ks3:ObjectCreated:PutObject", "ks3:ObjectCreated:PostObject"},
+					Resources: []*s3.NotificationResource{
+						{
+							Prefix: aws.String("prefix1"),
+							Suffix: aws.String("suffix1"),
+						},
+						{
+							Prefix: aws.String("prefix2"),
+							Suffix: aws.String("suffix2"),
+						},
+					},
+					Destinations: []*s3.NotificationDestination{
+						{
+							DestType:    aws.String("Endpoint"),
+							CallbackUrl: aws.String("http://11.11.11.11:8080"),
+						},
+					},
+					Report: &s3.NotificationReport{
+						ReportType: aws.String("failed"),
+						Enabled:    aws.Boolean(true),
+						Bucket:     aws.String("bucketname"),
+						Prefix:     aws.String("prefixname"),
+					},
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取桶事件通知规则
+	resp, err := client.GetBucketNotification(&s3.GetBucketNotificationInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(len(resp.BucketNotification.Notifications), Equals, 1)
+	c.Assert(*resp.BucketNotification.Notifications[0].RuleId, Equals, "test_rule1")
+	c.Assert(*resp.BucketNotification.Notifications[0].Method, Equals, "POST")
+	c.Assert(len(resp.BucketNotification.Notifications[0].Events), Equals, 2)
+	c.Assert(resp.BucketNotification.Notifications[0].Events[0], Equals, "ks3:ObjectCreated:PostObject")
+	c.Assert(resp.BucketNotification.Notifications[0].Events[1], Equals, "ks3:ObjectCreated:PutObject")
+	c.Assert(len(resp.BucketNotification.Notifications[0].Resources), Equals, 2)
+	c.Assert(*resp.BucketNotification.Notifications[0].Resources[0].Prefix, Equals, "prefix1")
+	c.Assert(*resp.BucketNotification.Notifications[0].Resources[0].Suffix, Equals, "suffix1")
+	c.Assert(*resp.BucketNotification.Notifications[0].Resources[1].Prefix, Equals, "prefix2")
+	c.Assert(*resp.BucketNotification.Notifications[0].Resources[1].Suffix, Equals, "suffix2")
+	c.Assert(len(resp.BucketNotification.Notifications[0].Destinations), Equals, 1)
+	c.Assert(*resp.BucketNotification.Notifications[0].Destinations[0].DestType, Equals, "Endpoint")
+	c.Assert(*resp.BucketNotification.Notifications[0].Destinations[0].CallbackUrl, Equals, "http://11.11.11.11:8080")
+	c.Assert(*resp.BucketNotification.Notifications[0].Report.ReportType, Equals, "failed")
+	c.Assert(*resp.BucketNotification.Notifications[0].Report.Enabled, Equals, true)
+	c.Assert(*resp.BucketNotification.Notifications[0].Report.Bucket, Equals, "bucketname")
+	c.Assert(*resp.BucketNotification.Notifications[0].Report.Prefix, Equals, "prefixname")
+
+	// 删除桶事件通知规则
+	_, err = client.DeleteBucketNotification(&s3.DeleteBucketNotificationInput{
+		Bucket: aws.String(bucket),
+	})
 	c.Assert(err, IsNil)
 }

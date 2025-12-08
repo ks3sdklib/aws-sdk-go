@@ -106,3 +106,7 @@ func Min(a, b int64) int64 {
 func IsV4Signature(signer string) bool {
 	return signer == "V4" || signer == "V4_UNSIGNED_PAYLOAD_SIGNER"
 }
+
+func IsEmpty(s *string) bool {
+	return s == nil || *s == ""
+}

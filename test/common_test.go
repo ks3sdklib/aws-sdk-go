@@ -7,6 +7,7 @@ import (
 	"github.com/ks3sdklib/aws-sdk-go/service/s3"
 	. "gopkg.in/check.v1"
 	"math/rand"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -260,4 +261,16 @@ func (s *Ks3utilCommandSuite) DeleteBucket(bucketName string, c *C) {
 		Bucket: aws.String(bucketName),
 	})
 	c.Assert(err, IsNil)
+}
+
+func sendRequestByShareUrl(method string, shareUrl string) (*http.Response, error) {
+	httpReq, err := http.NewRequest(method, shareUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
