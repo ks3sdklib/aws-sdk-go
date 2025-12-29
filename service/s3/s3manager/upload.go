@@ -668,6 +668,14 @@ func (u *Uploader) UploadDirWithContext(ctx aws.Context, input *UploadDirInput) 
 	if !strings.HasSuffix(input.Prefix, "/") && len(input.Prefix) > 0 {
 		input.Prefix = input.Prefix + "/"
 	}
+	dirInfo, err := os.Stat(input.RootDir)
+	if err != nil {
+		return err
+	}
+	if !dirInfo.IsDir() {
+		return apierr.New("InvalidParameter", fmt.Sprintf("%s is not a directory", input.RootDir), nil)
+	}
+
 	rootDir, err := u.toAbs(input.RootDir)
 	if err != nil {
 		return err
@@ -724,8 +732,8 @@ func (u *Uploader) toAbs(rootDir string) (string, error) {
 	if err != nil {
 		return rootDir, err
 	}
-	if !strings.HasSuffix(rootDir, "/") && len(rootDir) > 0 {
-		rootDir = rootDir + "/"
+	if !strings.HasSuffix(rootDir, string(os.PathSeparator)) && len(rootDir) > 0 {
+		rootDir = rootDir + string(os.PathSeparator)
 	}
 	return rootDir, nil
 }
