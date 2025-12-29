@@ -757,6 +757,8 @@ func (u *Uploader) uploadFile(ctx aws.Context, fileIfo fileInfoType, call func(s
 
 }
 func makeObjectName(RootDir, Prefix, filePath string) string {
+	filePath = filepath.ToSlash(filePath)
+	RootDir = filepath.ToSlash(RootDir)
 	resDir := strings.Replace(filePath, RootDir, "", 1)
 	objectName := Prefix + resDir
 	return objectName
