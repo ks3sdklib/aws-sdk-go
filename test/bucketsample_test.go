@@ -1048,3 +1048,46 @@ func (s *Ks3utilCommandSuite) TestBucketNotification(c *C) {
 	})
 	c.Assert(err, IsNil)
 }
+
+func (s *Ks3utilCommandSuite) TestPublicNetworkBlock(c *C) {
+	// 设置公网访问控制配置
+	_, err := client.PutPublicNetworkBlock(&s3.PutPublicNetworkBlockInput{
+		PublicNetworkBlockConfiguration: &s3.PublicNetworkBlockConfiguration{
+			BlockType: aws.String(s3.PublicNetworkBlockTypeAll),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取公网访问控制配置
+	resp, err := client.GetPublicNetworkBlock(&s3.GetPublicNetworkBlockInput{})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.PublicNetworkBlockConfiguration.BlockType, Equals, s3.PublicNetworkBlockTypeAll)
+
+	// 删除公网访问控制配置
+	_, err = client.DeletePublicNetworkBlock(&s3.DeletePublicNetworkBlockInput{})
+	c.Assert(err, IsNil)
+}
+
+func (s *Ks3utilCommandSuite) TestBucketPublicNetworkBlock(c *C) {
+	// 设置存储空间公网访问控制配置
+	_, err := client.PutBucketPublicNetworkBlock(&s3.PutBucketPublicNetworkBlockInput{
+		Bucket: aws.String(bucket),
+		PublicNetworkBlockConfiguration: &s3.PublicNetworkBlockConfiguration{
+			BlockType: aws.String(s3.PublicNetworkBlockTypeAll),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取存储空间公网访问控制配置
+	resp, err := client.GetBucketPublicNetworkBlock(&s3.GetBucketPublicNetworkBlockInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.PublicNetworkBlockConfiguration.BlockType, Equals, s3.PublicNetworkBlockTypeAll)
+
+	// 删除存储空间公网访问控制配置
+	_, err = client.DeleteBucketPublicNetworkBlock(&s3.DeleteBucketPublicNetworkBlockInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+}

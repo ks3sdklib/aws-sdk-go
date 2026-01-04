@@ -102,6 +102,16 @@ type UploadFileInput struct {
 	// Specifies the 128-bit MD5 digest of the encryption key according to RFC 1321.
 	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
 
+	// ETag列表，如果有多个则以逗号分割。
+	// 与KS3上的ETag比较，如果相同则上传成功，否则返回412 Precondition Failed。
+	// 如果有多个ETag，则只要有一个匹配即可上传成功。
+	IfMatch *string `location:"header" locationName:"If-Match" type:"string"`
+
+	// ETag列表，如果有多个则以逗号分割。
+	// 与KS3上的ETag比较，如果不同则上传成功，否则返回412 Precondition Failed。
+	// 如果有多个ETag，则与所有ETag均不同即可上传成功。
+	IfNoneMatch *string `location:"header" locationName:"If-None-Match" type:"string"`
+
 	// Progress callback function
 	ProgressFn aws.ProgressFunc `location:"function"`
 }
@@ -252,6 +262,8 @@ func (u *Uploader) putObject() (*UploadFileOutput, error) {
 		SSECustomerAlgorithm: request.SSECustomerAlgorithm,
 		SSECustomerKey:       request.SSECustomerKey,
 		SSECustomerKeyMD5:    request.SSECustomerKeyMD5,
+		IfMatch:              request.IfMatch,
+		IfNoneMatch:          request.IfNoneMatch,
 		ProgressFn:           request.ProgressFn,
 	})
 	if err != nil {
@@ -512,6 +524,8 @@ func (u *Uploader) completeMultipartUpload(completedMultipartUpload *CompletedMu
 		UploadID:        aws.String(u.uploadCheckpoint.UploadId),
 		MultipartUpload: completedMultipartUpload,
 		ForbidOverwrite: u.uploadFileRequest.ForbidOverwrite,
+		IfMatch:         u.uploadFileRequest.IfMatch,
+		IfNoneMatch:     u.uploadFileRequest.IfNoneMatch,
 	})
 	if err != nil {
 		return nil, err

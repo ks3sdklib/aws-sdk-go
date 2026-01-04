@@ -1823,7 +1823,7 @@ func (s *Ks3utilCommandSuite) TestCreateJob(c *C) {
 	c.Assert(len(resp.DescribeJobResult.Manifest.Location.Filters[0].Prefixes), Equals, 1)
 	c.Assert(resp.DescribeJobResult.Manifest.Location.Filters[0].Prefixes[0], Equals, "prefix1/")
 	c.Assert(*resp.DescribeJobResult.Manifest.Spec.Format, Equals, "KS3BatchOperations_Bucket_V1")
-	c.Assert(*resp.DescribeJobResult.Operation.KS3PutObjectAcl.CannedAccessControlList, Equals, "public-read")
+	c.Assert(*resp.DescribeJobResult.Operation.KS3PutObjectAcl.CannedAccessControlList, Equals, s3.ACLPublicRead)
 	c.Assert(*resp.DescribeJobResult.Report.Bucket, Equals, "krn:ksc:ks3:::test-bucket")
 	c.Assert(*resp.DescribeJobResult.Report.Prefix, Equals, "result/")
 	c.Assert(*resp.DescribeJobResult.Report.Enabled, Equals, true)
@@ -1862,7 +1862,6 @@ func (s *Ks3utilCommandSuite) TestCreateJob(c *C) {
 	createJobInput.CreateJobRequest.Operation = &s3.JobOperation{
 		KS3RestoreObject: &s3.KS3RestoreObject{
 			StorageClass: aws.String(s3.StorageClassArchive),
-			Tier:         aws.String("Expedited"),
 			Days:         aws.Long(7),
 		},
 	}
@@ -1877,7 +1876,6 @@ func (s *Ks3utilCommandSuite) TestCreateJob(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(*resp.DescribeJobResult.JobId, Equals, jobId3)
 	c.Assert(*resp.DescribeJobResult.Operation.KS3RestoreObject.StorageClass, Equals, s3.StorageClassArchive)
-	c.Assert(*resp.DescribeJobResult.Operation.KS3RestoreObject.Tier, Equals, "Expedited")
 	c.Assert(*resp.DescribeJobResult.Operation.KS3RestoreObject.Days, Equals, int64(7))
 
 	// 新建删除操作
@@ -1897,11 +1895,30 @@ func (s *Ks3utilCommandSuite) TestCreateJob(c *C) {
 	c.Assert(*resp.DescribeJobResult.JobId, Equals, jobId4)
 	c.Assert(*resp.DescribeJobResult.Operation.KS3DeleteObject, NotNil)
 
+	// 新建同城冗余转换操作
+	createJobInput.CreateJobRequest.ClientRequestToken = nil
+	createJobInput.CreateJobRequest.Operation = &s3.JobOperation{
+		KS3PutObjectDataRedundancyTransition: &s3.KS3PutObjectDataRedundancyTransition{
+			DataRedundancyType: aws.String(s3.DataRedundancyTypeZRS),
+		},
+	}
+	createJobInput.CreateJobRequest.Manifest.Location.Filters[0].Prefixes = []string{"prefix5/"}
+	createResp, err = client.CreateJob(createJobInput)
+	c.Assert(err, IsNil)
+	jobId5 := *createResp.CreateJobResult.JobId
+
+	resp, err = client.DescribeJob(&s3.DescribeJobInput{
+		JobId: aws.String(jobId5),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.DescribeJobResult.JobId, Equals, jobId5)
+	c.Assert(*resp.DescribeJobResult.Operation.KS3PutObjectDataRedundancyTransition.DataRedundancyType, Equals, s3.DataRedundancyTypeZRS)
+
 	listResp, err := client.ListJobs(&s3.ListJobsInput{
 		MaxResults: aws.Long(100),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(len(listResp.ListJobsResult.Jobs.Members) >= 4, Equals, true)
+	c.Assert(len(listResp.ListJobsResult.Jobs.Members) >= 5, Equals, true)
 
 	_, err = client.DeleteJob(&s3.DeleteJobInput{
 		JobId: aws.String(jobId1),
@@ -1922,6 +1939,11 @@ func (s *Ks3utilCommandSuite) TestCreateJob(c *C) {
 		JobId: aws.String(jobId4),
 	})
 	c.Assert(err, IsNil)
+
+	_, err = client.DeleteJob(&s3.DeleteJobInput{
+		JobId: aws.String(jobId5),
+	})
+	c.Assert(err, IsNil)
 }
 
 func (s *Ks3utilCommandSuite) TestUpdateJob(c *C) {
@@ -1934,7 +1956,6 @@ func (s *Ks3utilCommandSuite) TestUpdateJob(c *C) {
 			Operation: &s3.JobOperation{
 				KS3RestoreObject: &s3.KS3RestoreObject{
 					StorageClass: aws.String(s3.StorageClassArchive),
-					Tier:         aws.String("Expedited"),
 					Days:         aws.Long(7),
 				},
 			},
@@ -2206,4 +2227,384 @@ func (s *Ks3utilCommandSuite) TestGenerateShareUrlByPolicy(c *C) {
 
 		s.DeleteObject(objectName, c)
 	}
+}
+
+func (s *Ks3utilCommandSuite) TestPutObjectDataRedundancyTransition(c *C) {
+	object := randLowStr(10)
+	// 上传对象
+	s.PutObject(object, c)
+
+	// 获取对象冗余类型，默认是LRS
+	headResp, err := client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*headResp.Metadata[s3.HTTPHeaderAmzDataRedundancyType], Equals, s3.DataRedundancyTypeLRS)
+
+	// 转换为ZRS
+	_, err = client.PutObjectDataRedundancyTransition(&s3.PutObjectDataRedundancyTransitionInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+
+	// 获取对象冗余类型，验证是否转换成功
+	headResp, err = client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*headResp.Metadata[s3.HTTPHeaderAmzDataRedundancyType], Equals, s3.DataRedundancyTypeZRS)
+
+	// 删除对象
+	s.DeleteObject(object, c)
+}
+
+func (s *Ks3utilCommandSuite) TestPutObjectWithIfMatch(c *C) {
+	object := randLowStr(10)
+	// 上传对象
+	s.PutObject(object, c)
+
+	// 获取对象的ETag
+	headResp, err := client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	eTag := *headResp.ETag
+
+	// 使用正确的If-Match头部上传对象
+	putResp, err := client.PutObject(&s3.PutObjectInput{
+		Bucket:  aws.String(bucket),
+		Key:     aws.String(object),
+		Body:    strings.NewReader("content1"),
+		IfMatch: aws.String(eTag),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*putResp.StatusCode, Equals, int64(200))
+	eTag = *putResp.ETag
+
+	// 使用多个ETag值的If-Match头部上传对象，其中一个匹配
+	putResp, err = client.PutObject(&s3.PutObjectInput{
+		Bucket:  aws.String(bucket),
+		Key:     aws.String(object),
+		Body:    strings.NewReader("content2"),
+		IfMatch: aws.String(eTag + ",non-matching-etag"),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*putResp.StatusCode, Equals, int64(200))
+	eTag = *putResp.ETag
+
+	// 使用错误的If-Match头部上传对象
+	putResp, err = client.PutObject(&s3.PutObjectInput{
+		Bucket:  aws.String(bucket),
+		Key:     aws.String(object),
+		Body:    strings.NewReader("content3"),
+		IfMatch: aws.String("non-matching-etag"),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(*putResp.StatusCode, Equals, int64(412))
+
+	// 删除对象
+	s.DeleteObject(object, c)
+}
+
+func (s *Ks3utilCommandSuite) TestPutObjectWithIfNoneMatch(c *C) {
+	object := randLowStr(10)
+	// 上传对象
+	s.PutObject(object, c)
+
+	// 获取对象的ETag
+	headResp, err := client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	eTag := *headResp.ETag
+
+	// 使用不匹配的If-None-Match头部上传对象
+	putResp, err := client.PutObject(&s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(object),
+		Body:        strings.NewReader("content1"),
+		IfNoneMatch: aws.String("non-matching-etag"),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*putResp.StatusCode, Equals, int64(200))
+	eTag = *putResp.ETag
+
+	// 使用多个ETag值的If-None-Match头部上传对象，全都不匹配
+	putResp, err = client.PutObject(&s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(object),
+		Body:        strings.NewReader("content2"),
+		IfNoneMatch: aws.String("non-matching-etag,non-matching-etag2"),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*putResp.StatusCode, Equals, int64(200))
+	eTag = *putResp.ETag
+
+	// 使用匹配的If-None-Match头部上传对象
+	putResp, err = client.PutObject(&s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(object),
+		Body:        strings.NewReader("content3"),
+		IfNoneMatch: aws.String(eTag),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(*putResp.StatusCode, Equals, int64(412))
+
+	// 删除对象
+	s.DeleteObject(object, c)
+}
+
+func (s *Ks3utilCommandSuite) TestMultipartUploadWithIfMatch(c *C) {
+	object := randLowStr(10)
+	// 上传对象
+	s.PutObject(object, c)
+
+	// 获取对象的ETag
+	headResp, err := client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	eTag := *headResp.ETag
+
+	// 使用正确的If-Match头部上传对象
+	putResp, err := multipartUpload(bucket, object, "content1", &s3.CompleteMultipartUploadInput{
+		IfMatch: aws.String(eTag),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*putResp.StatusCode, Equals, int64(200))
+	eTag = *putResp.ETag
+
+	// 使用多个ETag值的If-Match头部上传对象，其中一个匹配
+	putResp, err = multipartUpload(bucket, object, "content2", &s3.CompleteMultipartUploadInput{
+		IfMatch: aws.String(eTag + ",non-matching-etag"),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*putResp.StatusCode, Equals, int64(200))
+	eTag = *putResp.ETag
+
+	// 使用错误的If-Match头部上传对象
+	putResp, err = multipartUpload(bucket, object, "content3", &s3.CompleteMultipartUploadInput{
+		IfMatch: aws.String("non-matching-etag"),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(*putResp.StatusCode, Equals, int64(412))
+
+	// 删除对象
+	s.DeleteObject(object, c)
+}
+
+func (s *Ks3utilCommandSuite) TestMultipartUploadWithIfNoneMatch(c *C) {
+	object := randLowStr(10)
+	// 上传对象
+	s.PutObject(object, c)
+
+	// 获取对象的ETag
+	headResp, err := client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	eTag := *headResp.ETag
+
+	// 使用不匹配的If-None-Match头部上传对象
+	putResp, err := multipartUpload(bucket, object, "content1", &s3.CompleteMultipartUploadInput{
+		IfNoneMatch: aws.String("non-matching-etag"),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*putResp.StatusCode, Equals, int64(200))
+	eTag = *putResp.ETag
+
+	// 使用多个ETag值的If-None-Match头部上传对象，全都不匹配
+	putResp, err = multipartUpload(bucket, object, "content2", &s3.CompleteMultipartUploadInput{
+		IfNoneMatch: aws.String("non-matching-etag,non-matching-etag2"),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*putResp.StatusCode, Equals, int64(200))
+	eTag = *putResp.ETag
+
+	// 使用匹配的If-None-Match头部上传对象
+	putResp, err = multipartUpload(bucket, object, "content3", &s3.CompleteMultipartUploadInput{
+		IfNoneMatch: aws.String(eTag),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(*putResp.StatusCode, Equals, int64(412))
+
+	// 删除对象
+	s.DeleteObject(object, c)
+}
+
+func (s *Ks3utilCommandSuite) TestUploadFileWithIfMatch(c *C) {
+	object := randLowStr(10)
+	// 上传对象
+	s.PutObject(object, c)
+
+	// 获取对象的ETag
+	headResp, err := client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	eTag := *headResp.ETag
+
+	// 使用正确的If-Match头部上传对象
+	createFileWithContent(object, "content1")
+	uploadResp, err := client.UploadFile(&s3.UploadFileInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		UploadFile: aws.String(object),
+		IfMatch:    aws.String(eTag),
+	})
+	c.Assert(err, IsNil)
+	eTag = *uploadResp.ETag
+
+	// 使用多个ETag值的If-Match头部上传对象，其中一个匹配
+	createFileWithContent(object, "content2")
+	uploadResp, err = client.UploadFile(&s3.UploadFileInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		UploadFile: aws.String(object),
+		IfMatch:    aws.String(eTag + ",non-matching-etag"),
+	})
+	c.Assert(err, IsNil)
+	eTag = *uploadResp.ETag
+
+	// 使用错误的If-Match头部上传对象
+	createFileWithContent(object, "content3")
+	uploadResp, err = client.UploadFile(&s3.UploadFileInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		UploadFile: aws.String(object),
+		IfMatch:    aws.String("non-matching-etag"),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(strings.Contains(err.Error(), "412"), Equals, true)
+
+	// 删除本地文件
+	os.Remove(object)
+
+	// 删除对象
+	s.DeleteObject(object, c)
+}
+
+func (s *Ks3utilCommandSuite) TestUploadFileIfNoneMatch(c *C) {
+	object := randLowStr(10)
+	// 上传对象
+	s.PutObject(object, c)
+
+	// 获取对象的ETag
+	headResp, err := client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	eTag := *headResp.ETag
+
+	// 使用不匹配的If-None-Match头部上传对象
+	createFileWithContent(object, "content1")
+	uploadResp, err := client.UploadFile(&s3.UploadFileInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(object),
+		UploadFile:  aws.String(object),
+		IfNoneMatch: aws.String("non-matching-etag"),
+	})
+	c.Assert(err, IsNil)
+	eTag = *uploadResp.ETag
+
+	// 使用多个ETag值的If-None-Match头部上传对象，全都不匹配
+	createFileWithContent(object, "content2")
+	uploadResp, err = client.UploadFile(&s3.UploadFileInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(object),
+		UploadFile:  aws.String(object),
+		IfNoneMatch: aws.String("non-matching-etag,non-matching-etag2"),
+	})
+	c.Assert(err, IsNil)
+	eTag = *uploadResp.ETag
+
+	// 使用匹配的If-None-Match头部上传对象
+	createFileWithContent(object, "content3")
+	uploadResp, err = client.UploadFile(&s3.UploadFileInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(object),
+		UploadFile:  aws.String(object),
+		IfNoneMatch: aws.String(eTag),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(strings.Contains(err.Error(), "412"), Equals, true)
+
+	// 删除本地文件
+	os.Remove(object)
+
+	// 删除对象
+	s.DeleteObject(object, c)
+}
+
+func (s *Ks3utilCommandSuite) TestDeleteObjectWithIfMatch(c *C) {
+	object := randLowStr(10)
+	// 上传对象
+	s.PutObject(object, c)
+
+	// 获取对象的ETag
+	headResp, err := client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	eTag := *headResp.ETag
+
+	// 使用正确的If-Match头部删除对象
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket:  aws.String(bucket),
+		Key:     aws.String(object),
+		IfMatch: aws.String(eTag),
+	})
+	c.Assert(err, IsNil)
+
+	// 上传对象
+	s.PutObject(object, c)
+
+	// 获取对象的ETag
+	headResp, err = client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	eTag = *headResp.ETag
+
+	// 使用多个ETag值的If-Match头部删除对象，其中一个匹配
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket:  aws.String(bucket),
+		Key:     aws.String(object),
+		IfMatch: aws.String(eTag + ",non-matching-etag"),
+	})
+	c.Assert(err, IsNil)
+
+	// 上传对象
+	s.PutObject(object, c)
+
+	// 获取对象的ETag
+	headResp, err = client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	eTag = *headResp.ETag
+
+	// 使用错误的If-Match头部删除对象
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket:  aws.String(bucket),
+		Key:     aws.String(object),
+		IfMatch: aws.String("non-matching-etag"),
+	})
+	c.Assert(err, NotNil)
+	c.Assert(strings.Contains(err.Error(), "412"), Equals, true)
+
+	// 删除对象
+	s.DeleteObject(object, c)
 }

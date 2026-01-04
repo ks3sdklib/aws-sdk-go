@@ -42,18 +42,21 @@ const (
 	StorageClassIA              string = "STANDARD_IA"
 	StorageClassDeepIA          string = "DEEP_IA"
 	StorageClassArchive         string = "ARCHIVE"
+	StorageClassColdArchive     string = "COLD_ARCHIVE"
 	StorageClassDeepColdArchive string = "DEEP_COLD_ARCHIVE"
 )
 
 // BucketType
 const (
-	BucketTypeExtremePL3 string = "EXTREME_PL3"
-	BucketTypeExtremePL2 string = "EXTREME_PL2"
-	BucketTypeExtremePL1 string = "EXTREME_PL1"
-	BucketTypeNormal     string = "NORMAL"
-	BucketTypeIA         string = "IA"
-	BucketTypeDeepIA     string = "DEEP_IA"
-	BucketTypeArchive    string = "ARCHIVE"
+	BucketTypeExtremePL3      string = "EXTREME_PL3"
+	BucketTypeExtremePL2      string = "EXTREME_PL2"
+	BucketTypeExtremePL1      string = "EXTREME_PL1"
+	BucketTypeNormal          string = "NORMAL"
+	BucketTypeIA              string = "IA"
+	BucketTypeDeepIA          string = "DEEP_IA"
+	BucketTypeArchive         string = "ARCHIVE"
+	BucketTypeColdArchive     string = "COLD_ARCHIVE"
+	BucketTypeDeepColdArchive string = "DEEP_COLD_ARCHIVE"
 )
 
 const (
@@ -99,4 +102,10 @@ const (
 const (
 	ShareUrl = "https://ks3.console.ksyun.com/doc-share.html"
 	Iv       = "ks3-share12345v1"
+)
+
+const (
+	PublicNetworkBlockTypeAll                  string = "All"
+	PublicNetworkBlockTypeExcludeAuthorization string = "ExcludeAuthorization"
+	PublicNetworkBlockTypeExcludeConsole       string = "ExcludeConsole"
 )
