@@ -8,8 +8,8 @@ type PutBucketPublicNetworkBlockInput struct {
 	// 存储桶名称。
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	// 存储空间公网访问控制规则的容器。
-	BucketPublicNetworkBlockConfiguration *BucketPublicNetworkBlockConfiguration `locationName:"BucketPublicNetworkBlockConfiguration" type:"structure" required:"true"`
+	// 公网访问控制规则的容器。
+	PublicNetworkBlockConfiguration *PublicNetworkBlockConfiguration `locationName:"BucketPublicNetworkBlockConfiguration" type:"structure" required:"true"`
 
 	// 设置扩展请求头。如果现有字段不支持设置所需的请求头，您可以通过此字段进行设置。
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
@@ -21,15 +21,7 @@ type PutBucketPublicNetworkBlockInput struct {
 }
 
 type metadataPutBucketPublicNetworkBlockInput struct {
-	SDKShapeTraits bool `type:"structure" payload:"BucketPublicNetworkBlockConfiguration"`
-}
-
-type BucketPublicNetworkBlockConfiguration struct {
-	// 设置阻止公网访问类型。
-	// All：阻止所有公网访问
-	// ExcludeAuthorization：阻止公网访问，除有效鉴权
-	// ExcludeConsole：阻止公网访问，控制台除外
-	BlockType *string `locationName:"BlockType" type:"string" required:"true"`
+	SDKShapeTraits bool `type:"structure" payload:"PublicNetworkBlockConfiguration"`
 }
 
 type PutBucketPublicNetworkBlockOutput struct {
@@ -84,8 +76,8 @@ type GetBucketPublicNetworkBlockInput struct {
 }
 
 type GetBucketPublicNetworkBlockOutput struct {
-	// 存储空间公网访问控制规则的容器。
-	BucketPublicNetworkBlockConfiguration *BucketPublicNetworkBlockConfiguration `locationName:"BucketPublicNetworkBlockConfiguration" type:"structure"`
+	// 公网访问控制规则的容器。
+	PublicNetworkBlockConfiguration *PublicNetworkBlockConfiguration `locationName:"BucketPublicNetworkBlockConfiguration" type:"structure"`
 
 	// http响应头。
 	Metadata map[string]*string `location:"headers" type:"map"`
@@ -97,7 +89,7 @@ type GetBucketPublicNetworkBlockOutput struct {
 }
 
 type metadataGetBucketPublicNetworkBlockOutput struct {
-	SDKShapeTraits bool `type:"structure" payload:"BucketPublicNetworkBlockConfiguration"`
+	SDKShapeTraits bool `type:"structure" payload:"PublicNetworkBlockConfiguration"`
 }
 
 // GetBucketPublicNetworkBlockRequest generates a request for the GetBucketPublicNetworkBlock operation.

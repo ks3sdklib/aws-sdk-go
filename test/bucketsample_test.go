@@ -1074,7 +1074,7 @@ func (s *Ks3utilCommandSuite) TestBucketPublicNetworkBlock(c *C) {
 	// 设置存储空间公网访问控制配置
 	_, err := client.PutBucketPublicNetworkBlock(&s3.PutBucketPublicNetworkBlockInput{
 		Bucket: aws.String(bucket),
-		BucketPublicNetworkBlockConfiguration: &s3.BucketPublicNetworkBlockConfiguration{
+		PublicNetworkBlockConfiguration: &s3.PublicNetworkBlockConfiguration{
 			BlockType: aws.String(s3.PublicNetworkBlockTypeAll),
 		},
 	})
@@ -1085,7 +1085,7 @@ func (s *Ks3utilCommandSuite) TestBucketPublicNetworkBlock(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(*resp.BucketPublicNetworkBlockConfiguration.BlockType, Equals, s3.PublicNetworkBlockTypeAll)
+	c.Assert(*resp.PublicNetworkBlockConfiguration.BlockType, Equals, s3.PublicNetworkBlockTypeAll)
 
 	// 删除存储空间公网访问控制配置
 	_, err = client.DeleteBucketPublicNetworkBlock(&s3.DeleteBucketPublicNetworkBlockInput{
