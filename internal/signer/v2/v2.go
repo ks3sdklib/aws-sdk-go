@@ -81,6 +81,9 @@ var signQuerys = map[string]bool{
 	"X-Amz-Policy":                 true,
 	"action":                       true,
 	"priority":                     true,
+	"PublicNetworkBlock":           true,
+	"BucketPublicNetworkBlock":     true,
+	"dataRedundancyTransition":     true,
 }
 
 type signer struct {

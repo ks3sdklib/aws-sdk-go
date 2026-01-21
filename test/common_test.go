@@ -274,3 +274,43 @@ func sendRequestByShareUrl(method string, shareUrl string) (*http.Response, erro
 	}
 	return resp, nil
 }
+
+func multipartUpload(bucket, object string, content string, input *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
+	// 初始化分块上传
+	createResp, err := client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	if err != nil {
+		return nil, err
+	}
+	uploadId := *createResp.UploadID
+
+	// 上传块
+	partResp, err := client.UploadPart(&s3.UploadPartInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		PartNumber: aws.Long(1),
+		UploadID:   aws.String(uploadId),
+		Body:       strings.NewReader(content),
+	})
+	if err != nil {
+		return nil, err
+	}
+	partETag := *partResp.ETag
+
+	input.Bucket = aws.String(bucket)
+	input.Key = aws.String(object)
+	input.UploadID = aws.String(uploadId)
+	input.MultipartUpload = &s3.CompletedMultipartUpload{
+		Parts: []*s3.CompletedPart{
+			{
+				ETag:       aws.String(partETag),
+				PartNumber: aws.Long(1),
+			},
+		},
+	}
+
+	// 完成分块上传
+	return client.CompleteMultipartUpload(input)
+}

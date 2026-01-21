@@ -1807,6 +1807,16 @@ type CompleteMultipartUploadInput struct {
 	// Specifies whether the object is forbidden to overwrite.
 	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
 
+	// ETag列表，如果有多个则以逗号分割。
+	// 与KS3上的ETag比较，如果相同则上传成功，否则返回412 Precondition Failed。
+	// 如果有多个ETag，则只要有一个匹配即可上传成功。
+	IfMatch *string `location:"header" locationName:"If-Match" type:"string"`
+
+	// ETag列表，如果有多个则以逗号分割。
+	// 与KS3上的ETag比较，如果不同则上传成功，否则返回412 Precondition Failed。
+	// 如果有多个ETag，则与所有ETag均不同即可上传成功。
+	IfNoneMatch *string `location:"header" locationName:"If-None-Match" type:"string"`
+
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
@@ -2510,6 +2520,11 @@ type DeleteObjectInput struct {
 	VersionID *string `location:"querystring" locationName:"versionId" type:"string"`
 
 	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// ETag列表，如果有多个则以逗号分割。
+	// 与KS3上的ETag比较，如果相同则删除成功，否则返回412 Precondition Failed。
+	// 如果有多个ETag，则只要有一个匹配即可删除成功。
+	IfMatch *string `location:"header" locationName:"If-Match" type:"string"`
 
 	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
@@ -4360,6 +4375,16 @@ type PutObjectInput struct {
 	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"integer"`
 
 	ContentMD5 *string `location:"header" locationName:"Content-MD5" type:"string"`
+
+	// ETag列表，如果有多个则以逗号分割。
+	// 与KS3上的ETag比较，如果相同则上传成功，否则返回412 Precondition Failed。
+	// 如果有多个ETag，则只要有一个匹配即可上传成功。
+	IfMatch *string `location:"header" locationName:"If-Match" type:"string"`
+
+	// ETag列表，如果有多个则以逗号分割。
+	// 与KS3上的ETag比较，如果不同则上传成功，否则返回412 Precondition Failed。
+	// 如果有多个ETag，则与所有ETag均不同即可上传成功。
+	IfNoneMatch *string `location:"header" locationName:"If-None-Match" type:"string"`
 
 	// Progress callback function
 	ProgressFn aws.ProgressFunc `location:"function"`

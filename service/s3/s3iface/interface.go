@@ -55,6 +55,10 @@ type S3API interface {
 
 	DeleteBucketQuota(*s3.DeleteBucketQuotaInput) (*s3.DeleteBucketQuotaOutput, error)
 
+	DeletePublicNetworkBlock(*s3.DeletePublicNetworkBlockInput) (*s3.DeletePublicNetworkBlockOutput, error)
+
+	DeleteBucketPublicNetworkBlock(*s3.DeleteBucketPublicNetworkBlockInput) (*s3.DeleteBucketPublicNetworkBlockOutput, error)
+
 	DeleteObject(*s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 
 	DeleteObjects(*s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
@@ -108,6 +112,10 @@ type S3API interface {
 	GetVpcAccessBlock(*s3.GetVpcAccessBlockInput) (*s3.GetVpcAccessBlockOutput, error)
 
 	GetBucketQuota(*s3.GetBucketQuotaInput) (*s3.GetBucketQuotaOutput, error)
+
+	GetPublicNetworkBlock(*s3.GetPublicNetworkBlockInput) (*s3.GetPublicNetworkBlockOutput, error)
+
+	GetBucketPublicNetworkBlock(*s3.GetBucketPublicNetworkBlockInput) (*s3.GetBucketPublicNetworkBlockOutput, error)
 
 	GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error)
 
@@ -181,11 +189,17 @@ type S3API interface {
 
 	PutBucketQuota(*s3.PutBucketQuotaInput) (*s3.PutBucketQuotaOutput, error)
 
+	PutPublicNetworkBlock(*s3.PutPublicNetworkBlockInput) (*s3.PutPublicNetworkBlockOutput, error)
+
+	PutBucketPublicNetworkBlock(*s3.PutBucketPublicNetworkBlockInput) (*s3.PutBucketPublicNetworkBlockOutput, error)
+
 	PutObject(*s3.PutObjectInput) (*s3.PutObjectOutput, error)
 
 	PutObjectMigration(*s3.PutObjectMigrationInput) (*s3.PutObjectMigrationOutput, error)
 
 	PutObjectACL(*s3.PutObjectACLInput) (*s3.PutObjectACLOutput, error)
+
+	PutObjectDataRedundancyTransition(*s3.PutObjectDataRedundancyTransitionInput) (*s3.PutObjectDataRedundancyTransitionOutput, error)
 
 	RestoreObject(*s3.RestoreObjectInput) (*s3.RestoreObjectOutput, error)
 

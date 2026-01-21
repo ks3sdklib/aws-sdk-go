@@ -59,6 +59,9 @@ type JobOperation struct {
 
 	// 对文件批量执行删除操作的具体参数。对文件批量执行删除操作时，该参数取值设置为空即可。
 	KS3DeleteObject *KS3DeleteObject `locationName:"KS3DeleteObject" useEmpty:"true" type:"structure"`
+
+	// 对本地冗余类型文件批量执行转同城冗余操作的具体参数。
+	KS3PutObjectDataRedundancyTransition *KS3PutObjectDataRedundancyTransition `locationName:"KS3PutObjectDataRedundancyTransition" type:"structure"`
 }
 
 type KS3RestoreObject struct {
@@ -103,6 +106,11 @@ type JobGrant struct {
 }
 
 type KS3DeleteObject struct {
+}
+
+type KS3PutObjectDataRedundancyTransition struct {
+	// 文件的冗余类型。
+	DataRedundancyType *string `locationName:"DataRedundancyType" type:"string"`
 }
 
 type JobManifest struct {
