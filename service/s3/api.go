@@ -1087,6 +1087,59 @@ func (c *S3) ListObjectsPages(input *ListObjectsInput, fn func(p *ListObjectsOut
 	})
 }
 
+// ListObjectsV2Request generates a request for the ListObjectsV2 operation.
+func (c *S3) ListObjectsV2Request(input *ListObjectsV2Input) (req *aws.Request, output *ListObjectsV2Output) {
+	op := &aws.Operation{
+		Name:       "ListObjectsV2",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?list-type=2",
+		Paginator: &aws.Paginator{
+			InputTokens:     []string{"ContinuationToken"},
+			OutputTokens:    []string{"NextContinuationToken"},
+			LimitToken:      "MaxKeys",
+			TruncationToken: "IsTruncated",
+		},
+	}
+
+	if input == nil {
+		input = &ListObjectsV2Input{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListObjectsV2Output{}
+	req.Data = output
+	return
+}
+
+// ListObjectsV2 Returns some or all (up to 1000) of the objects in a bucket.
+// You can use the request parameters as selection criteria to return a subset
+// of the objects in a bucket.
+//
+// ListObjectsV2 is an enhanced version of ListObjects that includes the following improvements:
+//   - Uses ContinuationToken/NextContinuationToken for pagination instead of Marker/NextMarker
+//   - Returns KeyCount to indicate the number of keys returned
+//   - FetchOwner parameter allows you to control whether owner information is returned
+//   - StartAfter parameter allows you to specify where to start listing from
+func (c *S3) ListObjectsV2(input *ListObjectsV2Input) (*ListObjectsV2Output, error) {
+	req, out := c.ListObjectsV2Request(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) ListObjectsV2WithContext(ctx aws.Context, input *ListObjectsV2Input) (*ListObjectsV2Output, error) {
+	req, out := c.ListObjectsV2Request(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
+func (c *S3) ListObjectsV2Pages(input *ListObjectsV2Input, fn func(p *ListObjectsV2Output, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListObjectsV2Request(input)
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListObjectsV2Output), lastPage)
+	})
+}
+
 // ListPartsRequest generates a request for the ListParts operation.
 func (c *S3) ListPartsRequest(input *ListPartsInput) (req *aws.Request, output *ListPartsOutput) {
 	op := &aws.Operation{
@@ -3761,6 +3814,101 @@ type metadataListObjectsOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// ListObjectsV2Input represents the input for the ListObjectsV2 operation.
+type ListObjectsV2Input struct {
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// ContinuationToken indicates to Amazon S3 that the list is being continued
+	// on this bucket with a token. ContinuationToken is obfuscated and is not
+	// a real key.
+	ContinuationToken *string `location:"querystring" locationName:"continuation-token" type:"string"`
+
+	// A delimiter is a character you use to group keys.
+	Delimiter *string `location:"querystring" locationName:"delimiter" type:"string"`
+
+	// Encoding type used by Amazon S3 to encode object keys in the response.
+	EncodingType *string `location:"querystring" locationName:"encoding-type" type:"string"`
+
+	// FetchOwner if set to true, the response will include the owner of each
+	// object in the list. By default, the owner is not included in the response.
+	FetchOwner *bool `location:"querystring" locationName:"fetch-owner" type:"boolean"`
+
+	// Sets the maximum number of keys returned in the response. The response
+	// might contain fewer keys but will never contain more.
+	MaxKeys *int64 `location:"querystring" locationName:"max-keys" type:"integer"`
+
+	// Limits the response to keys that begin with the specified prefix.
+	Prefix *string `location:"querystring" locationName:"prefix" type:"string"`
+
+	// StartAfter is where you want Amazon S3 to start listing from. Amazon S3
+	// starts listing after this specified key. StartAfter can be any key in the
+	// bucket.
+	StartAfter *string `location:"querystring" locationName:"start-after" type:"string"`
+
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
+	metadataListObjectsV2Input `json:"-" xml:"-"`
+}
+
+type metadataListObjectsV2Input struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// ListObjectsV2Output represents the output for the ListObjectsV2 operation.
+type ListObjectsV2Output struct {
+	CommonPrefixes []*CommonPrefix `type:"list" flattened:"true"`
+
+	Contents []*Object `type:"list" flattened:"true"`
+
+	// ContinuationToken if ContinuationToken was sent with the request, it is
+	// included in the response.
+	ContinuationToken *string `type:"string"`
+
+	Delimiter *string `type:"string"`
+
+	// Encoding type used by Amazon S3 to encode object keys in the response.
+	EncodingType *string `type:"string"`
+
+	// IsTruncated set to false if all results were returned. Set to true if
+	// more keys are available to return. If the number of results exceeds that
+	// specified by MaxKeys, IsTruncated is set to true.
+	IsTruncated *bool `type:"boolean"`
+
+	// KeyCount is the number of keys returned with this request. KeyCount is
+	// always less than or equal to MaxKeys.
+	KeyCount *int64 `type:"integer"`
+
+	MaxKeys *int64 `type:"integer"`
+
+	Name *string `type:"string"`
+
+	// NextContinuationToken is sent when isTruncated is true, which means there
+	// are more keys in the bucket that can be listed. The next request to Amazon
+	// S3 can be continued with this NextContinuationToken.
+	NextContinuationToken *string `type:"string"`
+
+	Prefix *string `type:"string"`
+
+	// StartAfter is where you asked Amazon S3 to start listing.
+	StartAfter *string `type:"string"`
+
+	metadataListObjectsV2Output `json:"-" xml:"-"`
+
+	Metadata map[string]*string `location:"headers" type:"map"`
+
+	StatusCode *int64 `location:"statusCode" type:"integer"`
+}
+
+type metadataListObjectsV2Output struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
 type ListPartsInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -4626,26 +4774,19 @@ type metadataRequestPaymentConfiguration struct {
 }
 
 type RestoreObjectInput struct {
+	// 存储桶名称。
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
+	// 对象的Key。
 	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
 
-	// Confirms that the requester knows that she or he will be charged for the
-	// request. Bucket owners need not specify this parameter in their requests.
-	// Documentation on downloading objects from requester pays buckets can be found
-	// at http://docs.aws.amazon.com/AmazonS3/latest/dev/ObjectsinRequesterPaysBuckets.html
-	RequestPayer *string `location:"header" locationName:"x-amz-request-payer" type:"string"`
-
+	// 解冻请求信息。
 	RestoreRequest *RestoreRequest `locationName:"RestoreRequest" type:"structure"`
 
-	VersionID *string `location:"querystring" locationName:"versionId" type:"string"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	// 设置扩展请求头。如果现有字段不支持设置所需的请求头，您可以通过此字段进行设置。
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	// 设置扩展查询参数。如果现有字段不支持设置所需的查询参数，您可以通过此字段进行设置。
 	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataRestoreObjectInput `json:"-" xml:"-"`
@@ -4656,20 +4797,28 @@ type metadataRestoreObjectInput struct {
 }
 
 type RestoreObjectOutput struct {
+	// http响应头。
 	Metadata map[string]*string `location:"headers"  type:"map"`
 
+	// http响应状态码。
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type RestoreRequest struct {
-	// Lifetime of the active copy in days
-	Days *int64 `type:"integer" required:"true"`
+	// 设置归档、冷归档类型Object的解冻天数。
+	// 取值范围：归档类型可选1~7（单位为天），冷归档类型可选1~365（单位为天）。
+	Days *int64 `type:"integer"`
 
-	metadataRestoreRequest `json:"-" xml:"-"`
+	// 冷归档解冻优先级的容器。仅在解冻冷归档类型的Object时有效，解冻归档类型文件无需该参数。
+	JobParameters *JobParameters `type:"structure"`
 }
 
-type metadataRestoreRequest struct {
-	SDKShapeTraits bool `type:"structure"`
+type JobParameters struct {
+	// 解冻优先级，支持以下优先级：
+	// 高优先级（Expedited）：表示1小时内完成解冻。
+	// 标准（Standard）：表示2~5小时内完成解冻。
+	// 批量（Bulk）：表示5~12小时内完成解冻。
+	Tier *string `type:"string"`
 }
 
 type RoutingRule struct {

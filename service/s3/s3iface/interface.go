@@ -137,6 +137,8 @@ type S3API interface {
 
 	ListObjects(*s3.ListObjectsInput) (*s3.ListObjectsOutput, error)
 
+	ListObjectsV2(*s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error)
+
 	ListParts(*s3.ListPartsInput) (*s3.ListPartsOutput, error)
 
 	ListRetention(*s3.ListRetentionInput) (*s3.ListRetentionOutput, error)
