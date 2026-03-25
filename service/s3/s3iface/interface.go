@@ -13,7 +13,11 @@ type S3API interface {
 
 	AppendObject(input *s3.AppendObjectInput) (*s3.AppendObjectOutput, error)
 
+	AbortBucketWorm(*s3.AbortBucketWormInput) (*s3.AbortBucketWormOutput, error)
+
 	CompleteMultipartUpload(*s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error)
+
+	CompleteBucketWorm(*s3.CompleteBucketWormInput) (*s3.CompleteBucketWormOutput, error)
 
 	CopyObject(*s3.CopyObjectInput) (*s3.CopyObjectOutput, error)
 
@@ -91,6 +95,10 @@ type S3API interface {
 
 	GetBucketVersioning(*s3.GetBucketVersioningInput) (*s3.GetBucketVersioningOutput, error)
 
+	GetBucketWorm(*s3.GetBucketWormInput) (*s3.GetBucketWormOutput, error)
+
+	ExtendBucketWorm(*s3.ExtendBucketWormInput) (*s3.ExtendBucketWormOutput, error)
+
 	GetBucketWebsite(*s3.GetBucketWebsiteInput) (*s3.GetBucketWebsiteOutput, error)
 
 	GetBucketDecompressPolicy(*s3.GetBucketDecompressPolicyInput) (*s3.GetBucketDecompressPolicyOutput, error)
@@ -124,6 +132,8 @@ type S3API interface {
 	GetObjectACL(*s3.GetObjectACLInput) (*s3.GetObjectACLOutput, error)
 
 	GetObjectTorrent(*s3.GetObjectTorrentInput) (*s3.GetObjectTorrentOutput, error)
+
+	InitiateBucketWorm(*s3.InitiateBucketWormInput) (*s3.InitiateBucketWormOutput, error)
 
 	HeadBucket(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error)
 

@@ -83,6 +83,9 @@ var signQuerys = map[string]bool{
 	"PublicNetworkBlock":           true,
 	"BucketPublicNetworkBlock":     true,
 	"dataRedundancyTransition":     true,
+	"worm":                         true,
+	"wormId":                       true,
+	"wormExtend":                   true,
 }
 
 type signer struct {

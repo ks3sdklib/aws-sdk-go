@@ -1093,3 +1093,58 @@ func (s *Ks3utilCommandSuite) TestBucketPublicNetworkBlock(c *C) {
 	})
 	c.Assert(err, IsNil)
 }
+
+// TestBucketWorm bucket worm
+func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
+	// 新建合规保留策略
+	_, err := client.InitiateBucketWorm(&s3.InitiateBucketWormInput{
+		Bucket: aws.String(bucket),
+		InitiateWormConfiguration: &s3.InitiateWormConfiguration{
+			RetentionPeriodInDays: aws.Long(365),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取合规保留策略信息
+	getResp, err := client.GetBucketWorm(&s3.GetBucketWormInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*getResp.WormConfiguration.State, Equals, "InProgress")
+	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(365))
+
+	wormId := getResp.WormConfiguration.WormId
+
+	// 锁定合规保留策略
+	_, err = client.CompleteBucketWorm(&s3.CompleteBucketWormInput{
+		Bucket: aws.String(bucket),
+		WormId: wormId,
+	})
+	c.Assert(err, IsNil)
+
+	// 获取合规保留策略信息，验证状态已锁定
+	getResp, err = client.GetBucketWorm(&s3.GetBucketWormInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*getResp.WormConfiguration.State, Equals, "Locked")
+	c.Assert(*getResp.WormConfiguration.WormId, Equals, *wormId)
+
+	// 延长已锁定的合规保留策略
+	_, err = client.ExtendBucketWorm(&s3.ExtendBucketWormInput{
+		Bucket: aws.String(bucket),
+		WormId: wormId,
+		ExtendWormConfiguration: &s3.ExtendWormConfiguration{
+			RetentionPeriodInDays: aws.Long(730),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取合规保留策略信息，验证保留天数已延长
+	getResp, err = client.GetBucketWorm(&s3.GetBucketWormInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*getResp.WormConfiguration.State, Equals, "Locked")
+	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(730))
+}
