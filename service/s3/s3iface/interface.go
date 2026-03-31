@@ -55,6 +55,8 @@ type S3API interface {
 
 	DeleteBucketEncryption(*s3.DeleteBucketEncryptionInput) (*s3.DeleteBucketEncryptionOutput, error)
 
+	DeleteBucketDataAccelerator(*s3.DeleteBucketDataAcceleratorInput) (*s3.DeleteBucketDataAcceleratorOutput, error)
+
 	DeleteVpcAccessBlock(*s3.DeleteVpcAccessBlockInput) (*s3.DeleteVpcAccessBlockOutput, error)
 
 	DeleteBucketQuota(*s3.DeleteBucketQuotaInput) (*s3.DeleteBucketQuotaOutput, error)
@@ -74,6 +76,8 @@ type S3API interface {
 	GetBucketACL(*s3.GetBucketACLInput) (*s3.GetBucketACLOutput, error)
 
 	GetBucketCORS(*s3.GetBucketCORSInput) (*s3.GetBucketCORSOutput, error)
+
+	GetBucketDataAccelerator(*s3.GetBucketDataAcceleratorInput) (*s3.GetBucketDataAcceleratorOutput, error)
 
 	GetBucketLifecycle(*s3.GetBucketLifecycleInput) (*s3.GetBucketLifecycleOutput, error)
 
@@ -194,6 +198,8 @@ type S3API interface {
 	PutRequesterQos(*s3.PutRequesterQosInput) (*s3.PutRequesterQosOutput, error)
 
 	PutBucketEncryption(*s3.PutBucketEncryptionInput) (*s3.PutBucketEncryptionOutput, error)
+
+	PutBucketDataAccelerator(*s3.PutBucketDataAcceleratorInput) (*s3.PutBucketDataAcceleratorOutput, error)
 
 	PutBucketTransferAcceleration(*s3.PutBucketTransferAccelerationInput) (*s3.PutBucketTransferAccelerationOutput, error)
 

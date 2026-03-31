@@ -1148,3 +1148,49 @@ func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
 	c.Assert(*getResp.WormConfiguration.State, Equals, "Locked")
 	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(730))
 }
+
+// TestBucketDataAccelerator 测试加速器配置
+func (s *Ks3utilCommandSuite) TestBucketDataAccelerator(c *C) {
+	// 创建加速器配置
+	_, err := client.PutBucketDataAccelerator(&s3.PutBucketDataAcceleratorInput{
+		Bucket: aws.String(bucket),
+		DataAcceleratorConfiguration: &s3.DataAcceleratorConfiguration{
+			AvailableZone: aws.String("cn-beijing-e"),
+			Quota:         aws.Long(100),
+			AcceleratePaths: &s3.AcceleratePaths{
+				Path: []*s3.Path{
+					{
+						Prefix:     aws.String("prefix1/"),
+						SyncWarmup: aws.Boolean(true),
+					},
+					{
+						Prefix:     aws.String("prefix2/"),
+						SyncWarmup: aws.Boolean(false),
+					},
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取加速器配置
+	getResp, err := client.GetBucketDataAccelerator(&s3.GetBucketDataAcceleratorInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(getResp.DataAcceleratorConfiguration, NotNil)
+	c.Assert(*getResp.DataAcceleratorConfiguration.AvailableZone, Equals, "cn-beijing-e")
+	c.Assert(*getResp.DataAcceleratorConfiguration.Quota, Equals, int64(100))
+	c.Assert(getResp.DataAcceleratorConfiguration.AcceleratePaths, NotNil)
+	c.Assert(len(getResp.DataAcceleratorConfiguration.AcceleratePaths.Path), Equals, 2)
+
+	// 删除加速器配置
+	_, err = client.DeleteBucketDataAccelerator(&s3.DeleteBucketDataAcceleratorInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil) // 验证加速器配置已删除
+	getResp, err = client.GetBucketDataAccelerator(&s3.GetBucketDataAcceleratorInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, NotNil) // 应该错误，因为配置已删除
+}
