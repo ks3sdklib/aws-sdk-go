@@ -957,7 +957,31 @@ func (s *Ks3utilCommandSuite) TestBucketQuota(c *C) {
 	_, err := client.PutBucketQuota(&s3.PutBucketQuotaInput{
 		Bucket: aws.String(bucket),
 		BucketQuota: &s3.BucketQuota{
-			StorageQuota: aws.Long(10240000000),
+			StorageQuota: aws.Long(10240000),
+			// 设置日流量配额
+			Day: &s3.TransferQuota{
+				IntranetFlowUp:   aws.Long(10240000),
+				IntranetFlowDown: aws.Long(10240000),
+				ExtranetFlowUp:   aws.Long(10240000),
+				ExtranetFlowDown: aws.Long(10240000),
+				CDNFlowUp:        aws.Long(10240000),
+				CDNFlowDown:      aws.Long(10240000),
+				Put:              aws.Long(10240000),
+				Get:              aws.Long(10240000),
+				List:             aws.Long(10240000),
+			},
+			// 设置月流量配额
+			Month: &s3.TransferQuota{
+				IntranetFlowUp:   aws.Long(10240000),
+				IntranetFlowDown: aws.Long(10240000),
+				ExtranetFlowUp:   aws.Long(10240000),
+				ExtranetFlowDown: aws.Long(10240000),
+				CDNFlowUp:        aws.Long(10240000),
+				CDNFlowDown:      aws.Long(10240000),
+				Put:              aws.Long(10240000),
+				Get:              aws.Long(10240000),
+				List:             aws.Long(10240000),
+			},
 		},
 	})
 	c.Assert(err, IsNil)
@@ -970,7 +994,29 @@ func (s *Ks3utilCommandSuite) TestBucketQuota(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(*resp.BucketQuota.StorageQuota, Equals, int64(10240000000))
+	c.Assert(*resp.BucketQuota.StorageQuota, Equals, int64(10240000))
+
+	// 验证日流量配额
+	c.Assert(*resp.BucketQuota.Day.IntranetFlowUp, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.IntranetFlowDown, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.ExtranetFlowUp, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.ExtranetFlowDown, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.CDNFlowUp, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.CDNFlowDown, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.Put, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.Get, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.List, Equals, int64(10240000))
+
+	// 验证月流量配额
+	c.Assert(*resp.BucketQuota.Month.IntranetFlowUp, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.IntranetFlowDown, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.ExtranetFlowUp, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.ExtranetFlowDown, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.CDNFlowUp, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.CDNFlowDown, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.Put, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.Get, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.List, Equals, int64(10240000))
 
 	// 删除桶配额
 	_, err = client.DeleteBucketQuota(&s3.DeleteBucketQuotaInput{
