@@ -131,6 +131,95 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 					},
 				},
 			},
+			{
+				ID: aws.String("rule3"),
+				Filter: &s3.LifecycleFilter{
+					Prefix:                aws.String("prefix3/"),
+					ObjectSizeGreaterThan: aws.Long(1024),
+					ObjectSizeLessThan:    aws.Long(10240),
+				},
+				Status: aws.String(s3.StatusEnabled),
+				Expiration: &s3.LifecycleExpiration{
+					Days: aws.Long(30),
+				},
+			},
+			{
+				ID: aws.String("rule4"),
+				Filter: &s3.LifecycleFilter{
+					Prefix: aws.String("aaa/"),
+					Nots: &s3.Nots{
+						Not: []*s3.Not{
+							{
+								Prefix: aws.String("aaa/bbb/"),
+							},
+						},
+					},
+				},
+				Status: aws.String(s3.StatusEnabled),
+				Expiration: &s3.LifecycleExpiration{
+					Days: aws.Long(30),
+				},
+			},
+			{
+				ID: aws.String("rule5"),
+				Filter: &s3.LifecycleFilter{
+					Prefix: aws.String(""),
+					Nots: &s3.Nots{
+						Not: []*s3.Not{
+							{
+								Prefix: aws.String("aaa/"),
+								Tag: &s3.Tag{
+									Key:   aws.String("111"),
+									Value: aws.String("222"),
+								},
+							},
+							{
+								Prefix: aws.String("bbb/"),
+								Tag: &s3.Tag{
+									Key:   aws.String("333"),
+									Value: aws.String("444"),
+								},
+							},
+						},
+					},
+				},
+				Status: aws.String(s3.StatusEnabled),
+				Expiration: &s3.LifecycleExpiration{
+					Days: aws.Long(30),
+				},
+			},
+			{
+				ID: aws.String("rule6"),
+				Filter: &s3.LifecycleFilter{
+					And: &s3.And{
+						Prefix: aws.String("aaa/"),
+						Tags: []*s3.Tag{
+							{
+								Key:   aws.String("111"),
+								Value: aws.String("222"),
+							},
+							{
+								Key:   aws.String("333"),
+								Value: aws.String("444"),
+							},
+						},
+					},
+					Nots: &s3.Nots{
+						Not: []*s3.Not{
+							{
+								Prefix: aws.String("aaa/bbb/"),
+							},
+							{
+								Prefix: aws.String("aaa/ccc/"),
+							},
+						},
+					},
+				},
+				Status: aws.String(s3.StatusEnabled),
+				Expiration: &s3.LifecycleExpiration{
+					Days: aws.Long(30),
+				},
+			},
 		},
 	}
 	// 设置桶生命周期规则
@@ -146,7 +235,7 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(len(resp.Rules), Equals, 2)
+	c.Assert(len(resp.Rules), Equals, 6)
 	c.Assert(*resp.Rules[0].ID, Equals, "rule1")
 	c.Assert(*resp.Rules[0].Filter.Prefix, Equals, "prefix1/")
 	c.Assert(*resp.Rules[0].Status, Equals, s3.StatusEnabled)
@@ -165,6 +254,41 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 	c.Assert(*resp.Rules[1].Transitions[0].IsAccessTime, Equals, true)
 	c.Assert(*resp.Rules[1].Transitions[0].ReturnToStdWhenVisit, Equals, true)
 	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzAllowSameActionOverlap], Equals, "true")
+	c.Assert(*resp.Rules[2].ID, Equals, "rule3")
+	c.Assert(*resp.Rules[2].Filter.Prefix, Equals, "prefix3/")
+	c.Assert(*resp.Rules[2].Filter.ObjectSizeGreaterThan, Equals, int64(1024))
+	c.Assert(*resp.Rules[2].Filter.ObjectSizeLessThan, Equals, int64(10240))
+	c.Assert(*resp.Rules[2].Status, Equals, s3.StatusEnabled)
+	c.Assert(*resp.Rules[2].Expiration.Days, Equals, int64(30))
+	c.Assert(*resp.Rules[3].ID, Equals, "rule4")
+	c.Assert(*resp.Rules[3].Filter.Prefix, Equals, "aaa/")
+	c.Assert(len(resp.Rules[3].Filter.Nots.Not), Equals, 1)
+	c.Assert(*resp.Rules[3].Filter.Nots.Not[0].Prefix, Equals, "aaa/bbb/")
+	c.Assert(*resp.Rules[3].Status, Equals, s3.StatusEnabled)
+	c.Assert(*resp.Rules[3].Expiration.Days, Equals, int64(30))
+	c.Assert(*resp.Rules[4].ID, Equals, "rule5")
+	c.Assert(*resp.Rules[4].Filter.Prefix, Equals, "")
+	c.Assert(len(resp.Rules[4].Filter.Nots.Not), Equals, 2)
+	c.Assert(*resp.Rules[4].Filter.Nots.Not[0].Prefix, Equals, "aaa/")
+	c.Assert(*resp.Rules[4].Filter.Nots.Not[0].Tag.Key, Equals, "111")
+	c.Assert(*resp.Rules[4].Filter.Nots.Not[0].Tag.Value, Equals, "222")
+	c.Assert(*resp.Rules[4].Filter.Nots.Not[1].Prefix, Equals, "bbb/")
+	c.Assert(*resp.Rules[4].Filter.Nots.Not[1].Tag.Key, Equals, "333")
+	c.Assert(*resp.Rules[4].Filter.Nots.Not[1].Tag.Value, Equals, "444")
+	c.Assert(*resp.Rules[4].Status, Equals, s3.StatusEnabled)
+	c.Assert(*resp.Rules[4].Expiration.Days, Equals, int64(30))
+	c.Assert(*resp.Rules[5].ID, Equals, "rule6")
+	c.Assert(*resp.Rules[5].Filter.And.Prefix, Equals, "aaa/")
+	c.Assert(len(resp.Rules[5].Filter.And.Tags), Equals, 2)
+	c.Assert(*resp.Rules[5].Filter.And.Tags[0].Key, Equals, "111")
+	c.Assert(*resp.Rules[5].Filter.And.Tags[0].Value, Equals, "222")
+	c.Assert(*resp.Rules[5].Filter.And.Tags[1].Key, Equals, "333")
+	c.Assert(*resp.Rules[5].Filter.And.Tags[1].Value, Equals, "444")
+	c.Assert(len(resp.Rules[5].Filter.Nots.Not), Equals, 2)
+	c.Assert(*resp.Rules[5].Filter.Nots.Not[0].Prefix, Equals, "aaa/bbb/")
+	c.Assert(*resp.Rules[5].Filter.Nots.Not[1].Prefix, Equals, "aaa/ccc/")
+	c.Assert(*resp.Rules[5].Status, Equals, s3.StatusEnabled)
+	c.Assert(*resp.Rules[5].Expiration.Days, Equals, int64(30))
 
 	// 删除桶生命周期规则
 	_, err = client.DeleteBucketLifecycle(&s3.DeleteBucketLifecycleInput{

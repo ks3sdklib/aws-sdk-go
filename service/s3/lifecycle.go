@@ -56,14 +56,46 @@ type LifecycleRule struct {
 	AbortIncompleteMultipartUpload *AbortIncompleteMultipartUpload `type:"structure"`
 }
 
+// LifecycleFilter 生命周期规则过滤器。
 type LifecycleFilter struct {
+	// 对象前缀。
 	Prefix *string `type:"string"`
-	And    *And    `locationName:"And" type:"structure"`
+
+	// 逻辑与条件，当存在多个筛选条件时使用。
+	And *And `locationName:"And" type:"structure"`
+
+	// 筛选条件，指定规则所适用的对象的大小必须大于某值（不包括等于），单位：Bytes。
+	ObjectSizeGreaterThan *int64 `type:"integer"`
+
+	// 筛选条件，指定规则所适用的对象的大小必须小于某值（不包括等于），单位：Bytes。
+	ObjectSizeLessThan *int64 `type:"integer"`
+
+	// 包含多个Not取反规则的容器，单个Filter下最多一个Nots节点。
+	Nots *Nots `locationName:"Nots" type:"structure"`
 }
 
+// And 逻辑与条件，用于组合多个筛选条件。
 type And struct {
+	// 对象前缀。
 	Prefix *string `type:"string"`
-	Tags   []*Tag  `locationName:"Tag" type:"list" flattened:"true"`
+
+	// 标签列表。
+	Tags []*Tag `locationName:"Tag" type:"list" flattened:"true"`
+}
+
+// Nots 包含多个Not取反规则的容器。
+type Nots struct {
+	// 取反规则列表，单个Nots下至少存在1个Not，不同Not之间为或的关系。
+	Not []*Not `locationName:"Not" type:"list" flattened:"true"`
+}
+
+// Not 取反规则，如果Object满足该条件，则跳过本条规则的匹配。
+type Not struct {
+	// 本条排除规则所适用的Object前缀。
+	Prefix *string `type:"string"`
+
+	// 本条排除规则所适用的Object标签，至多一个。
+	Tag *Tag `locationName:"Tag" type:"structure"`
 }
 
 type LifecycleExpiration struct {
