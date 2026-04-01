@@ -41,6 +41,11 @@ func (s *Ks3utilCommandSuite) TestBucket(c *C) {
 			c.Assert(*bucketInfo.Type, Equals, s3.BucketTypeNormal)
 			c.Assert(*bucketInfo.VisitType, Equals, s3.BucketVisitTypeNormal)
 			c.Assert(*bucketInfo.DataRedundancyType, Equals, s3.DataRedundancyTypeLRS)
+			// 验证BucketCreatorInfo
+			c.Assert(bucketInfo.BucketCreatorInfo, NotNil)
+			c.Assert(*bucketInfo.BucketCreatorInfo.AccessKeyId, Not(Equals), "")
+			c.Assert(*bucketInfo.BucketCreatorInfo.KRN, Not(Equals), "")
+			c.Assert(*bucketInfo.BucketCreatorInfo.IpAddress, Not(Equals), "")
 		}
 	}
 

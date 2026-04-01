@@ -27,7 +27,7 @@ var _ = Suite(&Ks3utilCommandSuite{})
 
 var (
 	//endpoint                = os.Getenv("KS3_TEST_ENDPOINT")
-	endpoint                = "ks3-cn-qinghai-internal.ksyuncs.com"
+	endpoint                = "ks3-cn-guangzhou-internal.ksyuncs.com"
 	accessKeyID             = os.Getenv("KS3_TEST_ACCESS_KEY_ID")
 	accessKeySecret         = os.Getenv("KS3_TEST_ACCESS_KEY_SECRET")
 	bucket                  = os.Getenv("KS3_TEST_BUCKET")

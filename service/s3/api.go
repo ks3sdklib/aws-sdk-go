@@ -1813,11 +1813,20 @@ type Bucket struct {
 	// The bucket data redundancy type.
 	DataRedundancyType *string `type:"string"`
 
-	metadataBucket `json:"-" xml:"-"`
+	// Bucket创建者信息。
+	BucketCreatorInfo *BucketCreatorInfo `type:"structure"`
 }
 
-type metadataBucket struct {
-	SDKShapeTraits bool `type:"structure"`
+// BucketCreatorInfo Bucket创建者信息。
+type BucketCreatorInfo struct {
+	// Bucket创建者的AK信息，经过base64编码。
+	AccessKeyId *string `type:"string"`
+
+	// Bucket创建者的KRN信息，经过base64编码。
+	KRN *string `type:"string"`
+
+	// 创建桶时的来源IP。
+	IpAddress *string `type:"string"`
 }
 
 type BucketLoggingStatus struct {
