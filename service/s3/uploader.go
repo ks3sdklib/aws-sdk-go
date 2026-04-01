@@ -112,6 +112,9 @@ type UploadFileInput struct {
 	// 如果有多个ETag，则与所有ETag均不同即可上传成功。
 	IfNoneMatch *string `location:"header" locationName:"If-None-Match" type:"string"`
 
+	// 单块上传带宽限速，单位是字节，如10 * 1024 * 1024表示10MB。
+	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"integer"`
+
 	// Progress callback function
 	ProgressFn aws.ProgressFunc `location:"function"`
 }
@@ -264,6 +267,7 @@ func (u *Uploader) putObject() (*UploadFileOutput, error) {
 		SSECustomerKeyMD5:    request.SSECustomerKeyMD5,
 		IfMatch:              request.IfMatch,
 		IfNoneMatch:          request.IfNoneMatch,
+		TrafficLimit:         request.TrafficLimit,
 		ProgressFn:           request.ProgressFn,
 	})
 	if err != nil {
@@ -463,6 +467,7 @@ func (u *Uploader) uploadPart(task UploadPartTask) (CompletedPart, error) {
 		SSECustomerAlgorithm: request.SSECustomerAlgorithm,
 		SSECustomerKey:       request.SSECustomerKey,
 		SSECustomerKeyMD5:    request.SSECustomerKeyMD5,
+		TrafficLimit:         request.TrafficLimit,
 	})
 
 	if err != nil {

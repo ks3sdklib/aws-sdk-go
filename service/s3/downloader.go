@@ -107,6 +107,9 @@ type DownloadFileInput struct {
 	// Specifies the 128-bit MD5 digest of the encryption key according to RFC 1321.
 	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
 
+	// 单块下载带宽限速，单位是字节，如10 * 1024 * 1024 * 8表示10MB。
+	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"integer"`
+
 	// Progress callback function
 	ProgressFn aws.ProgressFunc `location:"function"`
 }
@@ -368,6 +371,7 @@ func (d *Downloader) downloadPart(task DownloadPartTask) (CompletedPart, error) 
 		SSECustomerAlgorithm:       request.SSECustomerAlgorithm,
 		SSECustomerKey:             request.SSECustomerKey,
 		SSECustomerKeyMD5:          request.SSECustomerKeyMD5,
+		TrafficLimit:               request.TrafficLimit,
 	})
 
 	if err != nil {
