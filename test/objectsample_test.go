@@ -627,9 +627,9 @@ func (s *Ks3utilCommandSuite) TestRestoreObject(c *C) {
 		Key:    aws.String(key),
 		RestoreRequest: &s3.RestoreRequest{
 			Days: aws.Long(int64(7)), // 解冻持续时间
-			JobParameters: &s3.JobParameters{
-				Tier: aws.String(s3.RestoreTierStandard), // 解冻优先级: Expedited/Standard/Bulk
-			},
+			//JobParameters: &s3.JobParameters{
+			//	Tier: aws.String(s3.RestoreTierStandard), // 解冻优先级: Expedited/Standard/Bulk
+			//},
 		},
 	})
 	c.Assert(err, IsNil)

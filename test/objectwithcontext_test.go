@@ -346,9 +346,9 @@ func (s *Ks3utilCommandSuite) TestRestoreObjectWithContext(c *C) {
 		Key:    aws.String(object),
 		RestoreRequest: &s3.RestoreRequest{
 			Days: aws.Long(int64(7)),
-			JobParameters: &s3.JobParameters{
-				Tier: aws.String(s3.RestoreTierStandard),
-			},
+			//JobParameters: &s3.JobParameters{
+			//	Tier: aws.String(s3.RestoreTierStandard),
+			//},
 		},
 	})
 	c.Assert(err, IsNil)

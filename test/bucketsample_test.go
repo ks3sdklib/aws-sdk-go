@@ -1277,7 +1277,7 @@ func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
 	_, err := client.InitiateBucketWorm(&s3.InitiateBucketWormInput{
 		Bucket: aws.String(bucket),
 		InitiateWormConfiguration: &s3.InitiateWormConfiguration{
-			RetentionPeriodInDays: aws.Long(100),
+			RetentionPeriodInDays: aws.Long(1),
 		},
 	})
 	c.Assert(err, IsNil)
@@ -1288,6 +1288,7 @@ func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*getResp.WormConfiguration.State, Equals, "InProgress")
+	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(1))
 
 	// 删除未锁定的合规保留策略
 	_, err = client.AbortBucketWorm(&s3.AbortBucketWormInput{
@@ -1299,7 +1300,7 @@ func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
 	_, err = client.InitiateBucketWorm(&s3.InitiateBucketWormInput{
 		Bucket: aws.String(bucket),
 		InitiateWormConfiguration: &s3.InitiateWormConfiguration{
-			RetentionPeriodInDays: aws.Long(365),
+			RetentionPeriodInDays: aws.Long(1),
 		},
 	})
 	c.Assert(err, IsNil)
@@ -1310,7 +1311,7 @@ func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*getResp.WormConfiguration.State, Equals, "InProgress")
-	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(365))
+	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(1))
 
 	wormId := getResp.WormConfiguration.WormId
 
@@ -1327,13 +1328,14 @@ func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*getResp.WormConfiguration.State, Equals, "Locked")
+	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(1))
 
 	// 延长已锁定的合规保留策略
 	_, err = client.ExtendBucketWorm(&s3.ExtendBucketWormInput{
 		Bucket: aws.String(bucket),
 		WormId: wormId,
 		ExtendWormConfiguration: &s3.ExtendWormConfiguration{
-			RetentionPeriodInDays: aws.Long(730),
+			RetentionPeriodInDays: aws.Long(2),
 		},
 	})
 	c.Assert(err, IsNil)
@@ -1343,7 +1345,7 @@ func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(730))
+	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(2))
 }
 
 // TestBucketDataAccelerator 加速器配置
