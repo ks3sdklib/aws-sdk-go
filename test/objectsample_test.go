@@ -48,21 +48,43 @@ func (s *Ks3utilCommandSuite) TestListObjectsV2(c *C) {
 		c.Assert(err, IsNil)
 	}
 
+	// 上传带子目录的文件，用于测试Delimiter
+	subDirKey := testPrefix + "subdir/file.txt"
+	_, err := client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(subDirKey),
+		Body:   strings.NewReader("subdir content"),
+	})
+	c.Assert(err, IsNil)
+
 	// 测试完成后删除所有文件
 	defer func() {
 		for _, key := range testKeys {
 			s.DeleteObject(key, c)
 		}
+		s.DeleteObject(subDirKey, c)
 	}()
 
-	// 1. 基本列举
+	// 1. 基本列举，验证响应基本字段
 	resp, err := client.ListObjectsV2(&s3.ListObjectsV2Input{
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(testPrefix),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(resp, NotNil)
-	c.Assert(*resp.KeyCount, Equals, int64(15))
+	c.Assert(*resp.KeyCount, Equals, int64(16))
+	c.Assert(resp.IsTruncated, NotNil)
+	c.Assert(*resp.Name, Equals, bucket)
+	c.Assert(*resp.Prefix, Equals, testPrefix)
+	c.Assert(resp.MaxKeys, NotNil)
+
+	// 验证Contents中对象的元数据
+	obj := resp.Contents[0]
+	c.Assert(obj.Key, NotNil)
+	c.Assert(obj.ETag, NotNil)
+	c.Assert(obj.LastModified, NotNil)
+	c.Assert(obj.Size, NotNil)
+	c.Assert(obj.StorageClass, NotNil)
 
 	// 2. 测试MaxKeys限制
 	resp, err = client.ListObjectsV2(&s3.ListObjectsV2Input{
@@ -74,10 +96,11 @@ func (s *Ks3utilCommandSuite) TestListObjectsV2(c *C) {
 	c.Assert(*resp.KeyCount, Equals, int64(5))
 	c.Assert(*resp.IsTruncated, Equals, true)
 	c.Assert(resp.NextContinuationToken, NotNil)
+	c.Assert(*resp.MaxKeys, Equals, int64(5))
 
 	// 3. 测试ContinuationToken分页
 	continuationToken := *resp.NextContinuationToken
-	var totalKeys int64 = 5 // 第一次请求已获取5个
+	var totalKeys int64 = 5
 	for continuationToken != "" {
 		resp, err = client.ListObjectsV2(&s3.ListObjectsV2Input{
 			Bucket:            aws.String(bucket),
@@ -86,6 +109,8 @@ func (s *Ks3utilCommandSuite) TestListObjectsV2(c *C) {
 			ContinuationToken: aws.String(continuationToken),
 		})
 		c.Assert(err, IsNil)
+		c.Assert(resp.ContinuationToken, NotNil)
+		c.Assert(*resp.ContinuationToken, Equals, continuationToken)
 		totalKeys += *resp.KeyCount
 
 		if resp.IsTruncated != nil && *resp.IsTruncated {
@@ -95,20 +120,21 @@ func (s *Ks3utilCommandSuite) TestListObjectsV2(c *C) {
 			continuationToken = ""
 		}
 	}
-	c.Assert(totalKeys, Equals, int64(15))
+	c.Assert(totalKeys, Equals, int64(16))
 
 	// 4. 测试StartAfter参数
 	resp, err = client.ListObjectsV2(&s3.ListObjectsV2Input{
 		Bucket:     aws.String(bucket),
 		Prefix:     aws.String(testPrefix),
 		MaxKeys:    aws.Long(int64(5)),
-		StartAfter: aws.String(testKeys[4]), // 从第5个文件之后开始
+		StartAfter: aws.String(testKeys[4]),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*resp.KeyCount, Equals, int64(5))
 	c.Assert(*resp.Contents[0].Key, Equals, testKeys[5])
+	c.Assert(*resp.StartAfter, Equals, testKeys[4])
 
-	// 5. 测试Delimiter分隔符
+	// 5. 测试Delimiter分隔符，验证CommonPrefixes
 	resp, err = client.ListObjectsV2(&s3.ListObjectsV2Input{
 		Bucket:    aws.String(bucket),
 		Prefix:    aws.String(testPrefix),
@@ -116,7 +142,10 @@ func (s *Ks3utilCommandSuite) TestListObjectsV2(c *C) {
 		MaxKeys:   aws.Long(int64(100)),
 	})
 	c.Assert(err, IsNil)
-	// 使用分隔符时，应该只返回文件列表（没有子目录）
+	c.Assert(*resp.Delimiter, Equals, "/")
+	// 验证CommonPrefixes包含子目录前缀
+	c.Assert(len(resp.CommonPrefixes) > 0, Equals, true)
+	c.Assert(*resp.CommonPrefixes[0].Prefix, Equals, testPrefix+"subdir/")
 
 	// 6. 测试FetchOwner参数
 	resp, err = client.ListObjectsV2(&s3.ListObjectsV2Input{
@@ -128,9 +157,9 @@ func (s *Ks3utilCommandSuite) TestListObjectsV2(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(*resp.KeyCount, Equals, int64(5))
 	// FetchOwner为true时，Contents中的Owner字段应该有值
-	if len(resp.Contents) > 0 && resp.Contents[0].Owner != nil {
-		c.Assert(resp.Contents[0].Owner.ID, NotNil)
-	}
+	c.Assert(resp.Contents[0].Owner, NotNil)
+	c.Assert(resp.Contents[0].Owner.ID, NotNil)
+	c.Assert(resp.Contents[0].Owner.DisplayName, NotNil)
 
 	// 7. 测试EncodingType参数
 	resp, err = client.ListObjectsV2(&s3.ListObjectsV2Input{
@@ -140,7 +169,13 @@ func (s *Ks3utilCommandSuite) TestListObjectsV2(c *C) {
 		EncodingType: aws.String("url"),
 	})
 	c.Assert(err, IsNil)
+	c.Assert(*resp.EncodingType, Equals, "url")
 	c.Assert(*resp.KeyCount, Equals, int64(5))
+
+	// 8. 验证HTTP响应字段
+	c.Assert(resp.StatusCode, NotNil)
+	c.Assert(*resp.StatusCode, Equals, int64(200))
+	c.Assert(resp.Metadata, NotNil)
 }
 
 // TestPutObject 上传示例 -可设置标签  acl
