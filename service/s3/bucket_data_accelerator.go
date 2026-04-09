@@ -63,7 +63,7 @@ type PutBucketDataAcceleratorOutput struct {
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
-// PutBucketDataAcceleratorRequest generates a request for the PutBucketDataAccelerator operation.
+// PutBucketDataAcceleratorRequest 创建或修改加速器操作的请求。
 func (c *S3) PutBucketDataAcceleratorRequest(input *PutBucketDataAcceleratorInput) (req *aws.Request, output *PutBucketDataAcceleratorOutput) {
 	op := &aws.Operation{
 		Name:       "PutBucketDataAccelerator",
@@ -83,8 +83,6 @@ func (c *S3) PutBucketDataAcceleratorRequest(input *PutBucketDataAcceleratorInpu
 }
 
 // PutBucketDataAccelerator 创建或修改加速器。
-// 该接口用于在指定普通桶上创建一个加速器或修改加速器规则。
-// 单个桶最多支持创建一个加速器规则，新添加的规则将全部覆盖旧规则。
 func (c *S3) PutBucketDataAccelerator(input *PutBucketDataAcceleratorInput) (*PutBucketDataAcceleratorOutput, error) {
 	req, out := c.PutBucketDataAcceleratorRequest(input)
 	err := req.Send()
@@ -129,7 +127,7 @@ type metadataGetBucketDataAcceleratorOutput struct {
 	SDKShapeTraits bool `type:"structure" payload:"DataAcceleratorConfiguration"`
 }
 
-// GetBucketDataAcceleratorRequest generates a request for the GetBucketDataAccelerator operation.
+// GetBucketDataAcceleratorRequest 获取加速器配置操作的请求。
 func (c *S3) GetBucketDataAcceleratorRequest(input *GetBucketDataAcceleratorInput) (req *aws.Request, output *GetBucketDataAcceleratorOutput) {
 	op := &aws.Operation{
 		Name:       "GetBucketDataAccelerator",
@@ -148,7 +146,6 @@ func (c *S3) GetBucketDataAcceleratorRequest(input *GetBucketDataAcceleratorInpu
 }
 
 // GetBucketDataAccelerator 获取加速器配置。
-// 本接口用于获取指定存储桶设置的加速器规则。
 func (c *S3) GetBucketDataAccelerator(input *GetBucketDataAcceleratorInput) (*GetBucketDataAcceleratorOutput, error) {
 	req, out := c.GetBucketDataAcceleratorRequest(input)
 	err := req.Send()
@@ -184,7 +181,7 @@ type DeleteBucketDataAcceleratorOutput struct {
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
-// DeleteBucketDataAcceleratorRequest generates a request for the DeleteBucketDataAccelerator operation.
+// DeleteBucketDataAcceleratorRequest 删除加速器配置操作的请求。
 func (c *S3) DeleteBucketDataAcceleratorRequest(input *DeleteBucketDataAcceleratorInput) (req *aws.Request, output *DeleteBucketDataAcceleratorOutput) {
 	op := &aws.Operation{
 		Name:       "DeleteBucketDataAccelerator",
@@ -203,7 +200,6 @@ func (c *S3) DeleteBucketDataAcceleratorRequest(input *DeleteBucketDataAccelerat
 }
 
 // DeleteBucketDataAccelerator 删除加速器配置。
-// 该接口用于删除指定存储桶的加速器规则。
 func (c *S3) DeleteBucketDataAccelerator(input *DeleteBucketDataAcceleratorInput) (*DeleteBucketDataAcceleratorOutput, error) {
 	req, out := c.DeleteBucketDataAcceleratorRequest(input)
 	err := req.Send()
