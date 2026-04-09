@@ -736,7 +736,7 @@ func (s *Ks3utilCommandSuite) TestUploadPartWithContext(c *C) {
 	var compParts []*s3.CompletedPart
 	// 缓冲区，分块大小为5MB
 	buffer := make([]byte, 5*1024*1024)
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Millisecond*500)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Millisecond*10)
 	defer cancelFunc()
 	for {
 		n, err := fd.Read(buffer)
