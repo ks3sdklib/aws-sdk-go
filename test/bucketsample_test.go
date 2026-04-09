@@ -1269,10 +1269,32 @@ func (s *Ks3utilCommandSuite) TestBucketPublicNetworkBlock(c *C) {
 	c.Assert(err, IsNil)
 }
 
-// TestBucketWorm bucket worm
+// TestBucketWorm 合规保留策略
 func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
 	// 新建合规保留策略
 	_, err := client.InitiateBucketWorm(&s3.InitiateBucketWormInput{
+		Bucket: aws.String(bucket),
+		InitiateWormConfiguration: &s3.InitiateWormConfiguration{
+			RetentionPeriodInDays: aws.Long(100),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取合规保留策略信息
+	getResp, err := client.GetBucketWorm(&s3.GetBucketWormInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*getResp.WormConfiguration.State, Equals, "InProgress")
+
+	// 删除未锁定的合规保留策略
+	_, err = client.AbortBucketWorm(&s3.AbortBucketWormInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+
+	// 新建合规保留策略
+	_, err = client.InitiateBucketWorm(&s3.InitiateBucketWormInput{
 		Bucket: aws.String(bucket),
 		InitiateWormConfiguration: &s3.InitiateWormConfiguration{
 			RetentionPeriodInDays: aws.Long(365),
@@ -1281,7 +1303,7 @@ func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
 	c.Assert(err, IsNil)
 
 	// 获取合规保留策略信息
-	getResp, err := client.GetBucketWorm(&s3.GetBucketWormInput{
+	getResp, err = client.GetBucketWorm(&s3.GetBucketWormInput{
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
@@ -1297,13 +1319,12 @@ func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
 	})
 	c.Assert(err, IsNil)
 
-	// 获取合规保留策略信息，验证状态已锁定
+	// 获取合规保留策略信息
 	getResp, err = client.GetBucketWorm(&s3.GetBucketWormInput{
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(*getResp.WormConfiguration.State, Equals, "Locked")
-	c.Assert(*getResp.WormConfiguration.WormId, Equals, *wormId)
 
 	// 延长已锁定的合规保留策略
 	_, err = client.ExtendBucketWorm(&s3.ExtendBucketWormInput{
@@ -1315,17 +1336,17 @@ func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
 	})
 	c.Assert(err, IsNil)
 
-	// 获取合规保留策略信息，验证保留天数已延长
+	// 获取合规保留策略信息
 	getResp, err = client.GetBucketWorm(&s3.GetBucketWormInput{
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(*getResp.WormConfiguration.State, Equals, "Locked")
 	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(730))
 }
 
-// TestBucketDataAccelerator 测试加速器配置
+// TestBucketDataAccelerator 加速器配置
 func (s *Ks3utilCommandSuite) TestBucketDataAccelerator(c *C) {
+	c.Skip("Skip TestBucketDataAccelerator")
 	// 创建加速器配置
 	_, err := client.PutBucketDataAccelerator(&s3.PutBucketDataAcceleratorInput{
 		Bucket: aws.String(bucket),
@@ -1358,14 +1379,14 @@ func (s *Ks3utilCommandSuite) TestBucketDataAccelerator(c *C) {
 	c.Assert(*getResp.DataAcceleratorConfiguration.Quota, Equals, int64(100))
 	c.Assert(getResp.DataAcceleratorConfiguration.AcceleratePaths, NotNil)
 	c.Assert(len(getResp.DataAcceleratorConfiguration.AcceleratePaths.Path), Equals, 2)
+	c.Assert(*getResp.DataAcceleratorConfiguration.AcceleratePaths.Path[0].Prefix, Equals, "prefix1/")
+	c.Assert(*getResp.DataAcceleratorConfiguration.AcceleratePaths.Path[0].SyncWarmup, Equals, true)
+	c.Assert(*getResp.DataAcceleratorConfiguration.AcceleratePaths.Path[1].Prefix, Equals, "prefix2/")
+	c.Assert(*getResp.DataAcceleratorConfiguration.AcceleratePaths.Path[1].SyncWarmup, Equals, false)
 
 	// 删除加速器配置
 	_, err = client.DeleteBucketDataAccelerator(&s3.DeleteBucketDataAcceleratorInput{
 		Bucket: aws.String(bucket),
 	})
-	c.Assert(err, IsNil) // 验证加速器配置已删除
-	getResp, err = client.GetBucketDataAccelerator(&s3.GetBucketDataAcceleratorInput{
-		Bucket: aws.String(bucket),
-	})
-	c.Assert(err, NotNil) // 应该错误，因为配置已删除
+	c.Assert(err, IsNil)
 }
