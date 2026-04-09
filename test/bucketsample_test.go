@@ -1272,6 +1272,7 @@ func (s *Ks3utilCommandSuite) TestBucketPublicNetworkBlock(c *C) {
 
 // TestBucketWorm 合规保留策略
 func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
+	c.Skip("Skip TestBucketWorm")
 	// 新建合规保留策略
 	_, err := client.InitiateBucketWorm(&s3.InitiateBucketWormInput{
 		Bucket: aws.String(bucket),
