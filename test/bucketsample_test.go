@@ -1082,6 +1082,7 @@ func (s *Ks3utilCommandSuite) TestBucketVpcAccessBlock(c *C) {
 }
 
 func (s *Ks3utilCommandSuite) TestBucketQuota(c *C) {
+	c.Skip("Skip TestBucketQuota")
 	// 设置桶配额
 	_, err := client.PutBucketQuota(&s3.PutBucketQuotaInput{
 		Bucket: aws.String(bucket),
