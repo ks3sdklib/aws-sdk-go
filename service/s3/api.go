@@ -1087,7 +1087,7 @@ func (c *S3) ListObjectsPages(input *ListObjectsInput, fn func(p *ListObjectsOut
 	})
 }
 
-// ListObjectsV2Request generates a request for the ListObjectsV2 operation.
+// ListObjectsV2Request 列举对象操作的请求。
 func (c *S3) ListObjectsV2Request(input *ListObjectsV2Input) (req *aws.Request, output *ListObjectsV2Output) {
 	op := &aws.Operation{
 		Name:       "ListObjectsV2",
@@ -1118,6 +1118,7 @@ func (c *S3) ListObjectsV2(input *ListObjectsV2Input) (*ListObjectsV2Output, err
 	return out, err
 }
 
+// ListObjectsV2WithContext 列出存储桶中的对象，支持传入上下文。
 func (c *S3) ListObjectsV2WithContext(ctx aws.Context, input *ListObjectsV2Input) (*ListObjectsV2Output, error) {
 	req, out := c.ListObjectsV2Request(input)
 	req.SetContext(ctx)
@@ -1125,6 +1126,7 @@ func (c *S3) ListObjectsV2WithContext(ctx aws.Context, input *ListObjectsV2Input
 	return out, err
 }
 
+// ListObjectsV2Pages 列出存储桶中的对象，支持分页回调。
 func (c *S3) ListObjectsV2Pages(input *ListObjectsV2Input, fn func(p *ListObjectsV2Output, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListObjectsV2Request(input)
 	return page.EachPage(func(p interface{}, lastPage bool) bool {

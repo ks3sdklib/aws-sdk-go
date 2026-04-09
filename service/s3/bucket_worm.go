@@ -46,7 +46,7 @@ type metadataInitiateBucketWormOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-// InitiateBucketWormRequest generates a request for the InitiateBucketWorm operation.
+// InitiateBucketWormRequest 新建合规保留策略操作的请求。
 func (c *S3) InitiateBucketWormRequest(input *InitiateBucketWormInput) (req *aws.Request, output *InitiateBucketWormOutput) {
 	op := &aws.Operation{
 		Name:       "InitiateBucketWorm",
@@ -100,7 +100,7 @@ type AbortBucketWormOutput struct {
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
-// AbortBucketWormRequest generates a request for the AbortBucketWorm operation.
+// AbortBucketWormRequest 删除未锁定的合规保留策略操作的请求。
 func (c *S3) AbortBucketWormRequest(input *AbortBucketWormInput) (req *aws.Request, output *AbortBucketWormOutput) {
 	op := &aws.Operation{
 		Name:       "AbortBucketWorm",
@@ -157,7 +157,7 @@ type CompleteBucketWormOutput struct {
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
-// CompleteBucketWormRequest generates a request for the CompleteBucketWorm operation.
+// CompleteBucketWormRequest 锁定合规保留策略操作的请求。
 func (c *S3) CompleteBucketWormRequest(input *CompleteBucketWormInput) (req *aws.Request, output *CompleteBucketWormOutput) {
 	op := &aws.Operation{
 		Name:       "CompleteBucketWorm",
@@ -235,7 +235,7 @@ type metadataExtendBucketWormOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
-// ExtendBucketWormRequest generates a request for the ExtendBucketWorm operation.
+// ExtendBucketWormRequest 延长已锁定的合规保留策略操作的请求。
 func (c *S3) ExtendBucketWormRequest(input *ExtendBucketWormInput) (req *aws.Request, output *ExtendBucketWormOutput) {
 	op := &aws.Operation{
 		Name:       "ExtendBucketWorm",
@@ -313,7 +313,7 @@ type WormConfiguration struct {
 	CreationDate *string `locationName:"CreationDate" type:"string"`
 }
 
-// GetBucketWormRequest generates a request for the GetBucketWorm operation.
+// GetBucketWormRequest 获取合规保留策略信息操作的请求。
 func (c *S3) GetBucketWormRequest(input *GetBucketWormInput) (req *aws.Request, output *GetBucketWormOutput) {
 	op := &aws.Operation{
 		Name:       "GetBucketWorm",
