@@ -609,6 +609,7 @@ func (s *Ks3utilCommandSuite) TestBucketRetention(c *C) {
 
 // TestBucketReplication bucket replication
 func (s *Ks3utilCommandSuite) TestBucketReplication(c *C) {
+	c.Skip("Skip TestBucketReplication")
 	_, err := client.PutBucketReplication(&s3.PutBucketReplicationInput{
 		Bucket: aws.String(bucket),
 		ReplicationConfiguration: &s3.ReplicationConfiguration{

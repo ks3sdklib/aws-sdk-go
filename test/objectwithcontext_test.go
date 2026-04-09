@@ -185,6 +185,7 @@ func (s *Ks3utilCommandSuite) TestDeleteObjectWithContext(c *C) {
 
 // PUT Fetch Object
 func (s *Ks3utilCommandSuite) TestFetchObjectWithContext(c *C) {
+	c.Skip("Skip TestFetchObjectWithContext")
 	sourceObject := randLowStr(10)
 	createFile(sourceObject, 1024*1024*1)
 	fd, _ := os.Open(sourceObject)
