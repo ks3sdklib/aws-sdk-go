@@ -153,7 +153,7 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 				Filter: &s3.LifecycleFilter{
 					Prefix: aws.String("aaa/"),
 					Nots: &s3.Nots{
-						Not: []*s3.Not{
+						NotList: []*s3.Not{
 							{
 								Prefix: aws.String("aaa/bbb/"),
 							},
@@ -170,7 +170,7 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 				Filter: &s3.LifecycleFilter{
 					Prefix: aws.String(""),
 					Nots: &s3.Nots{
-						Not: []*s3.Not{
+						NotList: []*s3.Not{
 							{
 								Prefix: aws.String("aaa/"),
 								Tag: &s3.Tag{
@@ -210,7 +210,7 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 						},
 					},
 					Nots: &s3.Nots{
-						Not: []*s3.Not{
+						NotList: []*s3.Not{
 							{
 								Prefix: aws.String("aaa/bbb/"),
 							},
@@ -267,19 +267,19 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 	c.Assert(*resp.Rules[2].Expiration.Days, Equals, int64(30))
 	c.Assert(*resp.Rules[3].ID, Equals, "rule4")
 	c.Assert(*resp.Rules[3].Filter.Prefix, Equals, "aaa/")
-	c.Assert(len(resp.Rules[3].Filter.Nots.Not), Equals, 1)
-	c.Assert(*resp.Rules[3].Filter.Nots.Not[0].Prefix, Equals, "aaa/bbb/")
+	c.Assert(len(resp.Rules[3].Filter.Nots.NotList), Equals, 1)
+	c.Assert(*resp.Rules[3].Filter.Nots.NotList[0].Prefix, Equals, "aaa/bbb/")
 	c.Assert(*resp.Rules[3].Status, Equals, s3.StatusEnabled)
 	c.Assert(*resp.Rules[3].Expiration.Days, Equals, int64(30))
 	c.Assert(*resp.Rules[4].ID, Equals, "rule5")
 	c.Assert(*resp.Rules[4].Filter.Prefix, Equals, "")
-	c.Assert(len(resp.Rules[4].Filter.Nots.Not), Equals, 2)
-	c.Assert(*resp.Rules[4].Filter.Nots.Not[0].Prefix, Equals, "aaa/")
-	c.Assert(*resp.Rules[4].Filter.Nots.Not[0].Tag.Key, Equals, "111")
-	c.Assert(*resp.Rules[4].Filter.Nots.Not[0].Tag.Value, Equals, "222")
-	c.Assert(*resp.Rules[4].Filter.Nots.Not[1].Prefix, Equals, "bbb/")
-	c.Assert(*resp.Rules[4].Filter.Nots.Not[1].Tag.Key, Equals, "333")
-	c.Assert(*resp.Rules[4].Filter.Nots.Not[1].Tag.Value, Equals, "444")
+	c.Assert(len(resp.Rules[4].Filter.Nots.NotList), Equals, 2)
+	c.Assert(*resp.Rules[4].Filter.Nots.NotList[0].Prefix, Equals, "aaa/")
+	c.Assert(*resp.Rules[4].Filter.Nots.NotList[0].Tag.Key, Equals, "111")
+	c.Assert(*resp.Rules[4].Filter.Nots.NotList[0].Tag.Value, Equals, "222")
+	c.Assert(*resp.Rules[4].Filter.Nots.NotList[1].Prefix, Equals, "bbb/")
+	c.Assert(*resp.Rules[4].Filter.Nots.NotList[1].Tag.Key, Equals, "333")
+	c.Assert(*resp.Rules[4].Filter.Nots.NotList[1].Tag.Value, Equals, "444")
 	c.Assert(*resp.Rules[4].Status, Equals, s3.StatusEnabled)
 	c.Assert(*resp.Rules[4].Expiration.Days, Equals, int64(30))
 	c.Assert(*resp.Rules[5].ID, Equals, "rule6")
@@ -289,9 +289,9 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 	c.Assert(*resp.Rules[5].Filter.And.Tags[0].Value, Equals, "222")
 	c.Assert(*resp.Rules[5].Filter.And.Tags[1].Key, Equals, "333")
 	c.Assert(*resp.Rules[5].Filter.And.Tags[1].Value, Equals, "444")
-	c.Assert(len(resp.Rules[5].Filter.Nots.Not), Equals, 2)
-	c.Assert(*resp.Rules[5].Filter.Nots.Not[0].Prefix, Equals, "aaa/bbb/")
-	c.Assert(*resp.Rules[5].Filter.Nots.Not[1].Prefix, Equals, "aaa/ccc/")
+	c.Assert(len(resp.Rules[5].Filter.Nots.NotList), Equals, 2)
+	c.Assert(*resp.Rules[5].Filter.Nots.NotList[0].Prefix, Equals, "aaa/bbb/")
+	c.Assert(*resp.Rules[5].Filter.Nots.NotList[1].Prefix, Equals, "aaa/ccc/")
 	c.Assert(*resp.Rules[5].Status, Equals, s3.StatusEnabled)
 	c.Assert(*resp.Rules[5].Expiration.Days, Equals, int64(30))
 

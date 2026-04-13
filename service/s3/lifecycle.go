@@ -86,7 +86,7 @@ type And struct {
 // Nots 包含多个Not取反规则的容器。
 type Nots struct {
 	// 取反规则列表，单个Nots下至少存在1个Not，不同Not之间为或的关系。
-	Not []*Not `locationName:"Not" type:"list" flattened:"true"`
+	NotList []*Not `locationName:"Not" type:"list" flattened:"true"`
 }
 
 // Not 取反规则，如果Object满足该条件，则跳过本条规则的匹配。
