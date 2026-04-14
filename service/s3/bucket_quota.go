@@ -27,7 +27,7 @@ type metadataPutBucketQuotaInput struct {
 // BucketQuota 桶配额的容器
 type BucketQuota struct {
 	// 指定桶空间配额值，单位为字节，取值必须为正整数。取值范围为1~9223372036854775807。
-	StorageQuota *int64 `locationName:"StorageQuota" type:"integer"`
+	StorageQuota *int64 `locationName:"StorageQuota" type:"integer" required:"true"`
 
 	// 指定桶每天各维度可用配额。
 	Day *TransferQuota `locationName:"Day" type:"structure"`
