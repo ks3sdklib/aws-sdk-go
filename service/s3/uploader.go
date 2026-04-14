@@ -112,7 +112,7 @@ type UploadFileInput struct {
 	// 如果有多个ETag，则与所有ETag均不同即可上传成功。
 	IfNoneMatch *string `location:"header" locationName:"If-None-Match" type:"string"`
 
-	// 单块上传带宽限速，单位是字节，如10 * 1024 * 1024表示10MB。
+	// Bandwidth limit for single-part upload, in bits. For example, 10 * 1024 * 1024 * 8 means 10MB/s.
 	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"integer"`
 
 	// Progress callback function

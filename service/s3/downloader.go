@@ -107,7 +107,7 @@ type DownloadFileInput struct {
 	// Specifies the 128-bit MD5 digest of the encryption key according to RFC 1321.
 	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
 
-	// 单块下载带宽限速，单位是字节，如10 * 1024 * 1024 * 8表示10MB。
+	// Bandwidth limit for single-part download, in bits. For example, 10 * 1024 * 1024 * 8 means 10MB/s.
 	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"integer"`
 
 	// Progress callback function
