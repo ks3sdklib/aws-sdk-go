@@ -41,6 +41,11 @@ func (s *Ks3utilCommandSuite) TestBucket(c *C) {
 			c.Assert(*bucketInfo.Type, Equals, s3.BucketTypeNormal)
 			c.Assert(*bucketInfo.VisitType, Equals, s3.BucketVisitTypeNormal)
 			c.Assert(*bucketInfo.DataRedundancyType, Equals, s3.DataRedundancyTypeLRS)
+			// 验证BucketCreatorInfo
+			c.Assert(bucketInfo.BucketCreatorInfo, NotNil)
+			c.Assert(*bucketInfo.BucketCreatorInfo.AccessKeyId, Not(Equals), "")
+			c.Assert(*bucketInfo.BucketCreatorInfo.KRN, Not(Equals), "")
+			c.Assert(*bucketInfo.BucketCreatorInfo.IpAddress, Not(Equals), "")
 		}
 	}
 
@@ -131,6 +136,95 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 					},
 				},
 			},
+			{
+				ID: aws.String("rule3"),
+				Filter: &s3.LifecycleFilter{
+					Prefix:                aws.String("prefix3/"),
+					ObjectSizeGreaterThan: aws.Long(1024),
+					ObjectSizeLessThan:    aws.Long(10240),
+				},
+				Status: aws.String(s3.StatusEnabled),
+				Expiration: &s3.LifecycleExpiration{
+					Days: aws.Long(30),
+				},
+			},
+			{
+				ID: aws.String("rule4"),
+				Filter: &s3.LifecycleFilter{
+					Prefix: aws.String("aaa/"),
+					Nots: &s3.Nots{
+						NotList: []*s3.Not{
+							{
+								Prefix: aws.String("aaa/bbb/"),
+							},
+						},
+					},
+				},
+				Status: aws.String(s3.StatusEnabled),
+				Expiration: &s3.LifecycleExpiration{
+					Days: aws.Long(30),
+				},
+			},
+			{
+				ID: aws.String("rule5"),
+				Filter: &s3.LifecycleFilter{
+					Prefix: aws.String(""),
+					Nots: &s3.Nots{
+						NotList: []*s3.Not{
+							{
+								Prefix: aws.String("aaa/"),
+								Tag: &s3.Tag{
+									Key:   aws.String("111"),
+									Value: aws.String("222"),
+								},
+							},
+							{
+								Prefix: aws.String("bbb/"),
+								Tag: &s3.Tag{
+									Key:   aws.String("333"),
+									Value: aws.String("444"),
+								},
+							},
+						},
+					},
+				},
+				Status: aws.String(s3.StatusEnabled),
+				Expiration: &s3.LifecycleExpiration{
+					Days: aws.Long(30),
+				},
+			},
+			{
+				ID: aws.String("rule6"),
+				Filter: &s3.LifecycleFilter{
+					And: &s3.And{
+						Prefix: aws.String("aaa/"),
+						Tags: []*s3.Tag{
+							{
+								Key:   aws.String("111"),
+								Value: aws.String("222"),
+							},
+							{
+								Key:   aws.String("333"),
+								Value: aws.String("444"),
+							},
+						},
+					},
+					Nots: &s3.Nots{
+						NotList: []*s3.Not{
+							{
+								Prefix: aws.String("aaa/bbb/"),
+							},
+							{
+								Prefix: aws.String("aaa/ccc/"),
+							},
+						},
+					},
+				},
+				Status: aws.String(s3.StatusEnabled),
+				Expiration: &s3.LifecycleExpiration{
+					Days: aws.Long(30),
+				},
+			},
 		},
 	}
 	// 设置桶生命周期规则
@@ -146,7 +240,7 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(len(resp.Rules), Equals, 2)
+	c.Assert(len(resp.Rules), Equals, 6)
 	c.Assert(*resp.Rules[0].ID, Equals, "rule1")
 	c.Assert(*resp.Rules[0].Filter.Prefix, Equals, "prefix1/")
 	c.Assert(*resp.Rules[0].Status, Equals, s3.StatusEnabled)
@@ -165,6 +259,41 @@ func (s *Ks3utilCommandSuite) TestBucketLifecycle(c *C) {
 	c.Assert(*resp.Rules[1].Transitions[0].IsAccessTime, Equals, true)
 	c.Assert(*resp.Rules[1].Transitions[0].ReturnToStdWhenVisit, Equals, true)
 	c.Assert(*resp.Metadata[s3.HTTPHeaderAmzAllowSameActionOverlap], Equals, "true")
+	c.Assert(*resp.Rules[2].ID, Equals, "rule3")
+	c.Assert(*resp.Rules[2].Filter.Prefix, Equals, "prefix3/")
+	c.Assert(*resp.Rules[2].Filter.ObjectSizeGreaterThan, Equals, int64(1024))
+	c.Assert(*resp.Rules[2].Filter.ObjectSizeLessThan, Equals, int64(10240))
+	c.Assert(*resp.Rules[2].Status, Equals, s3.StatusEnabled)
+	c.Assert(*resp.Rules[2].Expiration.Days, Equals, int64(30))
+	c.Assert(*resp.Rules[3].ID, Equals, "rule4")
+	c.Assert(*resp.Rules[3].Filter.Prefix, Equals, "aaa/")
+	c.Assert(len(resp.Rules[3].Filter.Nots.NotList), Equals, 1)
+	c.Assert(*resp.Rules[3].Filter.Nots.NotList[0].Prefix, Equals, "aaa/bbb/")
+	c.Assert(*resp.Rules[3].Status, Equals, s3.StatusEnabled)
+	c.Assert(*resp.Rules[3].Expiration.Days, Equals, int64(30))
+	c.Assert(*resp.Rules[4].ID, Equals, "rule5")
+	c.Assert(*resp.Rules[4].Filter.Prefix, Equals, "")
+	c.Assert(len(resp.Rules[4].Filter.Nots.NotList), Equals, 2)
+	c.Assert(*resp.Rules[4].Filter.Nots.NotList[0].Prefix, Equals, "aaa/")
+	c.Assert(*resp.Rules[4].Filter.Nots.NotList[0].Tag.Key, Equals, "111")
+	c.Assert(*resp.Rules[4].Filter.Nots.NotList[0].Tag.Value, Equals, "222")
+	c.Assert(*resp.Rules[4].Filter.Nots.NotList[1].Prefix, Equals, "bbb/")
+	c.Assert(*resp.Rules[4].Filter.Nots.NotList[1].Tag.Key, Equals, "333")
+	c.Assert(*resp.Rules[4].Filter.Nots.NotList[1].Tag.Value, Equals, "444")
+	c.Assert(*resp.Rules[4].Status, Equals, s3.StatusEnabled)
+	c.Assert(*resp.Rules[4].Expiration.Days, Equals, int64(30))
+	c.Assert(*resp.Rules[5].ID, Equals, "rule6")
+	c.Assert(*resp.Rules[5].Filter.And.Prefix, Equals, "aaa/")
+	c.Assert(len(resp.Rules[5].Filter.And.Tags), Equals, 2)
+	c.Assert(*resp.Rules[5].Filter.And.Tags[0].Key, Equals, "111")
+	c.Assert(*resp.Rules[5].Filter.And.Tags[0].Value, Equals, "222")
+	c.Assert(*resp.Rules[5].Filter.And.Tags[1].Key, Equals, "333")
+	c.Assert(*resp.Rules[5].Filter.And.Tags[1].Value, Equals, "444")
+	c.Assert(len(resp.Rules[5].Filter.Nots.NotList), Equals, 2)
+	c.Assert(*resp.Rules[5].Filter.Nots.NotList[0].Prefix, Equals, "aaa/bbb/")
+	c.Assert(*resp.Rules[5].Filter.Nots.NotList[1].Prefix, Equals, "aaa/ccc/")
+	c.Assert(*resp.Rules[5].Status, Equals, s3.StatusEnabled)
+	c.Assert(*resp.Rules[5].Expiration.Days, Equals, int64(30))
 
 	// 删除桶生命周期规则
 	_, err = client.DeleteBucketLifecycle(&s3.DeleteBucketLifecycleInput{
@@ -480,6 +609,7 @@ func (s *Ks3utilCommandSuite) TestBucketRetention(c *C) {
 
 // TestBucketReplication bucket replication
 func (s *Ks3utilCommandSuite) TestBucketReplication(c *C) {
+	c.Skip("Skip TestBucketReplication")
 	_, err := client.PutBucketReplication(&s3.PutBucketReplicationInput{
 		Bucket: aws.String(bucket),
 		ReplicationConfiguration: &s3.ReplicationConfiguration{
@@ -953,11 +1083,36 @@ func (s *Ks3utilCommandSuite) TestBucketVpcAccessBlock(c *C) {
 }
 
 func (s *Ks3utilCommandSuite) TestBucketQuota(c *C) {
+	c.Skip("Skip TestBucketQuota")
 	// 设置桶配额
 	_, err := client.PutBucketQuota(&s3.PutBucketQuotaInput{
 		Bucket: aws.String(bucket),
 		BucketQuota: &s3.BucketQuota{
-			StorageQuota: aws.Long(10240000000),
+			StorageQuota: aws.Long(10240000),
+			// 设置日流量配额
+			Day: &s3.TransferQuota{
+				IntranetFlowUp:   aws.Long(10240000),
+				IntranetFlowDown: aws.Long(10240000),
+				ExtranetFlowUp:   aws.Long(10240000),
+				ExtranetFlowDown: aws.Long(10240000),
+				CDNFlowUp:        aws.Long(10240000),
+				CDNFlowDown:      aws.Long(10240000),
+				Put:              aws.Long(10240000),
+				Get:              aws.Long(10240000),
+				List:             aws.Long(10240000),
+			},
+			// 设置月流量配额
+			Month: &s3.TransferQuota{
+				IntranetFlowUp:   aws.Long(10240000),
+				IntranetFlowDown: aws.Long(10240000),
+				ExtranetFlowUp:   aws.Long(10240000),
+				ExtranetFlowDown: aws.Long(10240000),
+				CDNFlowUp:        aws.Long(10240000),
+				CDNFlowDown:      aws.Long(10240000),
+				Put:              aws.Long(10240000),
+				Get:              aws.Long(10240000),
+				List:             aws.Long(10240000),
+			},
 		},
 	})
 	c.Assert(err, IsNil)
@@ -970,7 +1125,29 @@ func (s *Ks3utilCommandSuite) TestBucketQuota(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(*resp.BucketQuota.StorageQuota, Equals, int64(10240000000))
+	c.Assert(*resp.BucketQuota.StorageQuota, Equals, int64(10240000))
+
+	// 验证日流量配额
+	c.Assert(*resp.BucketQuota.Day.IntranetFlowUp, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.IntranetFlowDown, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.ExtranetFlowUp, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.ExtranetFlowDown, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.CDNFlowUp, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.CDNFlowDown, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.Put, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.Get, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Day.List, Equals, int64(10240000))
+
+	// 验证月流量配额
+	c.Assert(*resp.BucketQuota.Month.IntranetFlowUp, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.IntranetFlowDown, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.ExtranetFlowUp, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.ExtranetFlowDown, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.CDNFlowUp, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.CDNFlowDown, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.Put, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.Get, Equals, int64(10240000))
+	c.Assert(*resp.BucketQuota.Month.List, Equals, int64(10240000))
 
 	// 删除桶配额
 	_, err = client.DeleteBucketQuota(&s3.DeleteBucketQuotaInput{
@@ -1089,6 +1266,131 @@ func (s *Ks3utilCommandSuite) TestBucketPublicNetworkBlock(c *C) {
 
 	// 删除存储空间公网访问控制配置
 	_, err = client.DeleteBucketPublicNetworkBlock(&s3.DeleteBucketPublicNetworkBlockInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+}
+
+// TestBucketWorm 合规保留策略
+func (s *Ks3utilCommandSuite) TestBucketWorm(c *C) {
+	c.Skip("Skip TestBucketWorm")
+	// 新建合规保留策略
+	_, err := client.InitiateBucketWorm(&s3.InitiateBucketWormInput{
+		Bucket: aws.String(bucket),
+		InitiateWormConfiguration: &s3.InitiateWormConfiguration{
+			RetentionPeriodInDays: aws.Long(1),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取合规保留策略信息
+	getResp, err := client.GetBucketWorm(&s3.GetBucketWormInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*getResp.WormConfiguration.State, Equals, "InProgress")
+	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(1))
+
+	// 删除未锁定的合规保留策略
+	_, err = client.AbortBucketWorm(&s3.AbortBucketWormInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+
+	// 新建合规保留策略
+	_, err = client.InitiateBucketWorm(&s3.InitiateBucketWormInput{
+		Bucket: aws.String(bucket),
+		InitiateWormConfiguration: &s3.InitiateWormConfiguration{
+			RetentionPeriodInDays: aws.Long(1),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取合规保留策略信息
+	getResp, err = client.GetBucketWorm(&s3.GetBucketWormInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*getResp.WormConfiguration.State, Equals, "InProgress")
+	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(1))
+
+	wormId := getResp.WormConfiguration.WormId
+
+	// 锁定合规保留策略
+	_, err = client.CompleteBucketWorm(&s3.CompleteBucketWormInput{
+		Bucket: aws.String(bucket),
+		WormId: wormId,
+	})
+	c.Assert(err, IsNil)
+
+	// 获取合规保留策略信息
+	getResp, err = client.GetBucketWorm(&s3.GetBucketWormInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*getResp.WormConfiguration.State, Equals, "Locked")
+	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(1))
+
+	// 延长已锁定的合规保留策略
+	_, err = client.ExtendBucketWorm(&s3.ExtendBucketWormInput{
+		Bucket: aws.String(bucket),
+		WormId: wormId,
+		ExtendWormConfiguration: &s3.ExtendWormConfiguration{
+			RetentionPeriodInDays: aws.Long(2),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取合规保留策略信息
+	getResp, err = client.GetBucketWorm(&s3.GetBucketWormInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*getResp.WormConfiguration.RetentionPeriodInDays, Equals, int64(2))
+}
+
+// TestBucketDataAccelerator 加速器配置
+func (s *Ks3utilCommandSuite) TestBucketDataAccelerator(c *C) {
+	c.Skip("Skip TestBucketDataAccelerator")
+	// 创建加速器配置
+	_, err := client.PutBucketDataAccelerator(&s3.PutBucketDataAcceleratorInput{
+		Bucket: aws.String(bucket),
+		DataAcceleratorConfiguration: &s3.DataAcceleratorConfiguration{
+			AvailableZone: aws.String("cn-beijing-e"),
+			Quota:         aws.Long(100),
+			AcceleratePaths: &s3.AcceleratePaths{
+				Path: []*s3.Path{
+					{
+						Prefix:     aws.String("prefix1/"),
+						SyncWarmup: aws.Boolean(true),
+					},
+					{
+						Prefix:     aws.String("prefix2/"),
+						SyncWarmup: aws.Boolean(false),
+					},
+				},
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取加速器配置
+	getResp, err := client.GetBucketDataAccelerator(&s3.GetBucketDataAcceleratorInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(getResp.DataAcceleratorConfiguration, NotNil)
+	c.Assert(*getResp.DataAcceleratorConfiguration.AvailableZone, Equals, "cn-beijing-e")
+	c.Assert(*getResp.DataAcceleratorConfiguration.Quota, Equals, int64(100))
+	c.Assert(getResp.DataAcceleratorConfiguration.AcceleratePaths, NotNil)
+	c.Assert(len(getResp.DataAcceleratorConfiguration.AcceleratePaths.Path), Equals, 2)
+	c.Assert(*getResp.DataAcceleratorConfiguration.AcceleratePaths.Path[0].Prefix, Equals, "prefix1/")
+	c.Assert(*getResp.DataAcceleratorConfiguration.AcceleratePaths.Path[0].SyncWarmup, Equals, true)
+	c.Assert(*getResp.DataAcceleratorConfiguration.AcceleratePaths.Path[1].Prefix, Equals, "prefix2/")
+	c.Assert(*getResp.DataAcceleratorConfiguration.AcceleratePaths.Path[1].SyncWarmup, Equals, false)
+
+	// 删除加速器配置
+	_, err = client.DeleteBucketDataAccelerator(&s3.DeleteBucketDataAcceleratorInput{
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)

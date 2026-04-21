@@ -66,7 +66,6 @@ var signQuerys = map[string]bool{
 	"recover":                      true,
 	"clear":                        true,
 	"id":                           true,
-	"continuation-token":           true,
 	"dataRedundancySwitch":         true,
 	"bucketqos":                    true,
 	"requesterqos":                 true,
@@ -84,6 +83,10 @@ var signQuerys = map[string]bool{
 	"PublicNetworkBlock":           true,
 	"BucketPublicNetworkBlock":     true,
 	"dataRedundancyTransition":     true,
+	"worm":                         true,
+	"wormId":                       true,
+	"wormExtend":                   true,
+	"dataAccelerator":              true,
 }
 
 type signer struct {

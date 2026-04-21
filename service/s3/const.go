@@ -109,3 +109,10 @@ const (
 	PublicNetworkBlockTypeExcludeAuthorization string = "ExcludeAuthorization"
 	PublicNetworkBlockTypeExcludeConsole       string = "ExcludeConsole"
 )
+
+// RestoreTier - Restore request tier options
+const (
+	RestoreTierExpedited string = "Expedited"
+	RestoreTierStandard  string = "Standard"
+	RestoreTierBulk      string = "Bulk"
+)

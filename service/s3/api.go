@@ -1087,6 +1087,53 @@ func (c *S3) ListObjectsPages(input *ListObjectsInput, fn func(p *ListObjectsOut
 	})
 }
 
+// ListObjectsV2Request 列举对象操作的请求。
+func (c *S3) ListObjectsV2Request(input *ListObjectsV2Input) (req *aws.Request, output *ListObjectsV2Output) {
+	op := &aws.Operation{
+		Name:       "ListObjectsV2",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?list-type=2",
+		Paginator: &aws.Paginator{
+			InputTokens:     []string{"ContinuationToken"},
+			OutputTokens:    []string{"NextContinuationToken"},
+			LimitToken:      "MaxKeys",
+			TruncationToken: "IsTruncated",
+		},
+	}
+
+	if input == nil {
+		input = &ListObjectsV2Input{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListObjectsV2Output{}
+	req.Data = output
+	return
+}
+
+// ListObjectsV2 列出存储桶中的对象，每个请求最多列出1000个对象。
+func (c *S3) ListObjectsV2(input *ListObjectsV2Input) (*ListObjectsV2Output, error) {
+	req, out := c.ListObjectsV2Request(input)
+	err := req.Send()
+	return out, err
+}
+
+// ListObjectsV2WithContext 列出存储桶中的对象，支持传入上下文。
+func (c *S3) ListObjectsV2WithContext(ctx aws.Context, input *ListObjectsV2Input) (*ListObjectsV2Output, error) {
+	req, out := c.ListObjectsV2Request(input)
+	req.SetContext(ctx)
+	err := req.Send()
+	return out, err
+}
+
+// ListObjectsV2Pages 列出存储桶中的对象，支持分页回调。
+func (c *S3) ListObjectsV2Pages(input *ListObjectsV2Input, fn func(p *ListObjectsV2Output, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListObjectsV2Request(input)
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListObjectsV2Output), lastPage)
+	})
+}
+
 // ListPartsRequest generates a request for the ListParts operation.
 func (c *S3) ListPartsRequest(input *ListPartsInput) (req *aws.Request, output *ListPartsOutput) {
 	op := &aws.Operation{
@@ -1760,11 +1807,20 @@ type Bucket struct {
 	// The bucket data redundancy type.
 	DataRedundancyType *string `type:"string"`
 
-	metadataBucket `json:"-" xml:"-"`
+	// Bucket创建者信息。
+	BucketCreatorInfo *BucketCreatorInfo `type:"structure"`
 }
 
-type metadataBucket struct {
-	SDKShapeTraits bool `type:"structure"`
+// BucketCreatorInfo Bucket创建者信息。
+type BucketCreatorInfo struct {
+	// Bucket创建者的AK信息，经过base64编码。
+	AccessKeyId *string `type:"string"`
+
+	// Bucket创建者的KRN信息，经过base64编码。
+	KRN *string `type:"string"`
+
+	// 创建桶时的来源IP。
+	IpAddress *string `type:"string"`
 }
 
 type BucketLoggingStatus struct {
@@ -1777,7 +1833,9 @@ type metadataBucketLoggingStatus struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// CommonPrefix 公共前缀信息。
 type CommonPrefix struct {
+	// 公共前缀。
 	Prefix *string `type:"string"`
 
 	metadataCommonPrefix `json:"-" xml:"-"`
@@ -3761,6 +3819,99 @@ type metadataListObjectsOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// ListObjectsV2Input 列举对象操作的输入参数。
+type ListObjectsV2Input struct {
+	// 存储桶名称。
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// 指定从此token开始list，可以从ListObjectsV2响应结果中的NextContinuationToken获取此token，此token不是一个真实的对象名称。
+	ContinuationToken *string `location:"querystring" locationName:"continuation-token" type:"string"`
+
+	// 对Object名字进行分组的字符。将第一次出现Delimiter字符之间的Object作为一组元素CommonPrefixes。
+	Delimiter *string `location:"querystring" locationName:"delimiter" type:"string"`
+
+	// 对返回的内容进行编码的编码类型。可选值：url。
+	EncodingType *string `location:"querystring" locationName:"encoding-type" type:"string"`
+
+	// 指定在响应结果中是否包含owner信息。true表示包含，false表示不包含。
+	FetchOwner *bool `location:"querystring" locationName:"fetch-owner" type:"boolean"`
+
+	// 指定返回对象的最大个数。取值范围：[1,1000]，默认值：1000。
+	MaxKeys *int64 `location:"querystring" locationName:"max-keys" type:"integer"`
+
+	// 指定返回对象名的前缀。
+	Prefix *string `location:"querystring" locationName:"prefix" type:"string"`
+
+	// 用于指定从哪个对象开始list，返回结果中不会包含start-after对应的key。
+	StartAfter *string `location:"querystring" locationName:"start-after" type:"string"`
+
+	// 请求的内容类型。
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// 设置扩展请求头。如果现有字段不支持设置您需要的请求头，可以通过此字段设置。
+	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
+
+	// 设置扩展查询参数。如果现有字段不支持设置您需要的查询参数，可以通过此字段设置。
+	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
+
+	metadataListObjectsV2Input `json:"-" xml:"-"`
+}
+
+type metadataListObjectsV2Input struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// ListObjectsV2Output 列举对象操作的输出参数。
+type ListObjectsV2Output struct {
+	// 如果请求中指定了delimiter参数，则响应中可以包含CommonPrefixes元素。包含prefix和下一个由delimiter指定的字符串之间的所有对象名称。
+	CommonPrefixes []*CommonPrefix `type:"list" flattened:"true"`
+
+	// 每个对象的元数据信息的容器。
+	Contents []*Object `type:"list" flattened:"true"`
+
+	// 如果请求中指定了continuation-token参数，则会在响应中包含ContinuationToken元素。
+	ContinuationToken *string `type:"string"`
+
+	// 指定的delimiter，即对对象名称进行分组的字符。
+	Delimiter *string `type:"string"`
+
+	// 指定的编码类型。如果请求参数中指定了encoding-type，则会对响应结果中的Delimiter、Key、Prefix、StartAfter这些元素进行编码。
+	EncodingType *string `type:"string"`
+
+	// 响应中是否返回了所有结果。true表示本次没有返回全部结果，false表示本次已经返回全部结果。
+	IsTruncated *bool `type:"boolean"`
+
+	// 响应结果中返回的对象个数。KeyCount会小于等于MaxKeys。如果指定了delimiter，则KeyCount为Key和CommonPrefixes的元素之和。
+	KeyCount *int64 `type:"integer"`
+
+	// 响应体中返回的记录数的最大值。
+	MaxKeys *int64 `type:"integer"`
+
+	// 存储桶名称。
+	Name *string `type:"string"`
+
+	// 当isTruncated是true时，会返回NextContinuationToken，需要将其指定为下一次ListObjectsV2操作的ContinuationToken，以继续获取结果。
+	NextContinuationToken *string `type:"string"`
+
+	// 指定的对象名称前缀。
+	Prefix *string `type:"string"`
+
+	// 如果请求中指定了start-after参数，则响应中会包含StartAfter元素。
+	StartAfter *string `type:"string"`
+
+	metadataListObjectsV2Output `json:"-" xml:"-"`
+
+	// HTTP响应头。
+	Metadata map[string]*string `location:"headers" type:"map"`
+
+	// HTTP响应状态码。
+	StatusCode *int64 `location:"statusCode" type:"integer"`
+}
+
+type metadataListObjectsV2Output struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
 type ListPartsInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -3893,21 +4044,27 @@ type metadataMultipartUpload struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// Object 对象元数据信息。
 type Object struct {
+	// 对象的实体标签，ETag在上传对象时生成，用于标识一个对象的内容。
 	ETag *string `type:"string"`
 
+	// 对象名称。
 	Key *string `type:"string"`
 
+	// 对象最后被修改的时间。
 	LastModified *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
+	// 保存对象所有者信息的容器。
 	Owner *Owner `type:"structure"`
 
+	// 对象大小，单位：字节。
 	Size *int64 `type:"integer"`
 
-	// The class of storage used to store the object.
+	// 对象的存储类型。
 	StorageClass *string `type:"string"`
 
-	// The redundancy type of the object.
+	// 对象的冗余类型。
 	Redundancy *string `type:"string"`
 
 	metadataObject `json:"-" xml:"-"`
@@ -3962,9 +4119,12 @@ type metadataObjectVersion struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// Owner 对象拥有者信息。
 type Owner struct {
+	// 对象拥有者的用户ID。
 	DisplayName *string `type:"string"`
 
+	// 对象拥有者的用户ID。
 	ID *string `type:"string"`
 
 	metadataOwner `json:"-" xml:"-"`
@@ -4626,26 +4786,19 @@ type metadataRequestPaymentConfiguration struct {
 }
 
 type RestoreObjectInput struct {
+	// 存储桶名称。
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
+	// 对象的Key。
 	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
 
-	// Confirms that the requester knows that she or he will be charged for the
-	// request. Bucket owners need not specify this parameter in their requests.
-	// Documentation on downloading objects from requester pays buckets can be found
-	// at http://docs.aws.amazon.com/AmazonS3/latest/dev/ObjectsinRequesterPaysBuckets.html
-	RequestPayer *string `location:"header" locationName:"x-amz-request-payer" type:"string"`
-
+	// 解冻请求信息。
 	RestoreRequest *RestoreRequest `locationName:"RestoreRequest" type:"structure"`
 
-	VersionID *string `location:"querystring" locationName:"versionId" type:"string"`
-
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
+	// 设置扩展请求头。如果现有字段不支持设置所需的请求头，您可以通过此字段进行设置。
 	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
 
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
+	// 设置扩展查询参数。如果现有字段不支持设置所需的查询参数，您可以通过此字段进行设置。
 	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
 
 	metadataRestoreObjectInput `json:"-" xml:"-"`
@@ -4656,20 +4809,28 @@ type metadataRestoreObjectInput struct {
 }
 
 type RestoreObjectOutput struct {
+	// http响应头。
 	Metadata map[string]*string `location:"headers"  type:"map"`
 
+	// http响应状态码。
 	StatusCode *int64 `location:"statusCode" type:"integer"`
 }
 
 type RestoreRequest struct {
-	// Lifetime of the active copy in days
-	Days *int64 `type:"integer" required:"true"`
+	// 设置归档、冷归档类型Object的解冻天数。
+	// 取值范围：归档类型可选1~7（单位为天），冷归档类型可选1~365（单位为天）。
+	Days *int64 `type:"integer"`
 
-	metadataRestoreRequest `json:"-" xml:"-"`
+	// 冷归档解冻优先级的容器。仅在解冻冷归档类型的Object时有效，解冻归档类型文件无需该参数。
+	JobParameters *JobParameters `type:"structure"`
 }
 
-type metadataRestoreRequest struct {
-	SDKShapeTraits bool `type:"structure"`
+type JobParameters struct {
+	// 解冻优先级，支持以下优先级：
+	// 高优先级（Expedited）：表示1小时内完成解冻。
+	// 标准（Standard）：表示2~5小时内完成解冻。
+	// 批量（Bulk）：表示5~12小时内完成解冻。
+	Tier *string `type:"string"`
 }
 
 type RoutingRule struct {

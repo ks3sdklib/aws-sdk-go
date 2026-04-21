@@ -30,6 +30,154 @@ func (s *Ks3utilCommandSuite) TestListObjects(c *C) {
 	c.Assert(err, IsNil)
 }
 
+// TestListObjectsV2 列举bucket下对象(V2版本)
+func (s *Ks3utilCommandSuite) TestListObjectsV2(c *C) {
+	// 生成测试文件前缀
+	testPrefix := "test_listv2_" + randLowStr(8) + "/"
+
+	// 上传15个测试文件
+	testKeys := make([]string, 15)
+	for i := 0; i < 15; i++ {
+		key := fmt.Sprintf("%sfile_%02d.txt", testPrefix, i)
+		testKeys[i] = key
+		_, err := client.PutObject(&s3.PutObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+			Body:   strings.NewReader(fmt.Sprintf("content %d", i)),
+		})
+		c.Assert(err, IsNil)
+	}
+
+	// 上传带子目录的文件，用于测试Delimiter
+	subDirKey := testPrefix + "subdir/file.txt"
+	_, err := client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(subDirKey),
+		Body:   strings.NewReader("subdir content"),
+	})
+	c.Assert(err, IsNil)
+
+	// 测试完成后删除所有文件
+	defer func() {
+		for _, key := range testKeys {
+			s.DeleteObject(key, c)
+		}
+		s.DeleteObject(subDirKey, c)
+	}()
+
+	// 1. 基本列举，验证响应基本字段
+	resp, err := client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket: aws.String(bucket),
+		Prefix: aws.String(testPrefix),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(resp, NotNil)
+	c.Assert(*resp.KeyCount, Equals, int64(16))
+	c.Assert(resp.IsTruncated, NotNil)
+	c.Assert(*resp.Name, Equals, bucket)
+	c.Assert(*resp.Prefix, Equals, testPrefix)
+	c.Assert(resp.MaxKeys, NotNil)
+
+	// 验证Contents中对象的元数据
+	obj := resp.Contents[0]
+	c.Assert(obj.Key, NotNil)
+	c.Assert(obj.ETag, NotNil)
+	c.Assert(obj.LastModified, NotNil)
+	c.Assert(obj.Size, NotNil)
+	c.Assert(obj.StorageClass, NotNil)
+
+	// 2. 测试MaxKeys限制
+	resp, err = client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(testPrefix),
+		MaxKeys: aws.Long(int64(5)),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.KeyCount, Equals, int64(5))
+	c.Assert(*resp.IsTruncated, Equals, true)
+	c.Assert(resp.NextContinuationToken, NotNil)
+	c.Assert(*resp.MaxKeys, Equals, int64(5))
+
+	// 3. 测试ContinuationToken分页
+	continuationToken := *resp.NextContinuationToken
+	var totalKeys int64 = 5
+	for continuationToken != "" {
+		resp, err = client.ListObjectsV2(&s3.ListObjectsV2Input{
+			Bucket:            aws.String(bucket),
+			Prefix:            aws.String(testPrefix),
+			MaxKeys:           aws.Long(int64(5)),
+			ContinuationToken: aws.String(continuationToken),
+		})
+		c.Assert(err, IsNil)
+		c.Assert(resp.ContinuationToken, NotNil)
+		c.Assert(*resp.ContinuationToken, Equals, continuationToken)
+		totalKeys += *resp.KeyCount
+
+		if resp.IsTruncated != nil && *resp.IsTruncated {
+			c.Assert(resp.NextContinuationToken, NotNil)
+			continuationToken = *resp.NextContinuationToken
+		} else {
+			continuationToken = ""
+		}
+	}
+	c.Assert(totalKeys, Equals, int64(16))
+
+	// 4. 测试StartAfter参数
+	resp, err = client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket:     aws.String(bucket),
+		Prefix:     aws.String(testPrefix),
+		MaxKeys:    aws.Long(int64(5)),
+		StartAfter: aws.String(testKeys[4]),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.KeyCount, Equals, int64(5))
+	c.Assert(*resp.Contents[0].Key, Equals, testKeys[5])
+	c.Assert(*resp.StartAfter, Equals, testKeys[4])
+
+	// 5. 测试Delimiter分隔符，验证CommonPrefixes
+	resp, err = client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket:    aws.String(bucket),
+		Prefix:    aws.String(testPrefix),
+		Delimiter: aws.String("/"),
+		MaxKeys:   aws.Long(int64(100)),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.Delimiter, Equals, "/")
+	// 验证CommonPrefixes包含子目录前缀
+	c.Assert(len(resp.CommonPrefixes) > 0, Equals, true)
+	c.Assert(*resp.CommonPrefixes[0].Prefix, Equals, testPrefix+"subdir/")
+
+	// 6. 测试FetchOwner参数
+	resp, err = client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket:     aws.String(bucket),
+		Prefix:     aws.String(testPrefix),
+		MaxKeys:    aws.Long(int64(5)),
+		FetchOwner: aws.Boolean(true),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.KeyCount, Equals, int64(5))
+	// FetchOwner为true时，Contents中的Owner字段应该有值
+	c.Assert(resp.Contents[0].Owner, NotNil)
+	c.Assert(resp.Contents[0].Owner.ID, NotNil)
+	c.Assert(resp.Contents[0].Owner.DisplayName, NotNil)
+
+	// 7. 测试EncodingType参数
+	resp, err = client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket:       aws.String(bucket),
+		Prefix:       aws.String(testPrefix),
+		MaxKeys:      aws.Long(int64(5)),
+		EncodingType: aws.String("url"),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.EncodingType, Equals, "url")
+	c.Assert(*resp.KeyCount, Equals, int64(5))
+
+	// 8. 验证HTTP响应字段
+	c.Assert(resp.StatusCode, NotNil)
+	c.Assert(*resp.StatusCode, Equals, int64(200))
+	c.Assert(resp.Metadata, NotNil)
+}
+
 // TestPutObject 上传示例 -可设置标签  acl
 func (s *Ks3utilCommandSuite) TestPutObject(c *C) {
 	//指定目标Object对象标签，可同时设置多个标签，如：TagA=A&TagB=B。
@@ -472,11 +620,20 @@ func (s *Ks3utilCommandSuite) TestRestoreObject(c *C) {
 		StorageClass: aws.String(s3.StorageClassArchive),
 	})
 	c.Assert(err, IsNil)
+
+	// 带Days和JobParameters参数的解冻请求
 	_, err = client.RestoreObject(&s3.RestoreObjectInput{
-		Bucket: aws.String(bucket), // bucket名称
-		Key:    aws.String(key),    // object key
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		RestoreRequest: &s3.RestoreRequest{
+			Days: aws.Long(int64(7)), // 解冻持续时间
+			//JobParameters: &s3.JobParameters{
+			//	Tier: aws.String(s3.RestoreTierStandard), // 解冻优先级: Expedited/Standard/Bulk
+			//},
+		},
 	})
 	c.Assert(err, IsNil)
+
 	s.DeleteObject(key, c)
 }
 

@@ -13,7 +13,11 @@ type S3API interface {
 
 	AppendObject(input *s3.AppendObjectInput) (*s3.AppendObjectOutput, error)
 
+	AbortBucketWorm(*s3.AbortBucketWormInput) (*s3.AbortBucketWormOutput, error)
+
 	CompleteMultipartUpload(*s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error)
+
+	CompleteBucketWorm(*s3.CompleteBucketWormInput) (*s3.CompleteBucketWormOutput, error)
 
 	CopyObject(*s3.CopyObjectInput) (*s3.CopyObjectOutput, error)
 
@@ -51,6 +55,8 @@ type S3API interface {
 
 	DeleteBucketEncryption(*s3.DeleteBucketEncryptionInput) (*s3.DeleteBucketEncryptionOutput, error)
 
+	DeleteBucketDataAccelerator(*s3.DeleteBucketDataAcceleratorInput) (*s3.DeleteBucketDataAcceleratorOutput, error)
+
 	DeleteVpcAccessBlock(*s3.DeleteVpcAccessBlockInput) (*s3.DeleteVpcAccessBlockOutput, error)
 
 	DeleteBucketQuota(*s3.DeleteBucketQuotaInput) (*s3.DeleteBucketQuotaOutput, error)
@@ -71,6 +77,8 @@ type S3API interface {
 
 	GetBucketCORS(*s3.GetBucketCORSInput) (*s3.GetBucketCORSOutput, error)
 
+	GetBucketDataAccelerator(*s3.GetBucketDataAcceleratorInput) (*s3.GetBucketDataAcceleratorOutput, error)
+
 	GetBucketLifecycle(*s3.GetBucketLifecycleInput) (*s3.GetBucketLifecycleOutput, error)
 
 	GetBucketAccessMonitor(*s3.GetBucketAccessMonitorInput) (*s3.GetBucketAccessMonitorOutput, error)
@@ -90,6 +98,10 @@ type S3API interface {
 	GetBucketTagging(*s3.GetBucketTaggingInput) (*s3.GetBucketTaggingOutput, error)
 
 	GetBucketVersioning(*s3.GetBucketVersioningInput) (*s3.GetBucketVersioningOutput, error)
+
+	GetBucketWorm(*s3.GetBucketWormInput) (*s3.GetBucketWormOutput, error)
+
+	ExtendBucketWorm(*s3.ExtendBucketWormInput) (*s3.ExtendBucketWormOutput, error)
 
 	GetBucketWebsite(*s3.GetBucketWebsiteInput) (*s3.GetBucketWebsiteOutput, error)
 
@@ -125,6 +137,8 @@ type S3API interface {
 
 	GetObjectTorrent(*s3.GetObjectTorrentInput) (*s3.GetObjectTorrentOutput, error)
 
+	InitiateBucketWorm(*s3.InitiateBucketWormInput) (*s3.InitiateBucketWormOutput, error)
+
 	HeadBucket(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error)
 
 	HeadObject(*s3.HeadObjectInput) (*s3.HeadObjectOutput, error)
@@ -136,6 +150,8 @@ type S3API interface {
 	ListObjectVersions(*s3.ListObjectVersionsInput) (*s3.ListObjectVersionsOutput, error)
 
 	ListObjects(*s3.ListObjectsInput) (*s3.ListObjectsOutput, error)
+
+	ListObjectsV2(*s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error)
 
 	ListParts(*s3.ListPartsInput) (*s3.ListPartsOutput, error)
 
@@ -182,6 +198,8 @@ type S3API interface {
 	PutRequesterQos(*s3.PutRequesterQosInput) (*s3.PutRequesterQosOutput, error)
 
 	PutBucketEncryption(*s3.PutBucketEncryptionInput) (*s3.PutBucketEncryptionOutput, error)
+
+	PutBucketDataAccelerator(*s3.PutBucketDataAcceleratorInput) (*s3.PutBucketDataAcceleratorOutput, error)
 
 	PutBucketTransferAcceleration(*s3.PutBucketTransferAccelerationInput) (*s3.PutBucketTransferAccelerationOutput, error)
 

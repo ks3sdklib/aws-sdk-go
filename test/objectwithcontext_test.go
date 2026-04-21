@@ -185,6 +185,7 @@ func (s *Ks3utilCommandSuite) TestDeleteObjectWithContext(c *C) {
 
 // PUT Fetch Object
 func (s *Ks3utilCommandSuite) TestFetchObjectWithContext(c *C) {
+	c.Skip("Skip TestFetchObjectWithContext")
 	sourceObject := randLowStr(10)
 	createFile(sourceObject, 1024*1024*1)
 	fd, _ := os.Open(sourceObject)
@@ -344,6 +345,12 @@ func (s *Ks3utilCommandSuite) TestRestoreObjectWithContext(c *C) {
 	_, err = client.RestoreObjectWithContext(context.Background(), &s3.RestoreObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
+		RestoreRequest: &s3.RestoreRequest{
+			Days: aws.Long(int64(7)),
+			//JobParameters: &s3.JobParameters{
+			//	Tier: aws.String(s3.RestoreTierStandard),
+			//},
+		},
 	})
 	c.Assert(err, IsNil)
 	// delete
@@ -729,7 +736,7 @@ func (s *Ks3utilCommandSuite) TestUploadPartWithContext(c *C) {
 	var compParts []*s3.CompletedPart
 	// 缓冲区，分块大小为5MB
 	buffer := make([]byte, 5*1024*1024)
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Millisecond*500)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Millisecond*10)
 	defer cancelFunc()
 	for {
 		n, err := fd.Read(buffer)

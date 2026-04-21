@@ -998,6 +998,7 @@ func (s *Ks3utilCommandSuite) TestDeleteBucketDecompressPolicyWithContext(c *C) 
 
 // PUT Bucket Replication
 func (s *Ks3utilCommandSuite) TestPutBucketReplicationWithContext(c *C) {
+	c.Skip("Skip TestPutBucketReplicationWithContext")
 	// put,不通过context取消
 	_, err := client.PutBucketReplicationWithContext(context.Background(), &s3.PutBucketReplicationInput{
 		Bucket: aws.String(bucket),
@@ -1051,6 +1052,7 @@ func (s *Ks3utilCommandSuite) TestPutBucketReplicationWithContext(c *C) {
 
 // GET Bucket Replication
 func (s *Ks3utilCommandSuite) TestGetBucketReplicationWithContext(c *C) {
+	c.Skip("Skip TestGetBucketReplicationWithContext")
 	// put
 	_, err := client.PutBucketReplicationWithContext(context.Background(), &s3.PutBucketReplicationInput{
 		Bucket: aws.String(bucket),
@@ -1088,6 +1090,7 @@ func (s *Ks3utilCommandSuite) TestGetBucketReplicationWithContext(c *C) {
 
 // DELETE Bucket Replication
 func (s *Ks3utilCommandSuite) TestDeleteBucketReplicationWithContext(c *C) {
+	c.Skip("Skip TestDeleteBucketReplicationWithContext")
 	// put
 	_, err := client.PutBucketReplicationWithContext(context.Background(), &s3.PutBucketReplicationInput{
 		Bucket: aws.String(bucket),

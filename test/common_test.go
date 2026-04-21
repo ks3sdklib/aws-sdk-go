@@ -85,22 +85,35 @@ func (s *Ks3utilCommandSuite) TearDownSuite(c *C) {
 	os.RemoveAll(testFileDir)
 }
 
-// RemoveBuckets 删除以prefix开头的bucket
+// RemoveBuckets 删除以prefix开头且没有合规保留策略的bucket
 func RemoveBuckets(prefix string, c *C) {
 	resp, err := client.ListBuckets(&s3.ListBucketsInput{})
 	c.Assert(err, IsNil)
 	for _, bucket := range resp.Buckets {
 		bucketName := *bucket.Name
-		if strings.Contains(bucketName, prefix) {
-			fmt.Printf("remove bucket begin:%s\n", bucketName)
-			// 1. 删除bucket中的全部对象
-			RemoveObjects(bucketName, c)
-			// 2.删除bucket中未完成的分块上传任务
-			RemoveMultipartUploads(bucketName, c)
-			// 3. 删除bucket
-			RemoveBucket(bucketName, c)
-			fmt.Printf("remove bucket end:%s\n", bucketName)
+		// 仅处理符合指定前缀的桶
+		if !strings.Contains(bucketName, prefix) {
+			continue
 		}
+		// 检查是否存在合规保留策略
+		wormResp, err := client.GetBucketWorm(&s3.GetBucketWormInput{
+			Bucket: aws.String(bucketName),
+		})
+		if err == nil && wormResp.WormConfiguration != nil {
+			state := wormResp.WormConfiguration.State
+			if state != nil && (*state == "InProgress" || *state == "Locked") {
+				fmt.Printf("skip bucket with worm policy: %s, state: %s\n", bucketName, *state)
+				continue
+			}
+		}
+		fmt.Printf("remove bucket begin: %s\n", bucketName)
+		// 删除bucket中的全部对象
+		RemoveObjects(bucketName, c)
+		// 删除bucket中未完成的分块上传任务
+		RemoveMultipartUploads(bucketName, c)
+		// 删除bucket
+		RemoveBucket(bucketName, c)
+		fmt.Printf("remove bucket end: %s\n", bucketName)
 	}
 }
 
