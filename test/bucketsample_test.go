@@ -53,8 +53,8 @@ func (s *Ks3utilCommandSuite) TestListBuckets(c *C) {
 
 	// 前缀匹配bucket1 + 不存在的区域（且关系），验证两个桶都不在结果中
 	resp, err = client.ListBuckets(&s3.ListBucketsInput{
-		Prefixes:   []string{commonNamePrefix + "list1"},
-		Regions:     []string{"non-exist-region"},
+		Prefixes: []string{commonNamePrefix + "list1"},
+		Regions:  []string{"non-exist-region"},
 	})
 	c.Assert(err, IsNil)
 	found := false
@@ -1454,4 +1454,40 @@ func (s *Ks3utilCommandSuite) TestBucketDataAccelerator(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
+}
+
+// TestBucketArchiveDirectRead 桶归档直读配置
+func (s *Ks3utilCommandSuite) TestBucketArchiveDirectRead(c *C) {
+	c.Skip("Skip TestBucketArchiveDirectRead")
+	// 开启归档直读
+	_, err := client.PutBucketArchiveDirectRead(&s3.PutBucketArchiveDirectReadInput{
+		Bucket: aws.String(bucket),
+		ArchiveDirectReadConfiguration: &s3.ArchiveDirectReadConfiguration{
+			Enabled: aws.Boolean(true),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取归档直读配置
+	resp, err := client.GetBucketArchiveDirectRead(&s3.GetBucketArchiveDirectReadInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.ArchiveDirectReadConfiguration.Enabled, Equals, true)
+
+	// 关闭归档直读
+	_, err = client.PutBucketArchiveDirectRead(&s3.PutBucketArchiveDirectReadInput{
+		Bucket: aws.String(bucket),
+		ArchiveDirectReadConfiguration: &s3.ArchiveDirectReadConfiguration{
+			Enabled: aws.Boolean(false),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取归档直读配置
+	resp, err = client.GetBucketArchiveDirectRead(&s3.GetBucketArchiveDirectReadInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.ArchiveDirectReadConfiguration.Enabled, Equals, false)
 }

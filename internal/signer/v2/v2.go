@@ -87,6 +87,7 @@ var signQuerys = map[string]bool{
 	"wormId":                       true,
 	"wormExtend":                   true,
 	"dataAccelerator":              true,
+	"archiveDirectRead":            true,
 }
 
 type signer struct {
