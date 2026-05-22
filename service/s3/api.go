@@ -918,38 +918,6 @@ func (c *S3) HeadObjectWithContext(ctx aws.Context, input *HeadObjectInput) (*He
 	return out, err
 }
 
-// ListBucketsRequest generates a request for the ListBuckets operation.
-func (c *S3) ListBucketsRequest(input *ListBucketsInput) (req *aws.Request, output *ListBucketsOutput) {
-	op := &aws.Operation{
-		Name:       "ListBuckets",
-		HTTPMethod: "GET",
-		HTTPPath:   "/",
-	}
-
-	if input == nil {
-		input = &ListBucketsInput{}
-	}
-
-	req = c.newRequest(op, input, output)
-	output = &ListBucketsOutput{}
-	req.Data = output
-	return
-}
-
-// ListBuckets Returns a list of all buckets owned by the authenticated sender of the request.
-func (c *S3) ListBuckets(input *ListBucketsInput) (*ListBucketsOutput, error) {
-	req, out := c.ListBucketsRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-func (c *S3) ListBucketsWithContext(ctx aws.Context, input *ListBucketsInput) (*ListBucketsOutput, error) {
-	req, out := c.ListBucketsRequest(input)
-	req.SetContext(ctx)
-	err := req.Send()
-	return out, err
-}
-
 // ListMultipartUploadsRequest generates a request for the ListMultipartUploads operation.
 func (c *S3) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) (req *aws.Request, output *ListMultipartUploadsOutput) {
 	op := &aws.Operation{
@@ -3515,38 +3483,6 @@ type Initiator struct {
 }
 
 type metadataInitiator struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type ListBucketsInput struct {
-	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
-
-	// Set extend request headers. If the existing fields do not support setting the request header you need, you can set it through this field.
-	ExtendHeaders map[string]*string `location:"extendHeaders" type:"map"`
-
-	// Set extend query params. If the existing fields do not support setting the query param you need, you can set it through this field.
-	ExtendQueryParams map[string]*string `location:"extendQueryParams" type:"map"`
-
-	metadataListBucketsInput `json:"-" xml:"-"`
-}
-
-type metadataListBucketsInput struct {
-	SDKShapeTraits bool `type:"structure"`
-}
-
-type ListBucketsOutput struct {
-	Buckets []*Bucket `locationNameList:"Bucket" type:"list"`
-
-	Owner *Owner `type:"structure"`
-
-	metadataListBucketsOutput `json:"-" xml:"-"`
-
-	Metadata map[string]*string `location:"headers"  type:"map"`
-
-	StatusCode *int64 `location:"statusCode" type:"integer"`
-}
-
-type metadataListBucketsOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
