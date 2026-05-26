@@ -2071,11 +2071,40 @@ func (s *Ks3utilCommandSuite) TestCreateJob(c *C) {
 	c.Assert(*resp.DescribeJobResult.JobId, Equals, jobId5)
 	c.Assert(*resp.DescribeJobResult.Operation.KS3PutObjectDataRedundancyTransition.DataRedundancyType, Equals, s3.DataRedundancyTypeZRS)
 
+	// 新建打包压缩操作
+	createJobInput.CreateJobRequest.ClientRequestToken = nil
+	createJobInput.CreateJobRequest.Operation = &s3.JobOperation{
+		KS3CompressObject: &s3.KS3CompressObject{
+			Format:      aws.String("zip"),
+			IgnoreError: aws.Boolean(true),
+			Output: &s3.CompressOutput{
+				Bucket:     aws.String("krn:ksc:ks3:::test-bucket"),
+				Prefix:     aws.String("output/"),
+				ObjectName: aws.String("archive.zip"),
+			},
+		},
+	}
+	createJobInput.CreateJobRequest.Manifest.Location.Filters[0].Prefixes = []string{"prefix6/"}
+	createResp, err = client.CreateJob(createJobInput)
+	c.Assert(err, IsNil)
+	jobId6 := *createResp.CreateJobResult.JobId
+
+	resp, err = client.DescribeJob(&s3.DescribeJobInput{
+		JobId: aws.String(jobId6),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.DescribeJobResult.JobId, Equals, jobId6)
+	c.Assert(*resp.DescribeJobResult.Operation.KS3CompressObject.Format, Equals, "zip")
+	c.Assert(*resp.DescribeJobResult.Operation.KS3CompressObject.IgnoreError, Equals, true)
+	c.Assert(*resp.DescribeJobResult.Operation.KS3CompressObject.Output.Bucket, Equals, "krn:ksc:ks3:::test-bucket")
+	c.Assert(*resp.DescribeJobResult.Operation.KS3CompressObject.Output.Prefix, Equals, "output/")
+	c.Assert(*resp.DescribeJobResult.Operation.KS3CompressObject.Output.ObjectName, Equals, "archive.zip")
+
 	listResp, err := client.ListJobs(&s3.ListJobsInput{
 		MaxResults: aws.Long(100),
 	})
 	c.Assert(err, IsNil)
-	c.Assert(len(listResp.ListJobsResult.Jobs.Members) >= 5, Equals, true)
+	c.Assert(len(listResp.ListJobsResult.Jobs.Members) >= 6, Equals, true)
 
 	_, err = client.DeleteJob(&s3.DeleteJobInput{
 		JobId: aws.String(jobId1),
@@ -2099,6 +2128,11 @@ func (s *Ks3utilCommandSuite) TestCreateJob(c *C) {
 
 	_, err = client.DeleteJob(&s3.DeleteJobInput{
 		JobId: aws.String(jobId5),
+	})
+	c.Assert(err, IsNil)
+
+	_, err = client.DeleteJob(&s3.DeleteJobInput{
+		JobId: aws.String(jobId6),
 	})
 	c.Assert(err, IsNil)
 }
