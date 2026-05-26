@@ -121,6 +121,8 @@ type S3API interface {
 
 	GetBucketArchiveDirectRead(*s3.GetBucketArchiveDirectReadInput) (*s3.GetBucketArchiveDirectReadOutput, error)
 
+	GetBucketHttp2(*s3.GetBucketHttp2Input) (*s3.GetBucketHttp2Output, error)
+
 	GetBucketTransferAcceleration(*s3.GetBucketTransferAccelerationInput) (*s3.GetBucketTransferAccelerationOutput, error)
 
 	GetVpcAccessBlock(*s3.GetVpcAccessBlockInput) (*s3.GetVpcAccessBlockOutput, error)
@@ -202,6 +204,8 @@ type S3API interface {
 	PutBucketEncryption(*s3.PutBucketEncryptionInput) (*s3.PutBucketEncryptionOutput, error)
 
 	PutBucketArchiveDirectRead(*s3.PutBucketArchiveDirectReadInput) (*s3.PutBucketArchiveDirectReadOutput, error)
+
+	PutBucketHttp2(*s3.PutBucketHttp2Input) (*s3.PutBucketHttp2Output, error)
 
 	PutBucketDataAccelerator(*s3.PutBucketDataAcceleratorInput) (*s3.PutBucketDataAcceleratorOutput, error)
 

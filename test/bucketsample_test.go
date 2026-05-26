@@ -1491,3 +1491,38 @@ func (s *Ks3utilCommandSuite) TestBucketArchiveDirectRead(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(*resp.ArchiveDirectReadConfiguration.Enabled, Equals, false)
 }
+
+func (s *Ks3utilCommandSuite) TestBucketHttp2(c *C) {
+	c.Skip("Skip TestBucketHttp2")
+	// 开启HTTP/2
+	_, err := client.PutBucketHttp2(&s3.PutBucketHttp2Input{
+		Bucket: aws.String(bucket),
+		Http2Configuration: &s3.Http2Configuration{
+			Status: aws.String(s3.StatusEnabled),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取HTTP/2配置
+	resp, err := client.GetBucketHttp2(&s3.GetBucketHttp2Input{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.Http2Configuration.Status, Equals, s3.StatusEnabled)
+
+	// 关闭HTTP/2
+	_, err = client.PutBucketHttp2(&s3.PutBucketHttp2Input{
+		Bucket: aws.String(bucket),
+		Http2Configuration: &s3.Http2Configuration{
+			Status: aws.String(s3.StatusDisabled),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取HTTP/2配置
+	resp, err = client.GetBucketHttp2(&s3.GetBucketHttp2Input{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.Http2Configuration.Status, Equals, s3.StatusDisabled)
+}
