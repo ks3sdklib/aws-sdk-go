@@ -2,14 +2,16 @@ package aws
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
-	"github.com/ks3sdklib/aws-sdk-go/aws/retry"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/ks3sdklib/aws-sdk-go/aws/credentials"
+	"github.com/ks3sdklib/aws-sdk-go/aws/retry"
 )
 
 // DefaultChainCredentials is a Credentials which will find the first available
@@ -75,6 +77,7 @@ type Config struct {
 	CrcCheckEnabled                bool // 允许crc64校验，默认为false
 	DisableRestProtocolURICleaning bool // 禁用path clean，默认为true
 	DisableDnsCache                bool // 禁用DNS缓存，默认为false
+	DisableHTTP2                   bool // 禁用HTTP2，默认为false
 }
 
 // Copy will return a shallow copy of the Config object.
@@ -101,6 +104,7 @@ func (c Config) Copy() Config {
 	dst.CrcCheckEnabled = c.CrcCheckEnabled
 	dst.DisableRestProtocolURICleaning = c.DisableRestProtocolURICleaning
 	dst.DisableDnsCache = c.DisableDnsCache
+	dst.DisableHTTP2 = c.DisableHTTP2
 	return dst
 }
 
@@ -158,13 +162,17 @@ func (c Config) Merge(newcfg *Config) *Config {
 		cfg.DisableDnsCache = c.DisableDnsCache
 	}
 
+	if newcfg.DisableHTTP2 {
+		cfg.DisableHTTP2 = newcfg.DisableHTTP2
+	} else {
+		cfg.DisableHTTP2 = c.DisableHTTP2
+	}
+
 	if newcfg.HTTPClient != nil {
 		cfg.HTTPClient = newcfg.HTTPClient
 	} else {
 		cfg.HTTPClient = c.HTTPClient
-		if !cfg.DisableDnsCache {
-			cfg.HTTPClient.Transport = DnsCacheTransport
-		}
+		cfg.HTTPClient.Transport = newTransport(cfg.DisableDnsCache, cfg.DisableHTTP2)
 	}
 	defaultHTTPRedirect(cfg.HTTPClient)
 
@@ -300,4 +308,32 @@ func (c Config) LogDebug(format string, a ...interface{}) {
 		return
 	}
 	c.writeLog(Debug, format, a...)
+}
+
+func newTransport(disableDnsCache bool, disableHTTP2 bool) *http.Transport {
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
+	transport := &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext:           dialer.DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+
+	if !disableDnsCache {
+		transport.DialContext = DnsCacheTransportDialContext(dialer, NewDnsResolver(100))
+	}
+
+	if disableHTTP2 {
+		transport.ForceAttemptHTTP2 = false
+		transport.TLSNextProto = make(map[string]func(string, *tls.Conn) http.RoundTripper)
+	}
+
+	return transport
 }

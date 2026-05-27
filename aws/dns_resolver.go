@@ -4,23 +4,8 @@ import (
 	"container/list"
 	"context"
 	"net"
-	"net/http"
 	"sync"
-	"time"
 )
-
-var DnsCacheTransport = &http.Transport{
-	Proxy: http.ProxyFromEnvironment,
-	DialContext: DnsCacheTransportDialContext(&net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
-	}, NewDnsResolver(100)),
-	ForceAttemptHTTP2:     true,
-	MaxIdleConns:          100,
-	IdleConnTimeout:       90 * time.Second,
-	TLSHandshakeTimeout:   10 * time.Second,
-	ExpectContinueTimeout: 1 * time.Second,
-}
 
 func DnsCacheTransportDialContext(dialer *net.Dialer, resolver *DnsResolver) func(context.Context, string, string) (net.Conn, error) {
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
