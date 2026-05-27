@@ -2799,3 +2799,188 @@ func (s *Ks3utilCommandSuite) TestDeleteObjectWithIfMatch(c *C) {
 	// 删除对象
 	s.DeleteObject(object, c)
 }
+
+// TestListObjectsPaginator 测试ListObjects分页器
+func (s *Ks3utilCommandSuite) TestListObjectsPaginator(c *C) {
+	testPrefix := "test_paginator_v1_" + randLowStr(8) + "/"
+
+	testKeys := make([]string, 10)
+	for i := 0; i < 10; i++ {
+		key := fmt.Sprintf("%sfile_%02d.txt", testPrefix, i)
+		testKeys[i] = key
+		_, err := client.PutObject(&s3.PutObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+			Body:   strings.NewReader(fmt.Sprintf("content %d", i)),
+		})
+		c.Assert(err, IsNil)
+	}
+
+	defer func() {
+		for _, key := range testKeys {
+			s.DeleteObject(key, c)
+		}
+	}()
+
+	paginator := client.NewListObjectsPaginator(&s3.ListObjectsInput{
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(testPrefix),
+		MaxKeys: aws.Long(3),
+	})
+
+	var totalObjects int
+	pageCount := 0
+	for paginator.HasNext() {
+		resp, err := paginator.NextPage()
+		c.Assert(err, IsNil)
+		totalObjects += len(resp.Contents)
+		pageCount++
+	}
+
+	c.Assert(totalObjects, Equals, 10)
+	c.Assert(pageCount > 1, Equals, true)
+
+	_, err := paginator.NextPage()
+	c.Assert(err, NotNil)
+}
+
+// TestListMultipartUploadsPaginator 测试ListMultipartUploads分页器
+func (s *Ks3utilCommandSuite) TestListMultipartUploadsPaginator(c *C) {
+	testPrefix := "test_paginator_mpu_" + randLowStr(8) + "/"
+
+	// 创建3个分块上传任务
+	uploadIDs := make([]string, 3)
+	for i := 0; i < 3; i++ {
+		key := fmt.Sprintf("%sfile_%02d.txt", testPrefix, i)
+		resp, err := client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		})
+		c.Assert(err, IsNil)
+		uploadIDs[i] = *resp.UploadID
+	}
+
+	defer func() {
+		for i, uploadID := range uploadIDs {
+			_, _ = client.AbortMultipartUpload(&s3.AbortMultipartUploadInput{
+				Bucket:   aws.String(bucket),
+				Key:      aws.String(fmt.Sprintf("%sfile_%02d.txt", testPrefix, i)),
+				UploadID: aws.String(uploadID),
+			})
+		}
+	}()
+
+	paginator := client.NewListMultipartUploadsPaginator(&s3.ListMultipartUploadsInput{
+		Bucket:     aws.String(bucket),
+		Prefix:     aws.String(testPrefix),
+		MaxUploads: aws.Long(2),
+	})
+
+	var totalUploads int
+	for paginator.HasNext() {
+		resp, err := paginator.NextPage()
+		c.Assert(err, IsNil)
+		totalUploads += len(resp.Uploads)
+	}
+
+	c.Assert(totalUploads, Equals, 3)
+
+	_, err := paginator.NextPage()
+	c.Assert(err, NotNil)
+}
+
+// TestListPartsPaginator 测试ListParts分页器
+func (s *Ks3utilCommandSuite) TestListPartsPaginator(c *C) {
+	object := randLowStr(10)
+
+	// 创建分块上传
+	createResp, err := client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	uploadID := *createResp.UploadID
+
+	defer func() {
+		_, _ = client.AbortMultipartUpload(&s3.AbortMultipartUploadInput{
+			Bucket:   aws.String(bucket),
+			Key:      aws.String(object),
+			UploadID: aws.String(uploadID),
+		})
+	}()
+
+	// 上传5个分块
+	for i := 1; i <= 5; i++ {
+		_, err := client.UploadPart(&s3.UploadPartInput{
+			Bucket:     aws.String(bucket),
+			Key:        aws.String(object),
+			PartNumber: aws.Long(int64(i)),
+			UploadID:   aws.String(uploadID),
+			Body:       strings.NewReader(fmt.Sprintf("part %d", i)),
+		})
+		c.Assert(err, IsNil)
+	}
+
+	paginator := client.NewListPartsPaginator(&s3.ListPartsInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(object),
+		UploadID: aws.String(uploadID),
+		MaxParts: aws.Long(2),
+	})
+
+	var totalParts int
+	for paginator.HasNext() {
+		resp, err := paginator.NextPage()
+		c.Assert(err, IsNil)
+		totalParts += len(resp.Parts)
+	}
+
+	c.Assert(totalParts, Equals, 5)
+
+	_, err = paginator.NextPage()
+	c.Assert(err, NotNil)
+}
+
+// TestListObjectsV2Paginator 测试ListObjectsV2分页器
+func (s *Ks3utilCommandSuite) TestListObjectsV2Paginator(c *C) {
+	testPrefix := "test_paginator_v2_" + randLowStr(8) + "/"
+
+	testKeys := make([]string, 10)
+	for i := 0; i < 10; i++ {
+		key := fmt.Sprintf("%sfile_%02d.txt", testPrefix, i)
+		testKeys[i] = key
+		_, err := client.PutObject(&s3.PutObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+			Body:   strings.NewReader(fmt.Sprintf("content %d", i)),
+		})
+		c.Assert(err, IsNil)
+	}
+
+	defer func() {
+		for _, key := range testKeys {
+			s.DeleteObject(key, c)
+		}
+	}()
+
+	paginator := client.NewListObjectsV2Paginator(&s3.ListObjectsV2Input{
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(testPrefix),
+		MaxKeys: aws.Long(3),
+	})
+
+	var totalObjects int
+	pageCount := 0
+	for paginator.HasNext() {
+		resp, err := paginator.NextPage()
+		c.Assert(err, IsNil)
+		totalObjects += len(resp.Contents)
+		pageCount++
+	}
+
+	c.Assert(totalObjects, Equals, 10)
+	c.Assert(pageCount > 1, Equals, true)
+
+	_, err := paginator.NextPage()
+	c.Assert(err, NotNil)
+}
