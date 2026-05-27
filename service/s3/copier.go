@@ -221,7 +221,7 @@ func (c *S3) buildUploadFileRequest(ctx context.Context, request *CopyFileInput)
 	var filePartFetcher FilePartFetcher = fetcher
 	input.FilePartFetcher = &filePartFetcher
 
-	resp, err := c.HeadObject(&HeadObjectInput{
+	resp, err := c.HeadObjectWithContext(ctx, &HeadObjectInput{
 		Bucket:               request.SourceBucket,
 		Key:                  request.SourceKey,
 		IfModifiedSince:      request.CopySourceIfModifiedSince,
@@ -300,8 +300,8 @@ func (b *Body) Seek(offset int64, whence int) (int64, error) {
 	return 0, os.ErrInvalid
 }
 
-func (f *Fetcher) Fetch(objectRange []int64) (io.ReadSeeker, error) {
-	resp, err := f.client.GetObject(&GetObjectInput{
+func (f *Fetcher) Fetch(ctx context.Context, objectRange []int64) (io.ReadSeeker, error) {
+	resp, err := f.client.GetObjectWithContext(ctx, &GetObjectInput{
 		Bucket:               f.request.SourceBucket,
 		Key:                  f.request.SourceKey,
 		Range:                aws.String(fmt.Sprintf("bytes=%d-%d", objectRange[0], objectRange[1])),

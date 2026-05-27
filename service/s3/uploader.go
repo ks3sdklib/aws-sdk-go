@@ -130,7 +130,7 @@ type UploadFileOutput struct {
 }
 
 type FilePartFetcher interface {
-	Fetch(objectRange []int64) (io.ReadSeeker, error)
+	Fetch(ctx context.Context, objectRange []int64) (io.ReadSeeker, error)
 }
 
 func (c *S3) UploadFile(request *UploadFileInput) (*UploadFileOutput, error) {
@@ -451,9 +451,12 @@ func (u *Uploader) uploadPart(task UploadPartTask) (CompletedPart, error) {
 		reader = io.NewSectionReader(fd, offset, actualPartSize)
 	} else {
 		var err error
-		reader, err = (*u.uploadFileRequest.FilePartFetcher).Fetch([]int64{offset, offset + actualPartSize - 1})
+		reader, err = (*u.uploadFileRequest.FilePartFetcher).Fetch(u.context, []int64{offset, offset + actualPartSize - 1})
 		if err != nil {
 			return partETag, err
+		}
+		if rc, ok := reader.(io.Closer); ok {
+			defer rc.Close()
 		}
 	}
 

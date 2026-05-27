@@ -1123,6 +1123,9 @@ func (s *Ks3utilCommandSuite) TestPresignedMultipartCopy(c *C) {
 func (s *Ks3utilCommandSuite) TestUploadFile(c *C) {
 	object := randLowStr(10)
 	createFile(object, 1024*1024*10)
+	defer os.Remove(object)
+	defer s.DeleteObject(object, c)
+
 	// 高级上传
 	_, err := client.UploadFile(&s3.UploadFileInput{
 		Bucket:     aws.String(bucket),
@@ -1173,8 +1176,6 @@ func (s *Ks3utilCommandSuite) TestUploadFile(c *C) {
 		SSECustomerKeyMD5:    aws.String(s3.GetBase64MD5Str(customerKey)),
 	})
 	c.Assert(err, IsNil)
-
-	os.Remove(object)
 }
 
 func (s *Ks3utilCommandSuite) TestDownloadFile(c *C) {
@@ -1333,7 +1334,7 @@ func (s *Ks3utilCommandSuite) TestDownloadFile(c *C) {
 		Bucket:       aws.String(bucket),
 		Key:          aws.String(uploadRangeFile),
 		DownloadFile: aws.String(downloadRangeFile),
-		Range:        []int64{-1, -1},
+		Range:        []int64{2, 1},
 	})
 	c.Assert(err, IsNil)
 
@@ -1341,6 +1342,8 @@ func (s *Ks3utilCommandSuite) TestDownloadFile(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(string(rangeContent), Equals, "123456789")
 	os.Remove(downloadRangeFile)
+
+	s.DeleteObject(uploadRangeFile, c)
 }
 
 func (s *Ks3utilCommandSuite) TestCopyFile(c *C) {
