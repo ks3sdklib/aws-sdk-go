@@ -1346,6 +1346,78 @@ func (s *Ks3utilCommandSuite) TestDownloadFile(c *C) {
 	s.DeleteObject(uploadRangeFile, c)
 }
 
+func (s *Ks3utilCommandSuite) TestUploadReader(c *C) {
+	// 事先上传一个 12MB 的对象
+	object := randLowStr(10)
+	createFile(object, 1024*1024*12)
+	_, err := client.UploadFile(&s3.UploadFileInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(object),
+		UploadFile: aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	defer s.DeleteObject(object, c)
+	os.Remove(object)
+
+	// 先 GetObject 拿到网络流
+	getResp, err := client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	defer getResp.Body.Close()
+
+	// 单块上传：PartSize 大于对象大小
+	smallKey := randLowStr(10)
+	_, err = client.UploadReader(&s3.UploadReaderInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(smallKey),
+		Body:     getResp.Body,
+		PartSize: aws.Long(20 * 1024 * 1024),
+	})
+	c.Assert(err, IsNil)
+	defer s.DeleteObject(smallKey, c)
+
+	// 验证上传内容
+	smallResp, err := client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(smallKey),
+	})
+	c.Assert(err, IsNil)
+	smallBody, _ := io.ReadAll(smallResp.Body)
+	smallResp.Body.Close()
+	c.Assert(len(smallBody), Equals, 1024*1024*12)
+
+	// 多块上传：重新 GetObject 拿网络流
+	getResp2, err := client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	c.Assert(err, IsNil)
+	defer getResp2.Body.Close()
+
+	largeKey := randLowStr(10)
+	_, err = client.UploadReader(&s3.UploadReaderInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(largeKey),
+		Body:     getResp2.Body,
+		PartSize: aws.Long(5 * 1024 * 1024),
+		TaskNum:  aws.Long(3),
+	})
+	c.Assert(err, IsNil)
+	defer s.DeleteObject(largeKey, c)
+
+	// 验证上传内容
+	largeResp, err := client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(largeKey),
+	})
+	c.Assert(err, IsNil)
+	largeBody, _ := io.ReadAll(largeResp.Body)
+	largeResp.Body.Close()
+	c.Assert(len(largeBody), Equals, 1024*1024*12)
+}
+
 func (s *Ks3utilCommandSuite) TestCopyFile(c *C) {
 	object := randLowStr(10)
 	dstObject := object + "_copy"
