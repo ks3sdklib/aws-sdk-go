@@ -1086,3 +1086,351 @@ func (s *ReaderUploader) setError(err error) {
 		close(s.done)
 	}
 }
+
+// UploadDirInput 目录上传输入参数。
+type UploadDirInput struct {
+	// 待上传的本地目录路径。
+	RootDir *string `type:"string" required:"true"`
+
+	// 存储桶名称。
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// 对象名称前缀，上传后每个对象的Key为 Prefix + 相对路径。
+	Prefix *string `type:"string"`
+
+	// 分块大小，默认5MB。
+	PartSize *int64 `type:"integer"`
+
+	// 单文件分块上传并发数，默认3。
+	TaskNum *int64 `type:"integer"`
+
+	// 目录级上传并发数，即同时上传的文件数，默认3。
+	Jobs *int64 `type:"integer"`
+
+	// 目录上传跳过策略，默认Never不跳过。可选值：IfExists/IfSizeEquals/IfNewer/IfNewerAndSizeEquals/IfCrc64Equals。
+	SkipRule *string `type:"string"`
+
+	// 是否不记录上传成功文件详情，默认记录。大目录上传时设为true可节省内存。
+	IgnoreSuccessFiles *bool `type:"boolean"`
+
+	// 是否跳过符号链接文件，默认跟随。设为true时跳过符号链接文件和目录。
+	SkipSymlinks *bool `type:"boolean"`
+
+	// 是否启用断点续传，默认不启用。
+	EnableCheckpoint *bool `type:"boolean"`
+
+	// 断点续传记录文件的存放目录。
+	CheckpointDir *string `type:"string"`
+
+	// 对象的预设ACL。
+	ACL *string `location:"header" locationName:"x-amz-acl" type:"string"`
+
+	// 指定请求/响应链上的缓存行为。
+	CacheControl *string `location:"header" locationName:"Cache-Control" type:"string"`
+
+	// 指定对象的展示信息。
+	ContentDisposition *string `location:"header" locationName:"Content-Disposition" type:"string"`
+
+	// 指定已应用于对象的内容编码。
+	ContentEncoding *string `location:"header" locationName:"Content-Encoding" type:"string"`
+
+	// 描述对象数据格式的标准MIME类型。
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// 存储在KS3中的对象元数据。
+	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
+
+	// 对象的存储类型，默认为STANDARD。
+	StorageClass *string `location:"header" locationName:"x-amz-storage-class" type:"string"`
+
+	// 指定对象标签。
+	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
+
+	// 服务端加密算法，如AES256。
+	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
+
+	// 指定加密对象时使用的算法。
+	SSECustomerAlgorithm *string `location:"header" locationName:"x-amz-server-side-encryption-customer-algorithm" type:"string"`
+
+	// 指定客户提供的加密密钥。
+	SSECustomerKey *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key" type:"string"`
+
+	// 指定加密密钥的128位MD5摘要。
+	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
+
+	// 目录上传进度回调，每次文件完成时调用。
+	ProgressFn DirProgressFunc `location:"function"`
+}
+
+
+// UploadDir 上传本地目录到KS3。
+func (c *S3) UploadDir(request *UploadDirInput) (*DirResult, error) {
+	return c.UploadDirWithContext(context.Background(), request)
+}
+
+// UploadDirWithContext 上传本地目录到KS3，支持上下文取消。
+func (c *S3) UploadDirWithContext(ctx context.Context, request *UploadDirInput) (*DirResult, error) {
+	return newDirUploader(c, ctx, request).uploadDir()
+}
+
+// DirUploader 目录上传实现。
+type DirUploader struct {
+	client      *S3             // KS3客户端。
+	context     context.Context // 上下文，用于取消。
+	request     *UploadDirInput // 上传输入参数。
+	producerErr error           // 生产者错误。
+	done        chan struct{}   // 生产者完成信号。
+
+	rootDir string // 解析后的根目录绝对路径。
+
+	*TransferManager
+}
+
+func newDirUploader(s3 *S3, ctx context.Context, request *UploadDirInput) *DirUploader {
+	return &DirUploader{
+		client:          s3,
+		context:         ctx,
+		request:         request,
+		done:            make(chan struct{}),
+		TransferManager: newTransferManager(request.ProgressFn),
+	}
+}
+
+func (u *DirUploader) uploadDir() (*DirResult, error) {
+	if err := u.validate(); err != nil {
+		return nil, err
+	}
+
+	jobs := aws.ToLong(u.request.Jobs)
+	fileCh := make(chan dirFileInfo, DefaultFileChanSize)
+
+	go u.produceFiles(fileCh)
+
+	var workerWg sync.WaitGroup
+	var i int64
+	for i = 0; i < jobs; i++ {
+		workerWg.Add(1)
+		go u.runWorker(fileCh, &workerWg)
+	}
+
+	workerWg.Wait()
+	<-u.done
+
+	if u.producerErr != nil {
+		return nil, u.producerErr
+	}
+	return u.setResult()
+}
+
+func (u *DirUploader) produceFiles(fileCh chan<- dirFileInfo) {
+	defer close(u.done)
+	u.producerErr = u.walk(u.rootDir, fileCh)
+	close(fileCh)
+}
+
+func (u *DirUploader) validate() error {
+	request := u.request
+	if request == nil {
+		return errors.New("upload dir request is required")
+	}
+
+	if aws.ToString(request.Bucket) == "" {
+		return errors.New("bucket is required")
+	}
+
+	if aws.ToString(request.RootDir) == "" {
+		return errors.New("root dir is required")
+	}
+
+	rootDir, err := toAbs(aws.ToString(request.RootDir))
+	if err != nil {
+		return err
+	}
+
+	dirInfo, err := os.Stat(rootDir)
+	if err != nil {
+		return err
+	}
+	if !dirInfo.IsDir() {
+		return fmt.Errorf("%s is not a directory", rootDir)
+	}
+
+	if request.Prefix == nil {
+		request.Prefix = aws.String("")
+	} else if !strings.HasSuffix(aws.ToString(request.Prefix), "/") && aws.ToString(request.Prefix) != "" {
+		request.Prefix = aws.String(aws.ToString(request.Prefix) + "/")
+	}
+
+	if request.PartSize == nil {
+		request.PartSize = aws.Long(DefaultPartSize)
+	} else if aws.ToLong(request.PartSize) < MinPartSize {
+		request.PartSize = aws.Long(MinPartSize)
+	} else if aws.ToLong(request.PartSize) > MaxPartSize {
+		request.PartSize = aws.Long(MaxPartSize)
+	}
+
+	if aws.ToLong(request.TaskNum) <= 0 {
+		request.TaskNum = aws.Long(DefaultTaskNum)
+	}
+
+	if aws.ToLong(request.Jobs) <= 0 {
+		request.Jobs = aws.Long(DefaultJobs)
+	}
+
+	if request.SkipRule == nil {
+		request.SkipRule = aws.String(SkipNever)
+	}
+
+	u.rootDir = rootDir
+	return nil
+}
+
+func (u *DirUploader) walk(rootDir string, fileCh chan<- dirFileInfo) error {
+	return u.walkDir(rootDir, rootDir, fileCh)
+}
+
+func (u *DirUploader) walkDir(dir, virtualBase string, fileCh chan<- dirFileInfo) error {
+	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		select {
+		case <-u.context.Done():
+			return u.context.Err()
+		default:
+		}
+		// 处理符号链接
+		if info.Mode()&os.ModeSymlink != 0 {
+			if aws.ToBoolean(u.request.SkipSymlinks) {
+				return nil
+			}
+			resolved, err := filepath.EvalSymlinks(path)
+			if err != nil {
+				return err
+			}
+			resolvedInfo, err := os.Stat(resolved)
+			if err != nil {
+				return err
+			}
+			if resolvedInfo.IsDir() {
+				return u.walkDir(resolved, path, fileCh)
+			}
+			info = resolvedInfo
+		}
+		// 跳过非常规文件
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+		relPath, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+		virtualPath := filepath.Join(virtualBase, relPath)
+		objectKey := makeObjectName(u.rootDir, aws.ToString(u.request.Prefix), virtualPath)
+		select {
+		case fileCh <- dirFileInfo{
+			filePath:   path,
+			objectKey:  objectKey,
+			objectSize: info.Size(),
+		}:
+			return nil
+		case <-u.context.Done():
+			return u.context.Err()
+		}
+	})
+}
+
+func (u *DirUploader) runWorker(fileCh <-chan dirFileInfo, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for fi := range fileCh {
+		select {
+		case <-u.context.Done():
+			return
+		default:
+		}
+		if err := u.uploadSingleFile(fi); err != nil {
+			u.TransferManager.addFailure(fi.filePath, fi.objectKey, fi.objectSize, err)
+		}
+	}
+}
+
+func (u *DirUploader) uploadSingleFile(fi dirFileInfo) error {
+	info, err := os.Stat(fi.filePath)
+	if err != nil {
+		return err
+	}
+	fileSize := info.Size()
+	fileModTime := info.ModTime()
+
+	if skip := u.shouldSkip(fi, fileSize, fileModTime); skip {
+		u.TransferManager.addSkip(fi.filePath, fi.objectKey, fileSize)
+		return nil
+	}
+
+	_, err = u.client.UploadFileWithContext(u.context, &UploadFileInput{
+		Bucket:               u.request.Bucket,
+		Key:                  aws.String(fi.objectKey),
+		UploadFile:           aws.String(fi.filePath),
+		FileSize:             aws.Long(fileSize),
+		PartSize:             u.request.PartSize,
+		TaskNum:              u.request.TaskNum,
+		EnableCheckpoint:     u.request.EnableCheckpoint,
+		CheckpointDir:        u.request.CheckpointDir,
+		ACL:                  u.request.ACL,
+		CacheControl:         u.request.CacheControl,
+		ContentDisposition:   u.request.ContentDisposition,
+		ContentEncoding:      u.request.ContentEncoding,
+		ContentType:          u.request.ContentType,
+		Metadata:             u.request.Metadata,
+		StorageClass:         u.request.StorageClass,
+		Tagging:              u.request.Tagging,
+		ServerSideEncryption: u.request.ServerSideEncryption,
+		SSECustomerAlgorithm: u.request.SSECustomerAlgorithm,
+		SSECustomerKey:       u.request.SSECustomerKey,
+		SSECustomerKeyMD5:    u.request.SSECustomerKeyMD5,
+	})
+	if err != nil {
+		return err
+	}
+	u.TransferManager.addSuccess(fi.filePath, fi.objectKey, fileSize, aws.ToBoolean(u.request.IgnoreSuccessFiles))
+	return nil
+}
+
+func (u *DirUploader) shouldSkip(fi dirFileInfo, fileSize int64, fileModTime time.Time) bool {
+	rule := aws.ToString(u.request.SkipRule)
+	if rule == "" || rule == SkipNever {
+		return false
+	}
+
+	resp, err := u.client.HeadObjectWithContext(u.context, &HeadObjectInput{
+		Bucket: u.request.Bucket,
+		Key:    aws.String(fi.objectKey),
+	})
+	if err != nil || resp == nil || aws.ToString(resp.ETag) == "" {
+		return false
+	}
+
+	switch rule {
+	case SkipIfExists:
+		return true
+	case SkipIfSizeEquals:
+		return aws.ToLong(resp.ContentLength) == fileSize
+	case SkipIfNewer:
+		return resp.LastModified != nil && !fileModTime.After(*resp.LastModified)
+	case SkipIfNewerAndSizeEquals:
+		return resp.LastModified != nil && !fileModTime.After(*resp.LastModified) && aws.ToLong(resp.ContentLength) == fileSize
+	case SkipIfCrc64Equals:
+		if resp.Metadata == nil {
+			return false
+		}
+		serverCrc := aws.ToString(resp.Metadata[HTTPHeaderAmzChecksumCrc64ecma])
+		if serverCrc == "" {
+			return false
+		}
+		localCrc := computeLocalCrc64(fi.filePath)
+		return localCrc != "" && localCrc == serverCrc
+	}
+	return false
+}
+
+

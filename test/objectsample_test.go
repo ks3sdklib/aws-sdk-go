@@ -2,6 +2,7 @@ package lib
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
 	"fmt"
 	"github.com/ks3sdklib/aws-sdk-go/aws"
@@ -14,7 +15,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -3058,4 +3061,1261 @@ func (s *Ks3utilCommandSuite) TestListObjectsV2Paginator(c *C) {
 
 	_, err := paginator.NextPage()
 	c.Assert(err, NotNil)
+}
+
+// TestUploadDir 上传目录完整测试
+func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
+	prefix := randLowStr(6) + "/"
+	dir := randLowStr(8) + "/"
+	os.RemoveAll(dir)
+	os.MkdirAll(dir+"subdir/", 0755)
+	createFileWithContent(dir+"a.txt", "hello")
+	createFileWithContent(dir+"subdir/b.txt", "world")
+	createFile(dir+"c.bin", 1024*5)
+
+	// 1. 基本上传：3个文件（含子目录、大文件分块）
+	output, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir: aws.String(dir),
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(prefix),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output.TotalNum, Equals, int64(3))
+	c.Assert(output.SuccessNum, Equals, int64(3))
+	c.Assert(output.FailNum, Equals, int64(0))
+	c.Assert(output.SkipNum, Equals, int64(0))
+	c.Assert(len(output.SuccessFiles), Equals, 3)
+	c.Assert(len(output.ErrorFiles), Equals, 0)
+	// 验证文件内容
+	getResp, _ := client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(prefix + "a.txt"),
+	})
+	body, _ := io.ReadAll(getResp.Body)
+	getResp.Body.Close()
+	c.Assert(string(body), Equals, "hello")
+
+	// 2. SkipRule=IfExists：对象已存在，全部跳过
+	output2, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir:  aws.String(dir),
+		Bucket:   aws.String(bucket),
+		Prefix:   aws.String(prefix),
+		SkipRule: aws.String(s3.SkipIfExists),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output2.SkipNum, Equals, int64(3))
+	c.Assert(output2.SuccessNum, Equals, int64(0))
+	c.Assert(output.TotalNum, Equals, int64(3))
+
+	// 3. SkipRule=IfSizeEquals：a.txt改大 → 不跳过；b.txt/c.bin大小不变 → 跳过
+	createFileWithContent(dir+"a.txt", "hello world! long content now")
+	output3, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir:  aws.String(dir),
+		Bucket:   aws.String(bucket),
+		Prefix:   aws.String(prefix),
+		SkipRule: aws.String(s3.SkipIfSizeEquals),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output3.SkipNum, Equals, int64(2))
+	c.Assert(output3.SuccessNum, Equals, int64(1))
+	// 验证a.txt内容已被覆盖
+	getResp2, _ := client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(prefix + "a.txt"),
+	})
+	body2, _ := io.ReadAll(getResp2.Body)
+	getResp2.Body.Close()
+	c.Assert(string(body2), Equals, "hello world! long content now")
+
+	// 4. SkipRule=IfNewer：本地文件ModTime设为过去 → 远程更新 → 跳过
+	pastTime := time.Now().Add(-48 * time.Hour)
+	os.Chtimes(dir+"a.txt", pastTime, pastTime)
+	os.Chtimes(dir+"subdir/b.txt", pastTime, pastTime)
+	output4, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir:  aws.String(dir),
+		Bucket:   aws.String(bucket),
+		Prefix:   aws.String(prefix),
+		SkipRule: aws.String(s3.SkipIfNewer),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output4.SkipNum, Equals, int64(3)) // 全部跳过，因为本地比远程旧
+	c.Assert(output4.SuccessNum, Equals, int64(0))
+
+	// 本地设为未来 → 本地比远程新 → 不跳过
+	futureTime := time.Now().Add(24 * time.Hour)
+	os.Chtimes(dir+"a.txt", futureTime, futureTime)
+	output5, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir:  aws.String(dir),
+		Bucket:   aws.String(bucket),
+		Prefix:   aws.String(prefix),
+		SkipRule: aws.String(s3.SkipIfNewer),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output5.SkipNum, Equals, int64(2)) // b.txt/c.bin远程更新，跳过
+	c.Assert(output5.SuccessNum, Equals, int64(1)) // a.txt本地更新，重新上传
+
+	// 5. SkipRule=IfNewerAndSizeEquals：b.txt恢复原内容+设为未来时间 → 本地更新且大小相等 → 跳过
+	createFileWithContent(dir+"subdir/b.txt", "world")
+	os.Chtimes(dir+"subdir/b.txt", futureTime, futureTime)
+	output6, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir:  aws.String(dir),
+		Bucket:   aws.String(bucket),
+		Prefix:   aws.String(prefix),
+		SkipRule: aws.String(s3.SkipIfNewerAndSizeEquals),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output6.SkipNum, Equals, int64(1))    // b.txt本地更新且大小相等，跳过
+	c.Assert(output6.SuccessNum, Equals, int64(2)) // a.txt大小不等，c.bin本地不更新
+
+	// 6. SkipRule=IfCrc64Equals：改a.txt内容 → CRC不等 → 不跳过
+	createFileWithContent(dir+"a.txt", "different content for crc")
+	output7, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir:  aws.String(dir),
+		Bucket:   aws.String(bucket),
+		Prefix:   aws.String(prefix + "crc/"),
+		SkipRule: aws.String(s3.SkipIfCrc64Equals),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output7.SuccessNum, Equals, int64(3))
+	c.Assert(output7.SkipNum, Equals, int64(0))
+	// 再上传同内容 → CRC匹配 → 全部跳过
+	output8, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir:  aws.String(dir),
+		Bucket:   aws.String(bucket),
+		Prefix:   aws.String(prefix + "crc/"),
+		SkipRule: aws.String(s3.SkipIfCrc64Equals),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output8.SkipNum, Equals, int64(3))
+	c.Assert(output8.SuccessNum, Equals, int64(0))
+
+	// 7. SkipRule=Never（默认值）：不跳过任何文件
+	createFileWithContent(dir+"a.txt", "never skip test")
+	output8b, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir:  aws.String(dir),
+		Bucket:   aws.String(bucket),
+		Prefix:   aws.String(prefix + "never/"),
+		SkipRule: aws.String(s3.SkipNever),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output8b.SkipNum, Equals, int64(0))
+	c.Assert(output8b.SuccessNum, Equals, int64(3))
+
+	// 8. IgnoreSuccessFiles=true
+	output9, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir:            aws.String(dir),
+		Bucket:             aws.String(bucket),
+		Prefix:             aws.String(prefix + "ignore/"),
+		IgnoreSuccessFiles: aws.Boolean(true),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output9.SuccessNum, Equals, int64(3))
+	c.Assert(len(output9.SuccessFiles), Equals, 0)
+
+	// 9. SkipSymlinks=true跳过，false跟随
+	os.Remove(dir + "link.txt")
+	os.Symlink("a.txt", dir+"link.txt")
+	output10, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir:      aws.String(dir),
+		Bucket:       aws.String(bucket),
+		Prefix:       aws.String(prefix + "symlink-skip/"),
+		SkipSymlinks: aws.Boolean(true),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output10.SuccessNum, Equals, int64(3))
+
+	output11, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir: aws.String(dir),
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(prefix + "symlink-follow/"),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output11.SuccessNum, Equals, int64(4))
+
+	// 10. 并发参数：Jobs=1, TaskNum=1（串行）
+	output12, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir: aws.String(dir),
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(prefix + "serial/"),
+		Jobs:    aws.Long(1),
+		TaskNum: aws.Long(1),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output12.SuccessNum, Equals, int64(4))
+
+	// 11. 自定义PartSize
+	output13, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir:  aws.String(dir),
+		Bucket:   aws.String(bucket),
+		Prefix:   aws.String(prefix + "partsize/"),
+		PartSize: aws.Long(1024 * 1024),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output13.SuccessNum, Equals, int64(4))
+
+	// 12. 带ACL、StorageClass、Metadata、Tagging上传，验证生效
+	output14, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir:      aws.String(dir),
+		Bucket:       aws.String(bucket),
+		Prefix:       aws.String(prefix + "meta/"),
+		ACL:          aws.String("private"),
+		StorageClass: aws.String("STANDARD_IA"),
+		Metadata:     map[string]*string{"x-amz-meta-foo": aws.String("bar")},
+		Tagging:      aws.String("key1=val1"),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output14.SuccessNum, Equals, int64(4))
+	// 验证metadata生效：key可能被HTTP/2转为小写
+	headResp, _ := client.HeadObjectWithContext(context.Background(), &s3.HeadObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(prefix + "meta/a.txt"),
+	})
+	var metaVal string
+	for k, v := range headResp.Metadata {
+		if strings.HasSuffix(strings.ToLower(k), "meta-foo") {
+			metaVal = aws.ToString(v)
+			break
+		}
+	}
+	c.Assert(metaVal, Equals, "bar")
+	// 验证tagging生效
+	tagResp, _ := client.GetObjectTaggingWithContext(context.Background(), &s3.GetObjectTaggingInput{
+		Bucket: aws.String(bucket), Key: aws.String(prefix + "meta/a.txt"),
+	})
+	c.Assert(len(tagResp.Tagging.TagSet) > 0, Equals, true)
+	c.Assert(aws.ToString(tagResp.Tagging.TagSet[0].Key), Equals, "key1")
+
+	// 13. ProgressFn回调
+	var progressCalls int64
+	output15, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir: aws.String(dir),
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(prefix + "progress/"),
+		ProgressFn: func(stat s3.DirResult) {
+			atomic.AddInt64(&progressCalls, 1)
+		},
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output15.SuccessNum, Equals, int64(4))
+	c.Assert(atomic.LoadInt64(&progressCalls) > 0, Equals, true)
+
+	// 14. EnableCheckpoint
+	cpDir := randLowStr(8)
+	os.MkdirAll(cpDir, 0755)
+	output16, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir:          aws.String(dir),
+		Bucket:           aws.String(bucket),
+		Prefix:           aws.String(prefix + "checkpoint/"),
+		EnableCheckpoint: aws.Boolean(true),
+		CheckpointDir:    aws.String(cpDir),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output16.SuccessNum, Equals, int64(4))
+
+	// 15. 空目录：无常规文件可上传
+	emptyDir := filepath.Join(os.TempDir(), randLowStr(8))
+	os.MkdirAll(emptyDir, 0755)
+	output17, err := client.UploadDir(&s3.UploadDirInput{
+		RootDir: aws.String(emptyDir),
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(prefix + "empty/"),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output17.TotalNum, Equals, int64(0))
+	c.Assert(output17.SuccessNum, Equals, int64(0))
+
+	// 16. 参数校验：RootDir不存在
+	_, err = client.UploadDir(&s3.UploadDirInput{
+		RootDir: aws.String("/nonexistent_dir_" + randLowStr(8)),
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(prefix),
+	})
+	c.Assert(err, NotNil)
+
+	// 17. 参数校验：Bucket为空
+	_, err = client.UploadDir(&s3.UploadDirInput{
+		RootDir: aws.String(dir),
+		Bucket:  aws.String(""),
+		Prefix:  aws.String(prefix),
+	})
+	c.Assert(err, NotNil)
+
+	// 清理
+	resp, _ := client.ListObjects(&s3.ListObjectsInput{
+		Bucket: aws.String(bucket), Prefix: aws.String(prefix),
+	})
+	for _, obj := range resp.Contents {
+		client.DeleteObject(&s3.DeleteObjectInput{Bucket: aws.String(bucket), Key: obj.Key})
+	}
+	os.RemoveAll(dir)
+	os.RemoveAll(cpDir)
+	os.RemoveAll(emptyDir)
+}
+
+// TestDownloadDir 下载目录完整测试
+func (s *Ks3utilCommandSuite) TestDownloadDir(c *C) {
+	prefix := randLowStr(6) + "/"
+	key1 := prefix + randLowStr(10)
+	key2 := prefix + "subdir/" + randLowStr(10)
+	content1 := randLowStr(100)
+	content2 := randLowStr(200)
+
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key1),
+		Body: bytes.NewReader([]byte(content1)),
+	})
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key2),
+		Body: bytes.NewReader([]byte(content2)),
+	})
+
+	// 1. 基本下载：验证文件内容和子目录创建
+	localDir := randLowStr(8)
+	output, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(bucket),
+		Prefix:      aws.String(prefix),
+		DownloadDir: aws.String(localDir),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output.TotalNum, Equals, int64(2))
+	c.Assert(output.SuccessNum, Equals, int64(2))
+	c.Assert(output.FailNum, Equals, int64(0))
+	c.Assert(output.SkipNum, Equals, int64(0))
+	c.Assert(len(output.SuccessFiles), Equals, 2)
+	c.Assert(len(output.ErrorFiles), Equals, 0)
+	// 验证文件存在
+	_, err1 := os.Stat(filepath.Join(localDir, key1[len(prefix):]))
+	_, err2 := os.Stat(filepath.Join(localDir, key2[len(prefix):]))
+	c.Assert(err1, IsNil)
+	c.Assert(err2, IsNil)
+	// 验证文件内容
+	data, _ := os.ReadFile(filepath.Join(localDir, key1[len(prefix):]))
+	c.Assert(string(data), Equals, content1)
+
+	// 2. SkipRule=IfExists：本地文件已存在，全部跳过
+	output2, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(bucket),
+		Prefix:      aws.String(prefix),
+		DownloadDir: aws.String(localDir),
+		SkipRule:    aws.String(s3.SkipIfExists),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output2.SkipNum, Equals, int64(2))
+	c.Assert(output2.SuccessNum, Equals, int64(0))
+
+	// 3. SkipRule=IfSizeEquals：改小本地key1文件 → 大小不等 → 不跳过
+	createFileWithContent(filepath.Join(localDir, key1[len(prefix):]), "short")
+	output3, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(bucket),
+		Prefix:      aws.String(prefix),
+		DownloadDir: aws.String(localDir),
+		SkipRule:    aws.String(s3.SkipIfSizeEquals),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output3.SkipNum, Equals, int64(1))  // key2大小相等，跳过
+	c.Assert(output3.SuccessNum, Equals, int64(1)) // key1大小不等，重新下载
+	// 验证key1内容已被覆盖
+	data3, _ := os.ReadFile(filepath.Join(localDir, key1[len(prefix):]))
+	c.Assert(string(data3), Equals, content1)
+
+	// 4. SkipRule=IfNewer：把本地key1时间改旧 → 本地比远程旧 → 不跳过
+	pastTime := time.Now().Add(-24 * time.Hour)
+	os.Chtimes(filepath.Join(localDir, key1[len(prefix):]), pastTime, pastTime)
+	os.Chtimes(filepath.Join(localDir, key2[len(prefix):]), pastTime, pastTime)
+	output4, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(bucket),
+		Prefix:      aws.String(prefix),
+		DownloadDir: aws.String(localDir),
+		SkipRule:    aws.String(s3.SkipIfNewer),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output4.SkipNum, Equals, int64(0))  // 两个本地都更旧，都不跳过
+	c.Assert(output4.SuccessNum, Equals, int64(2))
+
+	// 把本地时间改为未来 → 本地比远程新 → 全部跳过
+	futureTime := time.Now().Add(24 * time.Hour)
+	os.Chtimes(filepath.Join(localDir, key1[len(prefix):]), futureTime, futureTime)
+	os.Chtimes(filepath.Join(localDir, key2[len(prefix):]), futureTime, futureTime)
+	output4b, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(bucket),
+		Prefix:      aws.String(prefix),
+		DownloadDir: aws.String(localDir),
+		SkipRule:    aws.String(s3.SkipIfNewer),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output4b.SkipNum, Equals, int64(2)) // 全部本地更新，跳过
+	c.Assert(output4b.SuccessNum, Equals, int64(0))
+
+	// 5. SkipRule=IfNewerAndSizeEquals：本地更新且大小相等才跳过
+	createFileWithContent(filepath.Join(localDir, key1[len(prefix):]), content1)
+	os.Chtimes(filepath.Join(localDir, key1[len(prefix):]), futureTime, futureTime)
+	os.Chtimes(filepath.Join(localDir, key2[len(prefix):]), futureTime, futureTime)
+	output6, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(bucket),
+		Prefix:      aws.String(prefix),
+		DownloadDir: aws.String(localDir),
+		SkipRule:    aws.String(s3.SkipIfNewerAndSizeEquals),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output6.SkipNum, Equals, int64(2)) // 两个本地都更新且大小相等，跳过
+	c.Assert(output6.SuccessNum, Equals, int64(0))
+
+	// 6. SkipRule=IfCrc64Equals：改key1本地内容 → CRC不等 → 不跳过
+	createFileWithContent(filepath.Join(localDir, key1[len(prefix):]), "wrong content")
+	output7, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(bucket),
+		Prefix:      aws.String(prefix),
+		DownloadDir: aws.String(localDir),
+		SkipRule:    aws.String(s3.SkipIfCrc64Equals),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output7.SkipNum, Equals, int64(1))  // key2 CRC相等，跳过
+	c.Assert(output7.SuccessNum, Equals, int64(1)) // key1 CRC不等，重新下载
+	// 再下载同内容 → CRC匹配 → 全部跳过
+	output7b, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(bucket),
+		Prefix:      aws.String(prefix),
+		DownloadDir: aws.String(localDir),
+		SkipRule:    aws.String(s3.SkipIfCrc64Equals),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output7b.SkipNum, Equals, int64(2))
+	c.Assert(output7b.SuccessNum, Equals, int64(0))
+
+	// 7. SkipRule=Never：不跳过任何文件
+	output7c, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(bucket),
+		Prefix:      aws.String(prefix),
+		DownloadDir: aws.String(localDir),
+		SkipRule:    aws.String(s3.SkipNever),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output7c.SkipNum, Equals, int64(0))
+	c.Assert(output7c.SuccessNum, Equals, int64(2))
+
+	// 8. 并发参数：Jobs=1, TaskNum=1
+	localDir2 := randLowStr(8)
+	output8, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(bucket),
+		Prefix:      aws.String(prefix),
+		DownloadDir: aws.String(localDir2),
+		Jobs:        aws.Long(1),
+		TaskNum:     aws.Long(1),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output8.SuccessNum, Equals, int64(2))
+
+	// 9. 自定义PartSize
+	localDir3 := randLowStr(8)
+	output8b, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(bucket),
+		Prefix:      aws.String(prefix),
+		DownloadDir: aws.String(localDir3),
+		PartSize:    aws.Long(1024 * 1024),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output8b.SuccessNum, Equals, int64(2))
+
+	// 10. ProgressFn回调
+	var progressCalls int64
+	localDir4 := randLowStr(8)
+	output9, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(bucket),
+		Prefix:      aws.String(prefix),
+		DownloadDir: aws.String(localDir4),
+		ProgressFn: func(stat s3.DirResult) {
+			atomic.AddInt64(&progressCalls, 1)
+		},
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output9.SuccessNum, Equals, int64(2))
+	c.Assert(atomic.LoadInt64(&progressCalls) > 0, Equals, true)
+
+	// 11. IgnoreSuccessFiles
+	localDir5 := randLowStr(8)
+	output10, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:             aws.String(bucket),
+		Prefix:             aws.String(prefix),
+		DownloadDir:        aws.String(localDir5),
+		IgnoreSuccessFiles: aws.Boolean(true),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output10.SuccessNum, Equals, int64(2))
+	c.Assert(len(output10.SuccessFiles), Equals, 0)
+
+	// 12. EnableCheckpoint
+	cpDir := randLowStr(8)
+	os.MkdirAll(cpDir, 0755)
+	localDir6 := randLowStr(8)
+	output11, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:           aws.String(bucket),
+		Prefix:           aws.String(prefix),
+		DownloadDir:      aws.String(localDir6),
+		EnableCheckpoint: aws.Boolean(true),
+		CheckpointDir:    aws.String(cpDir),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output11.SuccessNum, Equals, int64(2))
+
+	// 13. 空前缀：桶中无匹配对象
+	localDir7 := randLowStr(8)
+	output12, err := client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(bucket),
+		Prefix:      aws.String(prefix + "nonexistent/"),
+		DownloadDir: aws.String(localDir7),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output12.TotalNum, Equals, int64(0))
+	c.Assert(output12.SuccessNum, Equals, int64(0))
+
+	// 14. 参数校验：Bucket为空
+	_, err = client.DownloadDir(&s3.DownloadDirInput{
+		Bucket:      aws.String(""),
+		Prefix:      aws.String(prefix),
+		DownloadDir: aws.String(localDir),
+	})
+	c.Assert(err, NotNil)
+
+	// 清理
+	for _, key := range []string{key1, key2} {
+		client.DeleteObject(&s3.DeleteObjectInput{Bucket: aws.String(bucket), Key: aws.String(key)})
+	}
+	for _, d := range []string{localDir, localDir2, localDir3, localDir4, localDir5, localDir6, localDir7, cpDir} {
+		os.RemoveAll(d)
+	}
+}
+
+// TestCopyDir 复制目录完整测试
+func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
+	srcPrefix := randLowStr(6) + "/"
+	key1 := srcPrefix + randLowStr(10)
+	key2 := srcPrefix + "subdir/" + randLowStr(10)
+	content1 := randLowStr(100)
+	content2 := randLowStr(200)
+
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key1),
+		Body: bytes.NewReader([]byte(content1)),
+	})
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key2),
+		Body: bytes.NewReader([]byte(content2)),
+	})
+
+	// 创建目标桶，避免同桶复制时的ObjectAlreadyExists问题
+	dstBucket := commonNamePrefix + randLowStr(10)
+	s.CreateBucket(dstBucket, c)
+	defer s.DeleteBucket(dstBucket, c)
+
+	// 1. 基本复制：验证目标对象存在且内容正确
+	dstPrefix := randLowStr(6) + "/"
+	output, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+	})
+	c.Assert(err, IsNil, Commentf("CopyDir basic failed: %v", err))
+	c.Assert(output.TotalNum, Equals, int64(2))
+	c.Assert(output.SuccessNum, Equals, int64(2))
+	c.Assert(output.FailNum, Equals, int64(0))
+	c.Assert(output.SkipNum, Equals, int64(0))
+	c.Assert(len(output.SuccessFiles), Equals, 2)
+	// 验证目标对象内容
+	getResp, _ := client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(dstBucket), Key: aws.String(dstPrefix + key1[len(srcPrefix):]),
+	})
+	body, _ := io.ReadAll(getResp.Body)
+	getResp.Body.Close()
+	c.Assert(string(body), Equals, content1)
+
+	// 2. SkipRule=IfExists：目标已存在，全部跳过
+	output2, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfExists),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output2.SkipNum, Equals, int64(2))
+	c.Assert(output2.SuccessNum, Equals, int64(0))
+
+	// 3. SkipRule=IfSizeEquals：改源key1大小 → 不跳过
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key1),
+		Body: bytes.NewReader([]byte(randLowStr(300))),
+	})
+	output3, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfSizeEquals),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output3.SkipNum, Equals, int64(1))
+	c.Assert(output3.SuccessNum, Equals, int64(1))
+
+	// 4. SkipRule=IfNewer：刚复制完dst比src更新 → 全部跳过
+	output4, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfNewer),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output4.SkipNum, Equals, int64(2))
+	c.Assert(output4.SuccessNum, Equals, int64(0))
+
+	// 重新上传src key2 → src更新 → 不跳过
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key2),
+		Body: bytes.NewReader([]byte(randLowStr(200))),
+	})
+	output5, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfNewer),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output5.SkipNum, Equals, int64(1))
+	c.Assert(output5.SuccessNum, Equals, int64(1))
+
+	// 5. SkipRule=IfNewerAndSizeEquals：dst更新且大小相等 → 跳过
+	output6, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfNewerAndSizeEquals),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output6.SkipNum, Equals, int64(2))
+
+	// 改src key1大小 → dst不满足大小相等 → 不跳过
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key1),
+		Body: bytes.NewReader([]byte(randLowStr(500))),
+	})
+	output7, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfNewerAndSizeEquals),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output7.SkipNum, Equals, int64(1))
+	c.Assert(output7.SuccessNum, Equals, int64(1))
+
+	// 6. SkipRule=IfCrc64Equals：改src key1内容 → CRC不等 → 不跳过
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key1),
+		Body: bytes.NewReader([]byte("totally different content")),
+	})
+	output8, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfCrc64Equals),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output8.SkipNum, Equals, int64(1))
+	c.Assert(output8.SuccessNum, Equals, int64(1))
+	// 再复制同内容 → CRC匹配 → 全部跳过
+	output8b, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfCrc64Equals),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output8b.SkipNum, Equals, int64(2))
+	c.Assert(output8b.SuccessNum, Equals, int64(0))
+
+	// 7. SkipRule=Never：不跳过任何文件
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key1),
+		Body: bytes.NewReader([]byte("never skip test")),
+	})
+	output8c, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipNever),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output8c.SkipNum, Equals, int64(0))
+	c.Assert(output8c.SuccessNum, Equals, int64(2))
+
+	// 8. 带StorageClass复制，验证生效
+	storagePrefix := dstPrefix + "archive/"
+	output9, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(storagePrefix),
+		StorageClass: aws.String("ARCHIVE"),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output9.SuccessNum, Equals, int64(2))
+	// 验证StorageClass生效：key可能被HTTP/2转为小写
+	headResp, _ := client.HeadObjectWithContext(context.Background(), &s3.HeadObjectInput{
+		Bucket: aws.String(dstBucket), Key: aws.String(storagePrefix + key1[len(srcPrefix):]),
+	})
+	var storageClass string
+	for k, v := range headResp.Metadata {
+		if strings.EqualFold(k, s3.HTTPHeaderAmzStorageClass) {
+			storageClass = aws.ToString(v)
+			break
+		}
+	}
+	c.Assert(storageClass, Equals, "ARCHIVE")
+
+	// 9. 带ACL、Metadata、Tagging复制，验证REPLACE生效
+	metaPrefix := dstPrefix + "meta/"
+	output10, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket:      aws.String(bucket),
+		SourcePrefix:      aws.String(srcPrefix),
+		Bucket:            aws.String(dstBucket),
+		KeyPrefix:         aws.String(metaPrefix),
+		ACL:               aws.String("private"),
+		StorageClass:      aws.String("STANDARD"),
+		Metadata:          map[string]*string{"x-amz-meta-foo": aws.String("bar")},
+		MetadataDirective: aws.String("REPLACE"),
+		Tagging:           aws.String("key1=val1"),
+		TaggingDirective:  aws.String("REPLACE"),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output10.SuccessNum, Equals, int64(2))
+	// 验证metadata被替换：key可能被HTTP/2转为小写
+	metaResp, _ := client.HeadObjectWithContext(context.Background(), &s3.HeadObjectInput{
+		Bucket: aws.String(dstBucket), Key: aws.String(metaPrefix + key1[len(srcPrefix):]),
+	})
+	var metaVal string
+	for k, v := range metaResp.Metadata {
+		if strings.HasSuffix(strings.ToLower(k), "meta-foo") {
+			metaVal = aws.ToString(v)
+			break
+		}
+	}
+	c.Assert(metaVal, Equals, "bar")
+	// 验证tagging被替换
+	tagResp, _ := client.GetObjectTaggingWithContext(context.Background(), &s3.GetObjectTaggingInput{
+		Bucket: aws.String(dstBucket), Key: aws.String(metaPrefix + key1[len(srcPrefix):]),
+	})
+	c.Assert(len(tagResp.Tagging.TagSet) > 0, Equals, true)
+	c.Assert(aws.ToString(tagResp.Tagging.TagSet[0].Key), Equals, "key1")
+	c.Assert(aws.ToString(tagResp.Tagging.TagSet[0].Value), Equals, "val1")
+
+	// 10. 覆盖复制：同目标复制两次，验证ForbidOverwrite=false允许覆盖
+	overwritePrefix := dstPrefix + "overwrite/"
+	output11, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(overwritePrefix),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output11.SuccessNum, Equals, int64(2))
+	// 再次复制到同一目标，应覆盖成功
+	output12, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(overwritePrefix),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output12.SuccessNum, Equals, int64(2))
+
+	// 11. 并发参数
+	serialPrefix := dstPrefix + "serial/"
+	output13, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(serialPrefix),
+		Jobs:         aws.Long(1),
+		TaskNum:      aws.Long(1),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output13.SuccessNum, Equals, int64(2))
+
+	// 12. 自定义PartSize
+	partSizePrefix := dstPrefix + "partsize/"
+	output13b, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(partSizePrefix),
+		PartSize:     aws.Long(1024 * 1024),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output13b.SuccessNum, Equals, int64(2))
+
+	// 13. ProgressFn回调
+	var progressCalls int64
+	progressPrefix := dstPrefix + "progress/"
+	output14, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(progressPrefix),
+		ProgressFn: func(stat s3.DirResult) {
+			atomic.AddInt64(&progressCalls, 1)
+		},
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output14.SuccessNum, Equals, int64(2))
+	c.Assert(atomic.LoadInt64(&progressCalls) > 0, Equals, true)
+
+	// 14. EnableCheckpoint
+	cpDir := randLowStr(8)
+	os.MkdirAll(cpDir, 0755)
+	cpPrefix := dstPrefix + "checkpoint/"
+	output15, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket:     aws.String(bucket),
+		SourcePrefix:     aws.String(srcPrefix),
+		Bucket:           aws.String(dstBucket),
+		KeyPrefix:        aws.String(cpPrefix),
+		EnableCheckpoint: aws.Boolean(true),
+		CheckpointDir:    aws.String(cpDir),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output15.SuccessNum, Equals, int64(2))
+
+	// 15. IgnoreSuccessFiles
+	ignorePrefix := dstPrefix + "ignore/"
+	output16, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket:       aws.String(bucket),
+		SourcePrefix:       aws.String(srcPrefix),
+		Bucket:             aws.String(dstBucket),
+		KeyPrefix:          aws.String(ignorePrefix),
+		IgnoreSuccessFiles: aws.Boolean(true),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output16.SuccessNum, Equals, int64(2))
+	c.Assert(len(output16.SuccessFiles), Equals, 0)
+
+	// 16. 空源前缀：无匹配对象
+	emptyPrefix := dstPrefix + "empty/"
+	output17, err := client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix + "nonexistent/"),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(emptyPrefix),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(output17.TotalNum, Equals, int64(0))
+
+	// 17. 参数校验：SourceBucket为空
+	_, err = client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(""),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+	})
+	c.Assert(err, NotNil)
+
+	// 18. 参数校验：Bucket为空
+	_, err = client.CopyDir(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(""),
+		KeyPrefix:    aws.String(dstPrefix),
+	})
+	c.Assert(err, NotNil)
+
+	// 清理源对象
+	resp, _ := client.ListObjects(&s3.ListObjectsInput{
+		Bucket: aws.String(bucket), Prefix: aws.String(srcPrefix),
+	})
+	for _, obj := range resp.Contents {
+		client.DeleteObject(&s3.DeleteObjectInput{Bucket: aws.String(bucket), Key: obj.Key})
+	}
+	// 清理目标对象
+	resp, _ = client.ListObjects(&s3.ListObjectsInput{
+		Bucket: aws.String(dstBucket), Prefix: aws.String(dstPrefix),
+	})
+	for _, obj := range resp.Contents {
+		client.DeleteObject(&s3.DeleteObjectInput{Bucket: aws.String(dstBucket), Key: obj.Key})
+	}
+	os.RemoveAll(cpDir)
+}
+
+// TestCopyDirAcrossRegion 跨区域复制目录完整测试
+func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
+	// 目标端client
+	var cre = credentials.NewStaticCredentials(accessKeyID, accessKeySecret, "")
+	dstClient := s3.New(&aws.Config{
+		Credentials: cre,
+		Region:      "SHANGHAI",
+		Endpoint:    "ks3-cn-shanghai.ksyuncs.com",
+	})
+
+	// 创建上海的目标桶
+	dstBucket := commonNamePrefix + randLowStr(10)
+	_, err := dstClient.CreateBucket(&s3.CreateBucketInput{
+		Bucket: aws.String(dstBucket),
+	})
+	c.Assert(err, IsNil)
+
+	srcPrefix := randLowStr(6) + "/"
+	key1 := srcPrefix + randLowStr(10)
+	key2 := srcPrefix + "subdir/" + randLowStr(10)
+	content1 := randLowStr(100)
+	content2 := randLowStr(200)
+
+	// 上传源对象到源桶
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key1),
+		Body: bytes.NewReader([]byte(content1)),
+	})
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key2),
+		Body: bytes.NewReader([]byte(content2)),
+	})
+
+	// 1. 基本跨区域复制：验证目标对象内容
+	dstPrefix := randLowStr(6) + "/"
+	output, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output.TotalNum, Equals, int64(2))
+	c.Assert(output.SuccessNum, Equals, int64(2))
+	c.Assert(output.FailNum, Equals, int64(0))
+	c.Assert(output.SkipNum, Equals, int64(0))
+	c.Assert(len(output.SuccessFiles), Equals, 2)
+	// 验证目标对象内容
+	getResp, _ := dstClient.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(dstBucket), Key: aws.String(dstPrefix + key1[len(srcPrefix):]),
+	})
+	body, _ := io.ReadAll(getResp.Body)
+	getResp.Body.Close()
+	c.Assert(string(body), Equals, content1)
+
+	// 2. SkipRule=IfExists：目标已存在，全部跳过
+	output2, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfExists),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output2.SkipNum, Equals, int64(2))
+	c.Assert(output2.SuccessNum, Equals, int64(0))
+
+	// 3. SkipRule=IfSizeEquals：改源key1大小 → 不跳过
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key1),
+		Body: bytes.NewReader([]byte(randLowStr(300))),
+	})
+	output3, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfSizeEquals),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output3.SkipNum, Equals, int64(1))
+	c.Assert(output3.SuccessNum, Equals, int64(1))
+
+	// 4. SkipRule=IfNewer：刚复制完dst比src更新 → 全部跳过
+	output4, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfNewer),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output4.SkipNum, Equals, int64(2))
+	c.Assert(output4.SuccessNum, Equals, int64(0))
+
+	// 重新上传src key2 → src更新 → 不跳过
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key2),
+		Body: bytes.NewReader([]byte(randLowStr(200))),
+	})
+	output5, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfNewer),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output5.SkipNum, Equals, int64(1))
+	c.Assert(output5.SuccessNum, Equals, int64(1))
+
+	// 5. SkipRule=IfNewerAndSizeEquals：dst更新且大小相等 → 全部跳过
+	output6, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfNewerAndSizeEquals),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output6.SkipNum, Equals, int64(2))
+	// 改src key1大小 → dst不满足大小相等 → 不跳过
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key1),
+		Body: bytes.NewReader([]byte(randLowStr(500))),
+	})
+	output6b, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfNewerAndSizeEquals),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output6b.SkipNum, Equals, int64(1))
+	c.Assert(output6b.SuccessNum, Equals, int64(1))
+
+	// 6. SkipRule=IfCrc64Equals：改src key1内容 → CRC不等 → 不跳过
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key1),
+		Body: bytes.NewReader([]byte("totally different content")),
+	})
+	output7, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfCrc64Equals),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output7.SkipNum, Equals, int64(1))
+	c.Assert(output7.SuccessNum, Equals, int64(1))
+	// 再复制同内容 → CRC匹配 → 全部跳过
+	output7b, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipIfCrc64Equals),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output7b.SkipNum, Equals, int64(2))
+	c.Assert(output7b.SuccessNum, Equals, int64(0))
+
+	// 7. SkipRule=Never：不跳过任何文件
+	client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucket), Key: aws.String(key1),
+		Body: bytes.NewReader([]byte("never skip test")),
+	})
+	output7c, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+		SkipRule:     aws.String(s3.SkipNever),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output7c.SkipNum, Equals, int64(0))
+	c.Assert(output7c.SuccessNum, Equals, int64(2))
+
+	// 8. 带StorageClass跨区域复制，验证生效
+	storageDstPrefix := randLowStr(6) + "/"
+	output8, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(storageDstPrefix),
+		StorageClass: aws.String("ARCHIVE"),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output8.SuccessNum, Equals, int64(2))
+	headResp, _ := dstClient.HeadObjectWithContext(context.Background(), &s3.HeadObjectInput{
+		Bucket: aws.String(dstBucket), Key: aws.String(storageDstPrefix + key1[len(srcPrefix):]),
+	})
+	var storageClass string
+	for k, v := range headResp.Metadata {
+		if strings.EqualFold(k, s3.HTTPHeaderAmzStorageClass) {
+			storageClass = aws.ToString(v)
+			break
+		}
+	}
+	c.Assert(storageClass, Equals, "ARCHIVE")
+
+	// 9. 带ACL、Metadata、Tagging跨区域复制，验证REPLACE生效
+	metaDstPrefix := randLowStr(6) + "/"
+	output9, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket:      aws.String(bucket),
+		SourcePrefix:      aws.String(srcPrefix),
+		Bucket:            aws.String(dstBucket),
+		KeyPrefix:         aws.String(metaDstPrefix),
+		ACL:               aws.String("private"),
+		StorageClass:      aws.String("STANDARD"),
+		Metadata:          map[string]*string{"x-amz-meta-foo": aws.String("bar")},
+		MetadataDirective: aws.String("REPLACE"),
+		Tagging:           aws.String("key1=val1"),
+		TaggingDirective:  aws.String("REPLACE"),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output9.SuccessNum, Equals, int64(2))
+	// 验证metadata被替换：key可能被HTTP/2转为小写
+	metaResp, _ := dstClient.HeadObjectWithContext(context.Background(), &s3.HeadObjectInput{
+		Bucket: aws.String(dstBucket), Key: aws.String(metaDstPrefix + key1[len(srcPrefix):]),
+	})
+	var metaVal string
+	for k, v := range metaResp.Metadata {
+		if strings.HasSuffix(strings.ToLower(k), "meta-foo") {
+			metaVal = aws.ToString(v)
+			break
+		}
+	}
+	c.Assert(metaVal, Equals, "bar")
+	// 验证tagging被替换
+	tagResp, _ := dstClient.GetObjectTaggingWithContext(context.Background(), &s3.GetObjectTaggingInput{
+		Bucket: aws.String(dstBucket), Key: aws.String(metaDstPrefix + key1[len(srcPrefix):]),
+	})
+	c.Assert(len(tagResp.Tagging.TagSet) > 0, Equals, true)
+	c.Assert(aws.ToString(tagResp.Tagging.TagSet[0].Key), Equals, "key1")
+	c.Assert(aws.ToString(tagResp.Tagging.TagSet[0].Value), Equals, "val1")
+
+	// 10. 覆盖复制：验证ForbidOverwrite=false允许跨区域覆盖
+	overwriteDstPrefix := randLowStr(6) + "/"
+	output10, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(overwriteDstPrefix),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output10.SuccessNum, Equals, int64(2))
+	output10b, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(overwriteDstPrefix),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output10b.SuccessNum, Equals, int64(2))
+
+	// 11. 并发参数
+	serialDstPrefix := randLowStr(6) + "/"
+	output11, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(serialDstPrefix),
+		Jobs:         aws.Long(1),
+		TaskNum:      aws.Long(1),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output11.SuccessNum, Equals, int64(2))
+
+	// 12. 自定义PartSize
+	partSizeDstPrefix := randLowStr(6) + "/"
+	output11b, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(partSizeDstPrefix),
+		PartSize:     aws.Long(1024 * 1024),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output11b.SuccessNum, Equals, int64(2))
+
+	// 13. ProgressFn回调
+	var progressCalls int64
+	progressDstPrefix := randLowStr(6) + "/"
+	output12, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(progressDstPrefix),
+		ProgressFn: func(stat s3.DirResult) {
+			atomic.AddInt64(&progressCalls, 1)
+		},
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output12.SuccessNum, Equals, int64(2))
+	c.Assert(atomic.LoadInt64(&progressCalls) > 0, Equals, true)
+
+	// 14. EnableCheckpoint
+	cpDir := randLowStr(8)
+	os.MkdirAll(cpDir, 0755)
+	cpDstPrefix := randLowStr(6) + "/"
+	output13, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket:     aws.String(bucket),
+		SourcePrefix:     aws.String(srcPrefix),
+		Bucket:           aws.String(dstBucket),
+		KeyPrefix:        aws.String(cpDstPrefix),
+		EnableCheckpoint: aws.Boolean(true),
+		CheckpointDir:    aws.String(cpDir),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output13.SuccessNum, Equals, int64(2))
+
+	// 15. IgnoreSuccessFiles
+	ignoreDstPrefix := randLowStr(6) + "/"
+	output14, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket:       aws.String(bucket),
+		SourcePrefix:       aws.String(srcPrefix),
+		Bucket:             aws.String(dstBucket),
+		KeyPrefix:          aws.String(ignoreDstPrefix),
+		IgnoreSuccessFiles: aws.Boolean(true),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output14.SuccessNum, Equals, int64(2))
+	c.Assert(len(output14.SuccessFiles), Equals, 0)
+
+	// 16. 空源前缀：无匹配对象
+	emptyDstPrefix := randLowStr(6) + "/"
+	output15, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix + "nonexistent/"),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(emptyDstPrefix),
+	}, dstClient)
+	c.Assert(err, IsNil)
+	c.Assert(output15.TotalNum, Equals, int64(0))
+
+	// 17. 参数校验：SourceBucket为空
+	_, err = client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(""),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(dstBucket),
+		KeyPrefix:    aws.String(dstPrefix),
+	}, dstClient)
+	c.Assert(err, NotNil)
+
+	// 18. 参数校验：Bucket为空
+	_, err = client.CopyDirAcrossRegion(&s3.CopyDirInput{
+		SourceBucket: aws.String(bucket),
+		SourcePrefix: aws.String(srcPrefix),
+		Bucket:       aws.String(""),
+		KeyPrefix:    aws.String(dstPrefix),
+	}, dstClient)
+	c.Assert(err, NotNil)
+
+	// 清理源对象
+	for _, key := range []string{key1, key2} {
+		client.DeleteObject(&s3.DeleteObjectInput{Bucket: aws.String(bucket), Key: aws.String(key)})
+	}
+	// 清理目标对象和桶
+	for _, p := range []string{dstPrefix, storageDstPrefix, metaDstPrefix, overwriteDstPrefix, serialDstPrefix, partSizeDstPrefix, progressDstPrefix, cpDstPrefix, ignoreDstPrefix, emptyDstPrefix} {
+		resp, _ := dstClient.ListObjects(&s3.ListObjectsInput{
+			Bucket: aws.String(dstBucket), Prefix: aws.String(p),
+		})
+		for _, obj := range resp.Contents {
+			dstClient.DeleteObject(&s3.DeleteObjectInput{Bucket: aws.String(dstBucket), Key: obj.Key})
+		}
+	}
+	dstClient.DeleteBucket(&s3.DeleteBucketInput{Bucket: aws.String(dstBucket)})
+	os.RemoveAll(cpDir)
 }

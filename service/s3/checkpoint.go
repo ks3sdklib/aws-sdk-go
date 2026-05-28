@@ -15,6 +15,8 @@ import (
 const (
 	DefaultTaskNum int64 = 3
 
+	DefaultJobs int64 = 3
+
 	MaxPartNum int64 = 10000
 
 	MaxPartSize int64 = 5 * 1024 * 1024 * 1024
@@ -22,6 +24,8 @@ const (
 	MinPartSize int64 = 100 * 1024
 
 	DefaultPartSize int64 = 5 * 1024 * 1024
+
+	DefaultFileChanSize = 1000
 
 	FilePermMode = os.FileMode(0664)
 

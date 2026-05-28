@@ -116,3 +116,13 @@ const (
 	RestoreTierStandard  string = "Standard"
 	RestoreTierBulk      string = "Bulk"
 )
+
+// SkipRule - 目录上传跳过策略
+const (
+	SkipNever                string = "Never"
+	SkipIfExists             string = "IfExists"
+	SkipIfSizeEquals         string = "IfSizeEquals"
+	SkipIfNewer              string = "IfNewer"
+	SkipIfNewerAndSizeEquals string = "IfNewerAndSizeEquals"
+	SkipIfCrc64Equals        string = "IfCrc64Equals"
+)

@@ -802,3 +802,381 @@ func (c *Copier) isUploadIdValid() bool {
 	}
 	return true
 }
+
+// CopyDirInput 目录复制输入参数。
+type CopyDirInput struct {
+	// 源存储桶名称，必填。
+	SourceBucket *string `type:"string" required:"true"`
+
+	// 源对象名称前缀，列举源对象以此开头。默认为""。
+	SourcePrefix *string `type:"string"`
+
+	// 目标存储桶名称，必填。
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// 目标对象名称前缀，目标Key为 KeyPrefix + 源Key去除SourcePrefix后的部分。默认为""。
+	KeyPrefix *string `type:"string"`
+
+	// 分块大小，默认5MB。
+	PartSize *int64 `type:"integer"`
+
+	// 单文件分块复制并发数，默认3。
+	TaskNum *int64 `type:"integer"`
+
+	// 目录级复制并发数，即同时复制的文件数，默认3。
+	Jobs *int64 `type:"integer"`
+
+	// 目录复制跳过策略，默认Never不跳过。可选值：IfExists/IfSizeEquals/IfNewer/IfNewerAndSizeEquals/IfCrc64Equals。
+	SkipRule *string `type:"string"`
+
+	// 是否不记录复制成功文件详情，默认记录。大目录复制时设为true可节省内存。
+	IgnoreSuccessFiles *bool `type:"boolean"`
+
+	// 是否启用断点续传，默认不启用。
+	EnableCheckpoint *bool `type:"boolean"`
+
+	// 断点续传记录文件的存放目录。
+	CheckpointDir *string `type:"string"`
+
+	// 对象的预设ACL。
+	ACL *string `location:"header" locationName:"x-amz-acl" type:"string"`
+
+	// 指定请求/响应链上的缓存行为。
+	CacheControl *string `location:"header" locationName:"Cache-Control" type:"string"`
+
+	// 指定对象的展示信息。
+	ContentDisposition *string `location:"header" locationName:"Content-Disposition" type:"string"`
+
+	// 指定已应用于对象的内容编码。
+	ContentEncoding *string `location:"header" locationName:"Content-Encoding" type:"string"`
+
+	// 描述对象数据格式的标准MIME类型。
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// 存储在KS3中的对象元数据。
+	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
+
+	// 指定元数据是复制源对象的还是用请求中提供的元数据替换。
+	MetadataDirective *string `location:"header" locationName:"x-amz-metadata-directive" type:"string"`
+
+	// 对象的存储类型，默认为STANDARD。
+	StorageClass *string `location:"header" locationName:"x-amz-storage-class" type:"string"`
+
+	// 指定对象标签。
+	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
+
+	// 指定目标对象标签的设置方式，默认COPY。
+	TaggingDirective *string `location:"header" locationName:"x-amz-tagging-directive" type:"string"`
+
+	// 服务端加密算法，如AES256。
+	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
+
+	// 目标对象加密算法。
+	SSECustomerAlgorithm *string `location:"header" locationName:"x-amz-server-side-encryption-customer-algorithm" type:"string"`
+
+	// 目标对象加密密钥。
+	SSECustomerKey *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key" type:"string"`
+
+	// 目标对象加密密钥的MD5摘要。
+	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
+
+	// 源对象解密算法。
+	CopySourceSSECustomerAlgorithm *string `location:"header" locationName:"x-amz-copy-source-server-side-encryption-customer-algorithm" type:"string"`
+
+	// 源对象解密密钥。
+	CopySourceSSECustomerKey *string `location:"header" locationName:"x-amz-copy-source-server-side-encryption-customer-key" type:"string"`
+
+	// 源对象解密密钥的MD5摘要。
+	CopySourceSSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-copy-source-server-side-encryption-customer-key-MD5" type:"string"`
+
+	// 目录复制进度回调，每次文件完成时调用。
+	ProgressFn DirProgressFunc `location:"function"`
+}
+
+// CopyDir 复制KS3目录。
+func (c *S3) CopyDir(request *CopyDirInput) (*DirResult, error) {
+	return c.CopyDirWithContext(context.Background(), request)
+}
+
+// CopyDirWithContext 复制KS3目录，支持上下文取消。
+func (c *S3) CopyDirWithContext(ctx context.Context, request *CopyDirInput) (*DirResult, error) {
+	return newDirCopier(c, ctx, request).copyDir()
+}
+
+// CopyDirAcrossRegion 跨区域复制KS3目录。
+func (c *S3) CopyDirAcrossRegion(request *CopyDirInput, dstClient *S3) (*DirResult, error) {
+	return c.CopyDirAcrossRegionWithContext(context.Background(), request, dstClient)
+}
+
+// CopyDirAcrossRegionWithContext 跨区域复制KS3目录，支持上下文取消。
+func (c *S3) CopyDirAcrossRegionWithContext(ctx context.Context, request *CopyDirInput, dstClient *S3) (*DirResult, error) {
+	return newDirCopier(c, ctx, request, dstClient).copyDir()
+}
+
+// DirCopier 目录复制实现。
+type DirCopier struct {
+	srcClient   *S3           // 源端KS3客户端。
+	dstClient   *S3           // 目标端KS3客户端，跨区域时使用。
+	context     context.Context // 上下文，用于取消。
+	request     *CopyDirInput // 复制输入参数。
+	producerErr error         // 生产者错误。
+	done        chan struct{} // 生产者完成信号。
+
+	*TransferManager
+}
+
+func newDirCopier(srcClient *S3, ctx context.Context, request *CopyDirInput, dstClient ...*S3) *DirCopier {
+	var target *S3
+	if len(dstClient) > 0 {
+		target = dstClient[0]
+	}
+	return &DirCopier{
+		srcClient:       srcClient,
+		dstClient:       target,
+		context:         ctx,
+		request:         request,
+		done:            make(chan struct{}),
+		TransferManager: newTransferManager(request.ProgressFn),
+	}
+}
+
+func (d *DirCopier) copyDir() (*DirResult, error) {
+	if err := d.validate(); err != nil {
+		return nil, err
+	}
+
+	jobs := aws.ToLong(d.request.Jobs)
+	fileCh := make(chan dirFileInfo, DefaultFileChanSize)
+
+	go d.produceObjects(fileCh)
+
+	var workerWg sync.WaitGroup
+	var i int64
+	for i = 0; i < jobs; i++ {
+		workerWg.Add(1)
+		go d.runWorker(fileCh, &workerWg)
+	}
+
+	workerWg.Wait()
+	<-d.done
+
+	if d.producerErr != nil {
+		return nil, d.producerErr
+	}
+	return d.setResult()
+}
+
+func (d *DirCopier) validate() error {
+	request := d.request
+	if request == nil {
+		return errors.New("copy dir request is required")
+	}
+
+	if aws.ToString(request.SourceBucket) == "" {
+		return errors.New("source bucket is required")
+	}
+
+	if aws.ToString(request.Bucket) == "" {
+		return errors.New("bucket is required")
+	}
+
+	if request.SourcePrefix == nil {
+		request.SourcePrefix = aws.String("")
+	}
+
+	if request.KeyPrefix == nil {
+		request.KeyPrefix = aws.String("")
+	}
+
+	if request.PartSize == nil {
+		request.PartSize = aws.Long(DefaultPartSize)
+	} else if aws.ToLong(request.PartSize) < MinPartSize {
+		request.PartSize = aws.Long(MinPartSize)
+	} else if aws.ToLong(request.PartSize) > MaxPartSize {
+		request.PartSize = aws.Long(MaxPartSize)
+	}
+
+	if aws.ToLong(request.TaskNum) <= 0 {
+		request.TaskNum = aws.Long(DefaultTaskNum)
+	}
+
+	if aws.ToLong(request.Jobs) <= 0 {
+		request.Jobs = aws.Long(DefaultJobs)
+	}
+
+	if request.SkipRule == nil {
+		request.SkipRule = aws.String(SkipNever)
+	}
+
+	return nil
+}
+
+func (d *DirCopier) produceObjects(fileCh chan<- dirFileInfo) {
+	defer close(d.done)
+	d.producerErr = d.listSourceObjects(fileCh)
+	close(fileCh)
+}
+
+func (d *DirCopier) listSourceObjects(fileCh chan<- dirFileInfo) error {
+	sourcePrefix := aws.ToString(d.request.SourcePrefix)
+	keyPrefix := aws.ToString(d.request.KeyPrefix)
+
+	paginator := d.srcClient.NewListObjectsPaginator(&ListObjectsInput{
+		Bucket: d.request.SourceBucket,
+		Prefix: aws.String(sourcePrefix),
+	})
+
+	for paginator.HasNext() {
+		select {
+		case <-d.context.Done():
+			return d.context.Err()
+		default:
+		}
+
+		resp, err := paginator.NextPageWithContext(d.context)
+		if err != nil {
+			return err
+		}
+
+		for _, obj := range resp.Contents {
+			srcKey := aws.ToString(obj.Key)
+			// 跳过目录标记对象
+			if strings.HasSuffix(srcKey, "/") {
+				continue
+			}
+			// 计算目标Key
+			dstKey := srcKey
+			if sourcePrefix != "" && strings.HasPrefix(srcKey, sourcePrefix) {
+				dstKey = keyPrefix + srcKey[len(sourcePrefix):]
+			} else {
+				dstKey = keyPrefix + srcKey
+			}
+
+			select {
+			case fileCh <- dirFileInfo{
+				filePath:     dstKey,
+				objectKey:    srcKey,
+				objectSize:   aws.ToLong(obj.Size),
+				lastModified: getTimeValue(obj.LastModified),
+			}:
+			case <-d.context.Done():
+				return d.context.Err()
+			}
+		}
+	}
+	return nil
+}
+
+func (d *DirCopier) runWorker(fileCh <-chan dirFileInfo, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for fi := range fileCh {
+		select {
+		case <-d.context.Done():
+			return
+		default:
+		}
+		if err := d.copySingleFile(fi); err != nil {
+			d.TransferManager.addFailure(fi.filePath, fi.objectKey, fi.objectSize, err)
+		}
+	}
+}
+
+func (d *DirCopier) copySingleFile(fi dirFileInfo) error {
+	fileSize := fi.objectSize
+
+	if skip := d.shouldSkipCopy(fi); skip {
+		d.TransferManager.addSkip(fi.filePath, fi.objectKey, fileSize)
+		return nil
+	}
+
+	input := &CopyFileInput{
+		Bucket:                         d.request.Bucket,
+		Key:                            aws.String(fi.filePath),
+		SourceBucket:                   d.request.SourceBucket,
+		SourceKey:                      aws.String(fi.objectKey),
+		PartSize:                       d.request.PartSize,
+		TaskNum:                        d.request.TaskNum,
+		EnableCheckpoint:               d.request.EnableCheckpoint,
+		CheckpointDir:                  d.request.CheckpointDir,
+		ACL:                            d.request.ACL,
+		CacheControl:                   d.request.CacheControl,
+		ContentDisposition:             d.request.ContentDisposition,
+		ContentEncoding:                d.request.ContentEncoding,
+		ContentType:                    d.request.ContentType,
+		Metadata:                       d.request.Metadata,
+		MetadataDirective:              d.request.MetadataDirective,
+		StorageClass:                   d.request.StorageClass,
+		Tagging:                        d.request.Tagging,
+		TaggingDirective:               d.request.TaggingDirective,
+		ForbidOverwrite:                aws.Boolean(false),
+		ServerSideEncryption:           d.request.ServerSideEncryption,
+		SSECustomerAlgorithm:           d.request.SSECustomerAlgorithm,
+		SSECustomerKey:                 d.request.SSECustomerKey,
+		SSECustomerKeyMD5:              d.request.SSECustomerKeyMD5,
+		CopySourceSSECustomerAlgorithm: d.request.CopySourceSSECustomerAlgorithm,
+		CopySourceSSECustomerKey:       d.request.CopySourceSSECustomerKey,
+		CopySourceSSECustomerKeyMD5:    d.request.CopySourceSSECustomerKeyMD5,
+	}
+
+	var err error
+	if d.dstClient != nil {
+		_, err = d.srcClient.CopyFileAcrossRegionWithContext(d.context, input, d.dstClient)
+	} else {
+		_, err = d.srcClient.CopyFileWithContext(d.context, input)
+	}
+	if err != nil {
+		return err
+	}
+	d.TransferManager.addSuccess(fi.filePath, fi.objectKey, fileSize, aws.ToBoolean(d.request.IgnoreSuccessFiles))
+	return nil
+}
+
+func (d *DirCopier) shouldSkipCopy(fi dirFileInfo) bool {
+	rule := aws.ToString(d.request.SkipRule)
+	if rule == "" || rule == SkipNever {
+		return false
+	}
+
+	// Head目标对象判断是否已存在
+	dstClient := d.srcClient
+	if d.dstClient != nil {
+		dstClient = d.dstClient
+	}
+	resp, err := dstClient.HeadObjectWithContext(d.context, &HeadObjectInput{
+		Bucket: d.request.Bucket,
+		Key:    aws.String(fi.filePath),
+	})
+	if err != nil || resp == nil {
+		return false
+	}
+
+	switch rule {
+	case SkipIfExists:
+		return true
+	case SkipIfSizeEquals:
+		return aws.ToLong(resp.ContentLength) == fi.objectSize
+	case SkipIfNewer:
+		return resp.LastModified != nil && !fi.lastModified.After(*resp.LastModified)
+	case SkipIfNewerAndSizeEquals:
+		return resp.LastModified != nil && !fi.lastModified.After(*resp.LastModified) && aws.ToLong(resp.ContentLength) == fi.objectSize
+	case SkipIfCrc64Equals:
+		if resp.Metadata == nil {
+			return false
+		}
+		dstCrc := aws.ToString(resp.Metadata[HTTPHeaderAmzChecksumCrc64ecma])
+		if dstCrc == "" {
+			return false
+		}
+		// Head源对象取CRC64
+		srcResp, srcErr := d.srcClient.HeadObjectWithContext(d.context, &HeadObjectInput{
+			Bucket: d.request.SourceBucket,
+			Key:    aws.String(fi.objectKey),
+		})
+		if srcErr != nil || srcResp.Metadata == nil {
+			return false
+		}
+		srcCrc := aws.ToString(srcResp.Metadata[HTTPHeaderAmzChecksumCrc64ecma])
+		return srcCrc != "" && srcCrc == dstCrc
+	}
+	return false
+}
