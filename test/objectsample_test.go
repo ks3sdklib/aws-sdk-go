@@ -1854,7 +1854,7 @@ func (s *Ks3utilCommandSuite) TestObjectMigration(c *C) {
 	c.Assert(err, IsNil)
 
 	// 等待迁移任务完成
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 1)
 
 	// 查看迁移任务状态
 	resp, err := client.GetObjectMigration(&s3.GetObjectMigrationInput{
@@ -1908,7 +1908,7 @@ func (s *Ks3utilCommandSuite) TestObjectMigration(c *C) {
 	c.Assert(err, IsNil)
 
 	// 等待迁移任务完成
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 1)
 
 	// 查看迁移任务状态
 	resp, err = client.GetObjectMigration(&s3.GetObjectMigrationInput{
@@ -1971,7 +1971,7 @@ func (s *Ks3utilCommandSuite) TestObjectMigration(c *C) {
 	c.Assert(err, IsNil)
 
 	// 等待迁移任务完成
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 1)
 
 	// 查看迁移任务状态
 	resp, err = client.GetObjectMigration(&s3.GetObjectMigrationInput{
@@ -3129,6 +3129,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	pastTime := time.Now().Add(-48 * time.Hour)
 	os.Chtimes(dir+"a.txt", pastTime, pastTime)
 	os.Chtimes(dir+"subdir/b.txt", pastTime, pastTime)
+	os.Chtimes(dir+"c.bin", pastTime, pastTime)
 	output4, err := client.UploadDir(&s3.UploadDirInput{
 		DirPath:  aws.String(dir),
 		Bucket:   aws.String(bucket),
@@ -3643,6 +3644,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		Bucket: aws.String(bucket), Key: aws.String(key1),
 		Body: bytes.NewReader([]byte(randLowStr(300))),
 	})
+	time.Sleep(time.Second * 1)
 	output3, err := client.CopyDir(&s3.CopyDirInput{
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
@@ -3671,6 +3673,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		Bucket: aws.String(bucket), Key: aws.String(key2),
 		Body: bytes.NewReader([]byte(randLowStr(200))),
 	})
+	time.Sleep(time.Second * 1)
 	output5, err := client.CopyDir(&s3.CopyDirInput{
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
@@ -3698,6 +3701,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		Bucket: aws.String(bucket), Key: aws.String(key1),
 		Body: bytes.NewReader([]byte(randLowStr(500))),
 	})
+	time.Sleep(time.Second * 1)
 	output7, err := client.CopyDir(&s3.CopyDirInput{
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
@@ -3714,6 +3718,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		Bucket: aws.String(bucket), Key: aws.String(key1),
 		Body: bytes.NewReader([]byte("totally different content")),
 	})
+	time.Sleep(time.Second * 1)
 	output8, err := client.CopyDir(&s3.CopyDirInput{
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
@@ -4019,6 +4024,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		Bucket: aws.String(bucket), Key: aws.String(key1),
 		Body: bytes.NewReader([]byte(randLowStr(300))),
 	})
+	time.Sleep(time.Second * 1)
 	output3, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
@@ -4047,6 +4053,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		Bucket: aws.String(bucket), Key: aws.String(key2),
 		Body: bytes.NewReader([]byte(randLowStr(200))),
 	})
+	time.Sleep(time.Second * 1)
 	output5, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
@@ -4073,11 +4080,12 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		Bucket: aws.String(bucket), Key: aws.String(key1),
 		Body: bytes.NewReader([]byte(randLowStr(500))),
 	})
+	time.Sleep(time.Second * 1)
 	output6b, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		Prefix:    aws.String(dstPrefix),
+		Prefix:       aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfNewerAndSizeEquals),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4089,11 +4097,12 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		Bucket: aws.String(bucket), Key: aws.String(key1),
 		Body: bytes.NewReader([]byte("totally different content")),
 	})
+	time.Sleep(time.Second * 1)
 	output7, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		Prefix:    aws.String(dstPrefix),
+		Prefix:       aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfCrc64Equals),
 	}, dstClient)
 	c.Assert(err, IsNil)
