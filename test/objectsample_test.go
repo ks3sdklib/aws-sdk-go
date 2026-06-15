@@ -732,7 +732,7 @@ func (s *Ks3utilCommandSuite) TestBatchUploadWithClient(c *C) {
 		UploadHidden:    true,
 		SkipAlreadyFile: true,
 	})
-	// RootDir 要上传的目录
+	// DirPath 要上传的目录
 	// Bucket 上传的目标桶
 	// Prefix 桶下的路径
 	err := uploader.UploadDir(&s3manager.UploadDirInput{
@@ -3075,7 +3075,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 
 	// 1. 基本上传：3个文件（含子目录、大文件分块）
 	output, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir: aws.String(dir),
+		DirPath: aws.String(dir),
 		Bucket:  aws.String(bucket),
 		Prefix:  aws.String(prefix),
 	})
@@ -3096,7 +3096,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 
 	// 2. SkipRule=IfExists：对象已存在，全部跳过
 	output2, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir:  aws.String(dir),
+		DirPath:  aws.String(dir),
 		Bucket:   aws.String(bucket),
 		Prefix:   aws.String(prefix),
 		SkipRule: aws.String(s3.SkipIfExists),
@@ -3109,7 +3109,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	// 3. SkipRule=IfSizeEquals：a.txt改大 → 不跳过；b.txt/c.bin大小不变 → 跳过
 	createFileWithContent(dir+"a.txt", "hello world! long content now")
 	output3, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir:  aws.String(dir),
+		DirPath:  aws.String(dir),
 		Bucket:   aws.String(bucket),
 		Prefix:   aws.String(prefix),
 		SkipRule: aws.String(s3.SkipIfSizeEquals),
@@ -3130,7 +3130,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	os.Chtimes(dir+"a.txt", pastTime, pastTime)
 	os.Chtimes(dir+"subdir/b.txt", pastTime, pastTime)
 	output4, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir:  aws.String(dir),
+		DirPath:  aws.String(dir),
 		Bucket:   aws.String(bucket),
 		Prefix:   aws.String(prefix),
 		SkipRule: aws.String(s3.SkipIfNewer),
@@ -3143,7 +3143,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	futureTime := time.Now().Add(24 * time.Hour)
 	os.Chtimes(dir+"a.txt", futureTime, futureTime)
 	output5, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir:  aws.String(dir),
+		DirPath:  aws.String(dir),
 		Bucket:   aws.String(bucket),
 		Prefix:   aws.String(prefix),
 		SkipRule: aws.String(s3.SkipIfNewer),
@@ -3156,7 +3156,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	createFileWithContent(dir+"subdir/b.txt", "world")
 	os.Chtimes(dir+"subdir/b.txt", futureTime, futureTime)
 	output6, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir:  aws.String(dir),
+		DirPath:  aws.String(dir),
 		Bucket:   aws.String(bucket),
 		Prefix:   aws.String(prefix),
 		SkipRule: aws.String(s3.SkipIfNewerAndSizeEquals),
@@ -3168,7 +3168,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	// 6. SkipRule=IfCrc64Equals：改a.txt内容 → CRC不等 → 不跳过
 	createFileWithContent(dir+"a.txt", "different content for crc")
 	output7, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir:  aws.String(dir),
+		DirPath:  aws.String(dir),
 		Bucket:   aws.String(bucket),
 		Prefix:   aws.String(prefix + "crc/"),
 		SkipRule: aws.String(s3.SkipIfCrc64Equals),
@@ -3178,7 +3178,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	c.Assert(output7.SkipNum, Equals, int64(0))
 	// 再上传同内容 → CRC匹配 → 全部跳过
 	output8, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir:  aws.String(dir),
+		DirPath:  aws.String(dir),
 		Bucket:   aws.String(bucket),
 		Prefix:   aws.String(prefix + "crc/"),
 		SkipRule: aws.String(s3.SkipIfCrc64Equals),
@@ -3190,7 +3190,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	// 7. SkipRule=Never（默认值）：不跳过任何文件
 	createFileWithContent(dir+"a.txt", "never skip test")
 	output8b, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir:  aws.String(dir),
+		DirPath:  aws.String(dir),
 		Bucket:   aws.String(bucket),
 		Prefix:   aws.String(prefix + "never/"),
 		SkipRule: aws.String(s3.SkipNever),
@@ -3201,7 +3201,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 
 	// 8. IgnoreSuccessFiles=true
 	output9, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir:            aws.String(dir),
+		DirPath:            aws.String(dir),
 		Bucket:             aws.String(bucket),
 		Prefix:             aws.String(prefix + "ignore/"),
 		IgnoreSuccessFiles: aws.Boolean(true),
@@ -3214,7 +3214,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	os.Remove(dir + "link.txt")
 	os.Symlink("a.txt", dir+"link.txt")
 	output10, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir:      aws.String(dir),
+		DirPath:      aws.String(dir),
 		Bucket:       aws.String(bucket),
 		Prefix:       aws.String(prefix + "symlink-skip/"),
 		SkipSymlinks: aws.Boolean(true),
@@ -3223,27 +3223,27 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	c.Assert(output10.SuccessNum, Equals, int64(3))
 
 	output11, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir: aws.String(dir),
+		DirPath: aws.String(dir),
 		Bucket:  aws.String(bucket),
 		Prefix:  aws.String(prefix + "symlink-follow/"),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(output11.SuccessNum, Equals, int64(4))
 
-	// 10. 并发参数：Jobs=1, TaskNum=1（串行）
+	// 10. 并发参数：Jobs=1, Parallel=1（串行）
 	output12, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir: aws.String(dir),
-		Bucket:  aws.String(bucket),
-		Prefix:  aws.String(prefix + "serial/"),
-		Jobs:    aws.Long(1),
-		TaskNum: aws.Long(1),
+		DirPath:  aws.String(dir),
+		Bucket:   aws.String(bucket),
+		Prefix:   aws.String(prefix + "serial/"),
+		Jobs:     aws.Long(1),
+		Parallel: aws.Long(1),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(output12.SuccessNum, Equals, int64(4))
 
 	// 11. 自定义PartSize
 	output13, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir:  aws.String(dir),
+		DirPath:  aws.String(dir),
 		Bucket:   aws.String(bucket),
 		Prefix:   aws.String(prefix + "partsize/"),
 		PartSize: aws.Long(1024 * 1024),
@@ -3253,7 +3253,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 
 	// 12. 带ACL、StorageClass、Metadata、Tagging上传，验证生效
 	output14, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir:      aws.String(dir),
+		DirPath:      aws.String(dir),
 		Bucket:       aws.String(bucket),
 		Prefix:       aws.String(prefix + "meta/"),
 		ACL:          aws.String("private"),
@@ -3285,7 +3285,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	// 13. ProgressFn回调
 	var progressCalls int64
 	output15, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir: aws.String(dir),
+		DirPath: aws.String(dir),
 		Bucket:  aws.String(bucket),
 		Prefix:  aws.String(prefix + "progress/"),
 		ProgressFn: func(stat s3.DirResult) {
@@ -3300,7 +3300,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	cpDir := randLowStr(8)
 	os.MkdirAll(cpDir, 0755)
 	output16, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir:          aws.String(dir),
+		DirPath:          aws.String(dir),
 		Bucket:           aws.String(bucket),
 		Prefix:           aws.String(prefix + "checkpoint/"),
 		EnableCheckpoint: aws.Boolean(true),
@@ -3313,7 +3313,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	emptyDir := filepath.Join(os.TempDir(), randLowStr(8))
 	os.MkdirAll(emptyDir, 0755)
 	output17, err := client.UploadDir(&s3.UploadDirInput{
-		RootDir: aws.String(emptyDir),
+		DirPath: aws.String(emptyDir),
 		Bucket:  aws.String(bucket),
 		Prefix:  aws.String(prefix + "empty/"),
 	})
@@ -3321,9 +3321,9 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 	c.Assert(output17.TotalNum, Equals, int64(0))
 	c.Assert(output17.SuccessNum, Equals, int64(0))
 
-	// 16. 参数校验：RootDir不存在
+	// 16. 参数校验：DirPath不存在
 	_, err = client.UploadDir(&s3.UploadDirInput{
-		RootDir: aws.String("/nonexistent_dir_" + randLowStr(8)),
+		DirPath: aws.String("/nonexistent_dir_" + randLowStr(8)),
 		Bucket:  aws.String(bucket),
 		Prefix:  aws.String(prefix),
 	})
@@ -3331,7 +3331,7 @@ func (s *Ks3utilCommandSuite) TestUploadDir(c *C) {
 
 	// 17. 参数校验：Bucket为空
 	_, err = client.UploadDir(&s3.UploadDirInput{
-		RootDir: aws.String(dir),
+		DirPath: aws.String(dir),
 		Bucket:  aws.String(""),
 		Prefix:  aws.String(prefix),
 	})
@@ -3490,14 +3490,14 @@ func (s *Ks3utilCommandSuite) TestDownloadDir(c *C) {
 	c.Assert(output7c.SkipNum, Equals, int64(0))
 	c.Assert(output7c.SuccessNum, Equals, int64(2))
 
-	// 8. 并发参数：Jobs=1, TaskNum=1
+	// 8. 并发参数：Jobs=1, Parallel=1
 	localDir2 := randLowStr(8)
 	output8, err := client.DownloadDir(&s3.DownloadDirInput{
 		Bucket:      aws.String(bucket),
 		Prefix:      aws.String(prefix),
 		DownloadDir: aws.String(localDir2),
 		Jobs:        aws.Long(1),
-		TaskNum:     aws.Long(1),
+		Parallel:    aws.Long(1),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(output8.SuccessNum, Equals, int64(2))
@@ -3610,7 +3610,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 	})
 	c.Assert(err, IsNil, Commentf("CopyDir basic failed: %v", err))
 	c.Assert(output.TotalNum, Equals, int64(2))
@@ -3631,7 +3631,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfExists),
 	})
 	c.Assert(err, IsNil)
@@ -3647,7 +3647,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfSizeEquals),
 	})
 	c.Assert(err, IsNil)
@@ -3659,7 +3659,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfNewer),
 	})
 	c.Assert(err, IsNil)
@@ -3675,7 +3675,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfNewer),
 	})
 	c.Assert(err, IsNil)
@@ -3687,7 +3687,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfNewerAndSizeEquals),
 	})
 	c.Assert(err, IsNil)
@@ -3702,7 +3702,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfNewerAndSizeEquals),
 	})
 	c.Assert(err, IsNil)
@@ -3718,7 +3718,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfCrc64Equals),
 	})
 	c.Assert(err, IsNil)
@@ -3729,7 +3729,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfCrc64Equals),
 	})
 	c.Assert(err, IsNil)
@@ -3745,7 +3745,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipNever),
 	})
 	c.Assert(err, IsNil)
@@ -3758,7 +3758,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(storagePrefix),
+		Prefix:    aws.String(storagePrefix),
 		StorageClass: aws.String("ARCHIVE"),
 	})
 	c.Assert(err, IsNil)
@@ -3782,7 +3782,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket:      aws.String(bucket),
 		SourcePrefix:      aws.String(srcPrefix),
 		Bucket:            aws.String(dstBucket),
-		KeyPrefix:         aws.String(metaPrefix),
+		Prefix:         aws.String(metaPrefix),
 		ACL:               aws.String("private"),
 		StorageClass:      aws.String("STANDARD"),
 		Metadata:          map[string]*string{"x-amz-meta-foo": aws.String("bar")},
@@ -3818,7 +3818,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(overwritePrefix),
+		Prefix:    aws.String(overwritePrefix),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(output11.SuccessNum, Equals, int64(2))
@@ -3827,7 +3827,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(overwritePrefix),
+		Prefix:    aws.String(overwritePrefix),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(output12.SuccessNum, Equals, int64(2))
@@ -3838,9 +3838,9 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(serialPrefix),
-		Jobs:         aws.Long(1),
-		TaskNum:      aws.Long(1),
+		Prefix:    aws.String(serialPrefix),
+		Jobs:     aws.Long(1),
+		Parallel: aws.Long(1),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(output13.SuccessNum, Equals, int64(2))
@@ -3851,7 +3851,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(partSizePrefix),
+		Prefix:    aws.String(partSizePrefix),
 		PartSize:     aws.Long(1024 * 1024),
 	})
 	c.Assert(err, IsNil)
@@ -3864,7 +3864,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(progressPrefix),
+		Prefix:    aws.String(progressPrefix),
 		ProgressFn: func(stat s3.DirResult) {
 			atomic.AddInt64(&progressCalls, 1)
 		},
@@ -3881,7 +3881,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket:     aws.String(bucket),
 		SourcePrefix:     aws.String(srcPrefix),
 		Bucket:           aws.String(dstBucket),
-		KeyPrefix:        aws.String(cpPrefix),
+		Prefix:        aws.String(cpPrefix),
 		EnableCheckpoint: aws.Boolean(true),
 		CheckpointDir:    aws.String(cpDir),
 	})
@@ -3894,7 +3894,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket:       aws.String(bucket),
 		SourcePrefix:       aws.String(srcPrefix),
 		Bucket:             aws.String(dstBucket),
-		KeyPrefix:          aws.String(ignorePrefix),
+		Prefix:          aws.String(ignorePrefix),
 		IgnoreSuccessFiles: aws.Boolean(true),
 	})
 	c.Assert(err, IsNil)
@@ -3907,7 +3907,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix + "nonexistent/"),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(emptyPrefix),
+		Prefix:    aws.String(emptyPrefix),
 	})
 	c.Assert(err, IsNil)
 	c.Assert(output17.TotalNum, Equals, int64(0))
@@ -3917,7 +3917,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(""),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 	})
 	c.Assert(err, NotNil)
 
@@ -3926,7 +3926,7 @@ func (s *Ks3utilCommandSuite) TestCopyDir(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(""),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 	})
 	c.Assert(err, NotNil)
 
@@ -3986,7 +3986,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 	}, dstClient)
 	c.Assert(err, IsNil)
 	c.Assert(output.TotalNum, Equals, int64(2))
@@ -4007,7 +4007,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfExists),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4023,7 +4023,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfSizeEquals),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4035,7 +4035,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfNewer),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4051,7 +4051,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfNewer),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4063,7 +4063,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfNewerAndSizeEquals),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4077,7 +4077,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfNewerAndSizeEquals),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4093,7 +4093,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfCrc64Equals),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4104,7 +4104,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfCrc64Equals),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4120,7 +4120,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipNever),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4133,7 +4133,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(storageDstPrefix),
+		Prefix:    aws.String(storageDstPrefix),
 		StorageClass: aws.String("ARCHIVE"),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4156,7 +4156,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket:      aws.String(bucket),
 		SourcePrefix:      aws.String(srcPrefix),
 		Bucket:            aws.String(dstBucket),
-		KeyPrefix:         aws.String(metaDstPrefix),
+		Prefix:         aws.String(metaDstPrefix),
 		ACL:               aws.String("private"),
 		StorageClass:      aws.String("STANDARD"),
 		Metadata:          map[string]*string{"x-amz-meta-foo": aws.String("bar")},
@@ -4192,7 +4192,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(overwriteDstPrefix),
+		Prefix:    aws.String(overwriteDstPrefix),
 	}, dstClient)
 	c.Assert(err, IsNil)
 	c.Assert(output10.SuccessNum, Equals, int64(2))
@@ -4200,7 +4200,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(overwriteDstPrefix),
+		Prefix:    aws.String(overwriteDstPrefix),
 	}, dstClient)
 	c.Assert(err, IsNil)
 	c.Assert(output10b.SuccessNum, Equals, int64(2))
@@ -4211,9 +4211,9 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(serialDstPrefix),
+		Prefix:    aws.String(serialDstPrefix),
 		Jobs:         aws.Long(1),
-		TaskNum:      aws.Long(1),
+		Parallel:     aws.Long(1),
 	}, dstClient)
 	c.Assert(err, IsNil)
 	c.Assert(output11.SuccessNum, Equals, int64(2))
@@ -4224,7 +4224,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(partSizeDstPrefix),
+		Prefix:    aws.String(partSizeDstPrefix),
 		PartSize:     aws.Long(1024 * 1024),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4237,7 +4237,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(progressDstPrefix),
+		Prefix:    aws.String(progressDstPrefix),
 		ProgressFn: func(stat s3.DirResult) {
 			atomic.AddInt64(&progressCalls, 1)
 		},
@@ -4254,7 +4254,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket:     aws.String(bucket),
 		SourcePrefix:     aws.String(srcPrefix),
 		Bucket:           aws.String(dstBucket),
-		KeyPrefix:        aws.String(cpDstPrefix),
+		Prefix:        aws.String(cpDstPrefix),
 		EnableCheckpoint: aws.Boolean(true),
 		CheckpointDir:    aws.String(cpDir),
 	}, dstClient)
@@ -4267,7 +4267,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket:       aws.String(bucket),
 		SourcePrefix:       aws.String(srcPrefix),
 		Bucket:             aws.String(dstBucket),
-		KeyPrefix:          aws.String(ignoreDstPrefix),
+		Prefix:          aws.String(ignoreDstPrefix),
 		IgnoreSuccessFiles: aws.Boolean(true),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4280,7 +4280,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix + "nonexistent/"),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(emptyDstPrefix),
+		Prefix:    aws.String(emptyDstPrefix),
 	}, dstClient)
 	c.Assert(err, IsNil)
 	c.Assert(output15.TotalNum, Equals, int64(0))
@@ -4290,7 +4290,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(""),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 	}, dstClient)
 	c.Assert(err, NotNil)
 
@@ -4299,7 +4299,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(""),
-		KeyPrefix:    aws.String(dstPrefix),
+		Prefix:    aws.String(dstPrefix),
 	}, dstClient)
 	c.Assert(err, NotNil)
 

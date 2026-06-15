@@ -814,17 +814,17 @@ type CopyDirInput struct {
 	// 目标存储桶名称，必填。
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	// 目标对象名称前缀，目标Key为 KeyPrefix + 源Key去除SourcePrefix后的部分。默认为""。
-	KeyPrefix *string `type:"string"`
+	// 目标对象名称前缀，目标Key为 Prefix + 源Key去除SourcePrefix后的部分。默认为""。
+	Prefix *string `type:"string"`
 
 	// 分块大小，默认5MB。
 	PartSize *int64 `type:"integer"`
 
-	// 单文件分块复制并发数，默认3。
-	TaskNum *int64 `type:"integer"`
-
-	// 目录级复制并发数，即同时复制的文件数，默认3。
+	// 文件并发数，即同时复制的文件数，默认3。
 	Jobs *int64 `type:"integer"`
+
+	// 块并发数，即单文件分块复制并发数，默认3。
+	Parallel *int64 `type:"integer"`
 
 	// 目录复制跳过策略，默认Never不跳过。可选值：IfExists/IfSizeEquals/IfNewer/IfNewerAndSizeEquals/IfCrc64Equals。
 	SkipRule *string `type:"string"`
@@ -984,8 +984,8 @@ func (d *DirCopier) validate() error {
 		request.SourcePrefix = aws.String("")
 	}
 
-	if request.KeyPrefix == nil {
-		request.KeyPrefix = aws.String("")
+	if request.Prefix == nil {
+		request.Prefix = aws.String("")
 	}
 
 	if request.PartSize == nil {
@@ -996,8 +996,8 @@ func (d *DirCopier) validate() error {
 		request.PartSize = aws.Long(MaxPartSize)
 	}
 
-	if aws.ToLong(request.TaskNum) <= 0 {
-		request.TaskNum = aws.Long(DefaultTaskNum)
+	if aws.ToLong(request.Parallel) <= 0 {
+		request.Parallel = aws.Long(DefaultTaskNum)
 	}
 
 	if aws.ToLong(request.Jobs) <= 0 {
@@ -1019,7 +1019,7 @@ func (d *DirCopier) produceObjects(fileCh chan<- dirFileInfo) {
 
 func (d *DirCopier) listSourceObjects(fileCh chan<- dirFileInfo) error {
 	sourcePrefix := aws.ToString(d.request.SourcePrefix)
-	keyPrefix := aws.ToString(d.request.KeyPrefix)
+	keyPrefix := aws.ToString(d.request.Prefix)
 
 	paginator := d.srcClient.NewListObjectsPaginator(&ListObjectsInput{
 		Bucket: d.request.SourceBucket,
@@ -1095,7 +1095,7 @@ func (d *DirCopier) copySingleFile(fi dirFileInfo) error {
 		SourceBucket:                   d.request.SourceBucket,
 		SourceKey:                      aws.String(fi.objectKey),
 		PartSize:                       d.request.PartSize,
-		TaskNum:                        d.request.TaskNum,
+		TaskNum:                        d.request.Parallel,
 		EnableCheckpoint:               d.request.EnableCheckpoint,
 		CheckpointDir:                  d.request.CheckpointDir,
 		ACL:                            d.request.ACL,

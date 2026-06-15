@@ -1090,7 +1090,7 @@ func (s *ReaderUploader) setError(err error) {
 // UploadDirInput 目录上传输入参数。
 type UploadDirInput struct {
 	// 待上传的本地目录路径。
-	RootDir *string `type:"string" required:"true"`
+	DirPath *string `type:"string" required:"true"`
 
 	// 存储桶名称。
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
@@ -1101,11 +1101,11 @@ type UploadDirInput struct {
 	// 分块大小，默认5MB。
 	PartSize *int64 `type:"integer"`
 
-	// 单文件分块上传并发数，默认3。
-	TaskNum *int64 `type:"integer"`
-
-	// 目录级上传并发数，即同时上传的文件数，默认3。
+	// 文件并发数，即同时上传的文件数，默认3。
 	Jobs *int64 `type:"integer"`
+
+	// 块并发数，即单文件分块上传并发数，默认3。
+	Parallel *int64 `type:"integer"`
 
 	// 目录上传跳过策略，默认Never不跳过。可选值：IfExists/IfSizeEquals/IfNewer/IfNewerAndSizeEquals/IfCrc64Equals。
 	SkipRule *string `type:"string"`
@@ -1238,11 +1238,11 @@ func (u *DirUploader) validate() error {
 		return errors.New("bucket is required")
 	}
 
-	if aws.ToString(request.RootDir) == "" {
-		return errors.New("root dir is required")
+	if aws.ToString(request.DirPath) == "" {
+		return errors.New("dir path is required")
 	}
 
-	rootDir, err := toAbs(aws.ToString(request.RootDir))
+	rootDir, err := toAbs(aws.ToString(request.DirPath))
 	if err != nil {
 		return err
 	}
@@ -1269,8 +1269,8 @@ func (u *DirUploader) validate() error {
 		request.PartSize = aws.Long(MaxPartSize)
 	}
 
-	if aws.ToLong(request.TaskNum) <= 0 {
-		request.TaskNum = aws.Long(DefaultTaskNum)
+	if aws.ToLong(request.Parallel) <= 0 {
+		request.Parallel = aws.Long(DefaultTaskNum)
 	}
 
 	if aws.ToLong(request.Jobs) <= 0 {
@@ -1306,11 +1306,11 @@ func (u *DirUploader) walkDir(dir, virtualBase string, fileCh chan<- dirFileInfo
 			}
 			resolved, err := filepath.EvalSymlinks(path)
 			if err != nil {
-				return err
+				return nil
 			}
 			resolvedInfo, err := os.Stat(resolved)
 			if err != nil {
-				return err
+				return nil
 			}
 			if resolvedInfo.IsDir() {
 				return u.walkDir(resolved, path, fileCh)
@@ -1373,7 +1373,7 @@ func (u *DirUploader) uploadSingleFile(fi dirFileInfo) error {
 		UploadFile:           aws.String(fi.filePath),
 		FileSize:             aws.Long(fileSize),
 		PartSize:             u.request.PartSize,
-		TaskNum:              u.request.TaskNum,
+		TaskNum:              u.request.Parallel,
 		EnableCheckpoint:     u.request.EnableCheckpoint,
 		CheckpointDir:        u.request.CheckpointDir,
 		ACL:                  u.request.ACL,

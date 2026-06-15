@@ -560,11 +560,11 @@ type DownloadDirInput struct {
 	// 分块大小，默认5MB。
 	PartSize *int64 `type:"integer"`
 
-	// 单文件分块下载并发数，默认3。
-	TaskNum *int64 `type:"integer"`
-
-	// 目录级下载并发数，即同时下载的文件数，默认3。
+	// 文件并发数，即同时下载的文件数，默认3。
 	Jobs *int64 `type:"integer"`
+
+	// 块并发数，即单文件分块下载并发数，默认3。
+	Parallel *int64 `type:"integer"`
 
 	// 目录下载跳过策略，默认Never不跳过。可选值：IfExists/IfSizeEquals/IfNewer/IfNewerAndSizeEquals/IfCrc64Equals。
 	SkipRule *string `type:"string"`
@@ -690,8 +690,8 @@ func (d *DirDownloader) validate() error {
 		request.PartSize = aws.Long(MaxPartSize)
 	}
 
-	if aws.ToLong(request.TaskNum) <= 0 {
-		request.TaskNum = aws.Long(DefaultTaskNum)
+	if aws.ToLong(request.Parallel) <= 0 {
+		request.Parallel = aws.Long(DefaultTaskNum)
 	}
 
 	if aws.ToLong(request.Jobs) <= 0 {
@@ -788,7 +788,7 @@ func (d *DirDownloader) downloadSingleFile(fi dirFileInfo) error {
 		Key:                  aws.String(fi.objectKey),
 		DownloadFile:         aws.String(fi.filePath),
 		PartSize:             d.request.PartSize,
-		TaskNum:              d.request.TaskNum,
+		TaskNum:              d.request.Parallel,
 		EnableCheckpoint:     d.request.EnableCheckpoint,
 		CheckpointDir:        d.request.CheckpointDir,
 		SSECustomerAlgorithm: d.request.SSECustomerAlgorithm,
