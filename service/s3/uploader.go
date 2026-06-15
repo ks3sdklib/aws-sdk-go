@@ -368,7 +368,7 @@ func (u *Uploader) multipartUpload() (*UploadFileOutput, error) {
 		serverCrc64, _ := strconv.ParseUint(aws.ToString(resp.ChecksumCRC64ECMA), 10, 64)
 		u.client.Config.LogDebug("check file crc64, client crc64:%d, server crc64:%d", clientCrc64, serverCrc64)
 		if serverCrc64 != 0 && clientCrc64 != serverCrc64 {
-			return nil, errors.New(fmt.Sprintf("crc64 check failed, client crc64:%d, server crc64:%d", clientCrc64, serverCrc64))
+			return nil, fmt.Errorf("crc64 check failed, client crc64:%d, server crc64:%d", clientCrc64, serverCrc64)
 		}
 	}
 
@@ -729,7 +729,7 @@ type ReaderUploader struct {
 
 	parts         []*CompletedPart
 	uploadID      string
-	CompletedSize int64
+	completedSize int64
 	mu            sync.Mutex
 	error         error
 	done          chan struct{}
@@ -1057,7 +1057,7 @@ func (s *ReaderUploader) checkCrc64(output *UploadReaderOutput) error {
 	serverCrc64, _ := strconv.ParseUint(aws.ToString(output.ChecksumCRC64ECMA), 10, 64)
 	s.client.Config.LogDebug("check file crc64, client crc64:%d, server crc64:%d", s.clientCrc64, serverCrc64)
 	if serverCrc64 != 0 && s.clientCrc64 != serverCrc64 {
-		return errors.New(fmt.Sprintf("crc64 check failed, client crc64:%d, server crc64:%d", s.clientCrc64, serverCrc64))
+		return fmt.Errorf("crc64 check failed, client crc64:%d, server crc64:%d", s.clientCrc64, serverCrc64)
 	}
 	return nil
 }
@@ -1072,8 +1072,8 @@ func (s *ReaderUploader) abortUpload(uploadID string) {
 
 func (s *ReaderUploader) publishProgress(increment int64) {
 	if s.request.ProgressFn != nil {
-		atomic.AddInt64(&s.CompletedSize, increment)
-		s.request.ProgressFn(increment, s.CompletedSize, -1)
+		atomic.AddInt64(&s.completedSize, increment)
+		s.request.ProgressFn(increment, s.completedSize, -1)
 	}
 }
 
@@ -1306,10 +1306,12 @@ func (u *DirUploader) walkDir(dir, virtualBase string, fileCh chan<- dirFileInfo
 			}
 			resolved, err := filepath.EvalSymlinks(path)
 			if err != nil {
+				u.client.Config.LogDebug("walkDir: skip symlink %s, EvalSymlinks failed: %v", path, err)
 				return nil
 			}
 			resolvedInfo, err := os.Stat(resolved)
 			if err != nil {
+				u.client.Config.LogDebug("walkDir: skip symlink %s, Stat failed: %v", path, err)
 				return nil
 			}
 			if resolvedInfo.IsDir() {

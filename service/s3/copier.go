@@ -812,7 +812,7 @@ type CopyDirInput struct {
 	SourcePrefix *string `type:"string"`
 
 	// 目标存储桶名称，必填。
-	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+	Bucket *string `type:"string" required:"true"`
 
 	// 目标对象名称前缀，目标Key为 Prefix + 源Key去除SourcePrefix后的部分。默认为""。
 	Prefix *string `type:"string"`
