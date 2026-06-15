@@ -4024,7 +4024,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		Bucket: aws.String(bucket), Key: aws.String(key1),
 		Body: bytes.NewReader([]byte(randLowStr(300))),
 	})
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 3)
 	output3, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
@@ -4041,7 +4041,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		Prefix:    aws.String(dstPrefix),
+		Prefix:       aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfNewer),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4053,7 +4053,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		Bucket: aws.String(bucket), Key: aws.String(key2),
 		Body: bytes.NewReader([]byte(randLowStr(200))),
 	})
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 3)
 	output5, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
@@ -4070,7 +4070,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
 		Bucket:       aws.String(dstBucket),
-		Prefix:    aws.String(dstPrefix),
+		Prefix:       aws.String(dstPrefix),
 		SkipRule:     aws.String(s3.SkipIfNewerAndSizeEquals),
 	}, dstClient)
 	c.Assert(err, IsNil)
@@ -4080,7 +4080,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		Bucket: aws.String(bucket), Key: aws.String(key1),
 		Body: bytes.NewReader([]byte(randLowStr(500))),
 	})
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 3)
 	output6b, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
@@ -4097,7 +4097,7 @@ func (s *Ks3utilCommandSuite) TestCopyDirAcrossRegion(c *C) {
 		Bucket: aws.String(bucket), Key: aws.String(key1),
 		Body: bytes.NewReader([]byte("totally different content")),
 	})
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 3)
 	output7, err := client.CopyDirAcrossRegion(&s3.CopyDirInput{
 		SourceBucket: aws.String(bucket),
 		SourcePrefix: aws.String(srcPrefix),
