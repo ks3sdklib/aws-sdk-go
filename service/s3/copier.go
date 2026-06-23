@@ -327,7 +327,7 @@ type Copier struct {
 
 	copyCheckpoint *CopyCheckpoint
 
-	CompletedSize int64
+	completedSize int64
 
 	copyObjectMeta map[string]*string
 
@@ -691,8 +691,8 @@ func (c *Copier) completeMultipartUpload(completedMultipartUpload *CompletedMult
 
 func (c *Copier) publishProgress(actualPartSize int64) {
 	if c.copyFileRequest.ProgressFn != nil {
-		atomic.AddInt64(&c.CompletedSize, actualPartSize)
-		c.copyFileRequest.ProgressFn(actualPartSize, c.CompletedSize, c.copyCheckpoint.SrcObjectSize)
+		atomic.AddInt64(&c.completedSize, actualPartSize)
+		c.copyFileRequest.ProgressFn(actualPartSize, c.completedSize, c.copyCheckpoint.SrcObjectSize)
 	}
 }
 

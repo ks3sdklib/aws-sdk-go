@@ -11,7 +11,6 @@ type ListObjectsPaginator struct {
 	client      *S3
 	input       *ListObjectsInput
 	marker      *string
-	firstPage   *bool
 	isTruncated *bool
 }
 
@@ -25,14 +24,13 @@ func (c *S3) NewListObjectsPaginator(input *ListObjectsInput) *ListObjectsPagina
 		client:      c,
 		input:       input,
 		marker:      input.Marker,
-		firstPage:   aws.Boolean(true),
-		isTruncated: aws.Boolean(false),
+		isTruncated: aws.Boolean(true),
 	}
 }
 
 // HasNext 是否有下一页。
 func (p *ListObjectsPaginator) HasNext() bool {
-	return *p.firstPage || *p.isTruncated
+	return *p.isTruncated
 }
 
 // NextPage 获取下一页。
@@ -54,7 +52,6 @@ func (p *ListObjectsPaginator) NextPageWithContext(ctx aws.Context) (*ListObject
 		return nil, err
 	}
 
-	p.firstPage = aws.Boolean(false)
 	p.isTruncated = result.IsTruncated
 	if result.IsTruncated == nil {
 		p.isTruncated = aws.Boolean(false)
@@ -76,7 +73,6 @@ type ListObjectsV2Paginator struct {
 	client        *S3
 	input         *ListObjectsV2Input
 	continueToken *string
-	firstPage     *bool
 	isTruncated   *bool
 }
 
@@ -90,14 +86,13 @@ func (c *S3) NewListObjectsV2Paginator(input *ListObjectsV2Input) *ListObjectsV2
 		client:        c,
 		input:         input,
 		continueToken: input.ContinuationToken,
-		firstPage:     aws.Boolean(true),
-		isTruncated:   aws.Boolean(false),
+		isTruncated:   aws.Boolean(true),
 	}
 }
 
 // HasNext 是否有下一页。
 func (p *ListObjectsV2Paginator) HasNext() bool {
-	return *p.firstPage || *p.isTruncated
+	return *p.isTruncated
 }
 
 // NextPage 获取下一页。
@@ -119,7 +114,6 @@ func (p *ListObjectsV2Paginator) NextPageWithContext(ctx aws.Context) (*ListObje
 		return nil, err
 	}
 
-	p.firstPage = aws.Boolean(false)
 	p.isTruncated = result.IsTruncated
 	if result.IsTruncated == nil {
 		p.isTruncated = aws.Boolean(false)
@@ -135,7 +129,6 @@ type ListMultipartUploadsPaginator struct {
 	input          *ListMultipartUploadsInput
 	keyMarker      *string
 	uploadIDMarker *string
-	firstPage      *bool
 	isTruncated    *bool
 }
 
@@ -150,14 +143,13 @@ func (c *S3) NewListMultipartUploadsPaginator(input *ListMultipartUploadsInput) 
 		input:          input,
 		keyMarker:      input.KeyMarker,
 		uploadIDMarker: input.UploadIDMarker,
-		firstPage:      aws.Boolean(true),
-		isTruncated:    aws.Boolean(false),
+		isTruncated:    aws.Boolean(true),
 	}
 }
 
 // HasNext 是否有下一页。
 func (p *ListMultipartUploadsPaginator) HasNext() bool {
-	return *p.firstPage || *p.isTruncated
+	return *p.isTruncated
 }
 
 // NextPage 获取下一页。
@@ -180,7 +172,6 @@ func (p *ListMultipartUploadsPaginator) NextPageWithContext(ctx aws.Context) (*L
 		return nil, err
 	}
 
-	p.firstPage = aws.Boolean(false)
 	p.isTruncated = result.IsTruncated
 	if result.IsTruncated == nil {
 		p.isTruncated = aws.Boolean(false)
@@ -196,7 +187,6 @@ type ListPartsPaginator struct {
 	client           *S3
 	input            *ListPartsInput
 	partNumberMarker *int64
-	firstPage        *bool
 	isTruncated      *bool
 }
 
@@ -210,14 +200,13 @@ func (c *S3) NewListPartsPaginator(input *ListPartsInput) *ListPartsPaginator {
 		client:           c,
 		input:            input,
 		partNumberMarker: input.PartNumberMarker,
-		firstPage:        aws.Boolean(true),
-		isTruncated:      aws.Boolean(false),
+		isTruncated:      aws.Boolean(true),
 	}
 }
 
 // HasNext 是否有下一页。
 func (p *ListPartsPaginator) HasNext() bool {
-	return *p.firstPage || *p.isTruncated
+	return *p.isTruncated
 }
 
 // NextPage 获取下一页。
@@ -239,7 +228,6 @@ func (p *ListPartsPaginator) NextPageWithContext(ctx aws.Context) (*ListPartsOut
 		return nil, err
 	}
 
-	p.firstPage = aws.Boolean(false)
 	p.isTruncated = result.IsTruncated
 	if result.IsTruncated == nil {
 		p.isTruncated = aws.Boolean(false)
@@ -254,7 +242,6 @@ type ListRetentionPaginator struct {
 	client      *S3
 	input       *ListRetentionInput
 	marker      *string
-	firstPage   *bool
 	isTruncated *bool
 }
 
@@ -268,14 +255,13 @@ func (c *S3) NewListRetentionPaginator(input *ListRetentionInput) *ListRetention
 		client:      c,
 		input:       input,
 		marker:      input.Marker,
-		firstPage:   aws.Boolean(true),
-		isTruncated: aws.Boolean(false),
+		isTruncated: aws.Boolean(true),
 	}
 }
 
 // HasNext 是否有下一页。
 func (p *ListRetentionPaginator) HasNext() bool {
-	return *p.firstPage || *p.isTruncated
+	return *p.isTruncated
 }
 
 // NextPage 获取下一页。
@@ -297,7 +283,6 @@ func (p *ListRetentionPaginator) NextPageWithContext(ctx aws.Context) (*ListRete
 		return nil, err
 	}
 
-	p.firstPage = aws.Boolean(false)
 	if result.ListRetentionResult != nil {
 		p.isTruncated = result.ListRetentionResult.IsTruncated
 		if result.ListRetentionResult.IsTruncated == nil {
@@ -316,7 +301,6 @@ type ListBucketInventoryPaginator struct {
 	client        *S3
 	input         *ListBucketInventoryInput
 	continueToken *string
-	firstPage     *bool
 	isTruncated   *bool
 }
 
@@ -330,14 +314,13 @@ func (c *S3) NewListBucketInventoryPaginator(input *ListBucketInventoryInput) *L
 		client:        c,
 		input:         input,
 		continueToken: input.ContinuationToken,
-		firstPage:     aws.Boolean(true),
-		isTruncated:   aws.Boolean(false),
+		isTruncated:   aws.Boolean(true),
 	}
 }
 
 // HasNext 是否有下一页。
 func (p *ListBucketInventoryPaginator) HasNext() bool {
-	return *p.firstPage || *p.isTruncated
+	return *p.isTruncated
 }
 
 // NextPage 获取下一页。
@@ -359,7 +342,6 @@ func (p *ListBucketInventoryPaginator) NextPageWithContext(ctx aws.Context) (*Li
 		return nil, err
 	}
 
-	p.firstPage = aws.Boolean(false)
 	if result.InventoryConfigurationsResult != nil {
 		p.isTruncated = result.InventoryConfigurationsResult.IsTruncated
 		if result.InventoryConfigurationsResult.IsTruncated == nil {
@@ -378,7 +360,6 @@ type ListJobsPaginator struct {
 	client    *S3
 	input     *ListJobsInput
 	nextToken *string
-	firstPage *bool
 	hasNext   *bool
 }
 
@@ -392,14 +373,13 @@ func (c *S3) NewListJobsPaginator(input *ListJobsInput) *ListJobsPaginator {
 		client:    c,
 		input:     input,
 		nextToken: input.NextToken,
-		firstPage: aws.Boolean(true),
-		hasNext:   aws.Boolean(false),
+		hasNext:   aws.Boolean(true),
 	}
 }
 
 // HasNext 是否有下一页。
 func (p *ListJobsPaginator) HasNext() bool {
-	return *p.firstPage || *p.hasNext
+	return *p.hasNext
 }
 
 // NextPage 获取下一页。
@@ -421,7 +401,6 @@ func (p *ListJobsPaginator) NextPageWithContext(ctx aws.Context) (*ListJobsOutpu
 		return nil, err
 	}
 
-	p.firstPage = aws.Boolean(false)
 	if result.ListJobsResult != nil {
 		p.nextToken = result.ListJobsResult.NextToken
 		p.hasNext = aws.Boolean(result.ListJobsResult.NextToken != nil)

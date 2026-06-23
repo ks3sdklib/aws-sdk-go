@@ -153,7 +153,7 @@ type Uploader struct {
 
 	uploadCheckpoint *UploadCheckpoint
 
-	CompletedSize int64
+	completedSize int64
 
 	mu sync.Mutex
 
@@ -547,8 +547,8 @@ func (u *Uploader) completeMultipartUpload(completedMultipartUpload *CompletedMu
 
 func (u *Uploader) publishProgress(actualPartSize int64) {
 	if u.uploadFileRequest.ProgressFn != nil {
-		atomic.AddInt64(&u.CompletedSize, actualPartSize)
-		u.uploadFileRequest.ProgressFn(actualPartSize, u.CompletedSize, aws.ToLong(u.uploadFileRequest.FileSize))
+		atomic.AddInt64(&u.completedSize, actualPartSize)
+		u.uploadFileRequest.ProgressFn(actualPartSize, u.completedSize, aws.ToLong(u.uploadFileRequest.FileSize))
 	}
 }
 
