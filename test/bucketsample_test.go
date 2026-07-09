@@ -7,6 +7,66 @@ import (
 	"time"
 )
 
+// TestListBuckets 列举桶过滤
+func (s *Ks3utilCommandSuite) TestListBuckets(c *C) {
+	// 创建不同存储类型的测试桶
+	bucketName1 := commonNamePrefix + "list1-" + randLowStr(8)
+	bucketName2 := commonNamePrefix + "list2-" + randLowStr(8)
+	_, err := client.CreateBucket(&s3.CreateBucketInput{
+		Bucket:     aws.String(bucketName1),
+		BucketType: aws.String(s3.BucketTypeNormal),
+	})
+	c.Assert(err, IsNil)
+	_, err = client.CreateBucket(&s3.CreateBucketInput{
+		Bucket:     aws.String(bucketName2),
+		BucketType: aws.String(s3.BucketTypeIA),
+	})
+	c.Assert(err, IsNil)
+	defer func() {
+		s.DeleteBucket(bucketName1, c)
+		s.DeleteBucket(bucketName2, c)
+	}()
+
+	// 多个前缀过滤（或关系）
+	resp, err := client.ListBuckets(&s3.ListBucketsInput{
+		Prefixes: []string{commonNamePrefix + "list1", commonNamePrefix + "list2"},
+	})
+	c.Assert(err, IsNil)
+	names := make(map[string]bool)
+	for _, b := range resp.Buckets {
+		names[*b.Name] = true
+	}
+	c.Check(names[bucketName1], Equals, true)
+	c.Check(names[bucketName2], Equals, true)
+
+	// 按存储类型过滤，只匹配低频桶
+	resp, err = client.ListBuckets(&s3.ListBucketsInput{
+		BucketTypes: []string{s3.BucketTypeIA},
+	})
+	c.Assert(err, IsNil)
+	names = make(map[string]bool)
+	for _, b := range resp.Buckets {
+		names[*b.Name] = true
+	}
+	c.Check(names[bucketName1], Equals, false)
+	c.Check(names[bucketName2], Equals, true)
+
+	// 前缀匹配bucket1 + 不存在的区域（且关系），验证两个桶都不在结果中
+	resp, err = client.ListBuckets(&s3.ListBucketsInput{
+		Prefixes: []string{commonNamePrefix + "list1"},
+		Regions:  []string{"non-exist-region"},
+	})
+	c.Assert(err, IsNil)
+	found := false
+	for _, b := range resp.Buckets {
+		if *b.Name == bucketName1 || *b.Name == bucketName2 {
+			found = true
+			break
+		}
+	}
+	c.Check(found, Equals, false)
+}
+
 // TestBucket 创建bucket
 func (s *Ks3utilCommandSuite) TestBucket(c *C) {
 	// 创建bucket
@@ -1394,4 +1454,75 @@ func (s *Ks3utilCommandSuite) TestBucketDataAccelerator(c *C) {
 		Bucket: aws.String(bucket),
 	})
 	c.Assert(err, IsNil)
+}
+
+// TestBucketArchiveDirectRead 桶归档直读配置
+func (s *Ks3utilCommandSuite) TestBucketArchiveDirectRead(c *C) {
+	c.Skip("Skip TestBucketArchiveDirectRead")
+	// 开启归档直读
+	_, err := client.PutBucketArchiveDirectRead(&s3.PutBucketArchiveDirectReadInput{
+		Bucket: aws.String(bucket),
+		ArchiveDirectReadConfiguration: &s3.ArchiveDirectReadConfiguration{
+			Enabled: aws.Boolean(true),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取归档直读配置
+	resp, err := client.GetBucketArchiveDirectRead(&s3.GetBucketArchiveDirectReadInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.ArchiveDirectReadConfiguration.Enabled, Equals, true)
+
+	// 关闭归档直读
+	_, err = client.PutBucketArchiveDirectRead(&s3.PutBucketArchiveDirectReadInput{
+		Bucket: aws.String(bucket),
+		ArchiveDirectReadConfiguration: &s3.ArchiveDirectReadConfiguration{
+			Enabled: aws.Boolean(false),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取归档直读配置
+	resp, err = client.GetBucketArchiveDirectRead(&s3.GetBucketArchiveDirectReadInput{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.ArchiveDirectReadConfiguration.Enabled, Equals, false)
+}
+
+func (s *Ks3utilCommandSuite) TestBucketHttp2(c *C) {
+	c.Skip("Skip TestBucketHttp2")
+	// 开启HTTP/2
+	_, err := client.PutBucketHttp2(&s3.PutBucketHttp2Input{
+		Bucket: aws.String(bucket),
+		Http2Configuration: &s3.Http2Configuration{
+			Status: aws.String(s3.StatusEnabled),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取HTTP/2配置
+	resp, err := client.GetBucketHttp2(&s3.GetBucketHttp2Input{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.Http2Configuration.Status, Equals, s3.StatusEnabled)
+
+	// 关闭HTTP/2
+	_, err = client.PutBucketHttp2(&s3.PutBucketHttp2Input{
+		Bucket: aws.String(bucket),
+		Http2Configuration: &s3.Http2Configuration{
+			Status: aws.String(s3.StatusDisabled),
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// 获取HTTP/2配置
+	resp, err = client.GetBucketHttp2(&s3.GetBucketHttp2Input{
+		Bucket: aws.String(bucket),
+	})
+	c.Assert(err, IsNil)
+	c.Assert(*resp.Http2Configuration.Status, Equals, s3.StatusDisabled)
 }

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -143,7 +144,7 @@ type Downloader struct {
 
 	downloadCheckpoint *DownloadCheckpoint
 
-	CompletedSize int64
+	completedSize int64
 
 	downloadFileSize int64
 
@@ -425,8 +426,8 @@ func (d *Downloader) setError(err error) {
 
 func (d *Downloader) publishProgress(actualPartSize int64) {
 	if d.downloadFileRequest.ProgressFn != nil {
-		atomic.AddInt64(&d.CompletedSize, actualPartSize)
-		d.downloadFileRequest.ProgressFn(actualPartSize, d.CompletedSize, d.downloadFileSize)
+		atomic.AddInt64(&d.completedSize, actualPartSize)
+		d.downloadFileRequest.ProgressFn(actualPartSize, d.completedSize, d.downloadFileSize)
 	}
 }
 
@@ -544,3 +545,301 @@ func (d *Downloader) normalizeDownloadPath() error {
 
 	return nil
 }
+
+// DownloadDirInput 目录下载输入参数。
+type DownloadDirInput struct {
+	// 存储桶名称，必填。
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// 对象名称前缀，列举和下载以此开头的对象。默认为""。
+	Prefix *string `type:"string"`
+
+	// 本地下载目录路径，默认为当前目录"."。
+	DownloadDir *string `type:"string" required:"true"`
+
+	// 分块大小，默认5MB。
+	PartSize *int64 `type:"integer"`
+
+	// 文件并发数，即同时下载的文件数，默认3。
+	Jobs *int64 `type:"integer"`
+
+	// 块并发数，即单文件分块下载并发数，默认3。
+	Parallel *int64 `type:"integer"`
+
+	// 目录下载跳过策略，默认Never不跳过。可选值：IfExists/IfSizeEquals/IfNewer/IfNewerAndSizeEquals/IfCrc64Equals。
+	SkipRule *string `type:"string"`
+
+	// 是否不记录下载成功文件详情，默认记录。大目录下载时设为true可节省内存。
+	IgnoreSuccessFiles *bool `type:"boolean"`
+
+	// 是否启用断点续传，默认不启用。
+	EnableCheckpoint *bool `type:"boolean"`
+
+	// 断点续传记录文件的存放目录。
+	CheckpointDir *string `type:"string"`
+
+	// 指定解密对象时使用的算法。
+	SSECustomerAlgorithm *string `location:"header" locationName:"x-amz-server-side-encryption-customer-algorithm" type:"string"`
+
+	// 指定客户提供的加密密钥。
+	SSECustomerKey *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key" type:"string"`
+
+	// 指定加密密钥的128位MD5摘要。
+	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
+
+	// 目录下载进度回调，每次文件完成时调用。
+	ProgressFn DirProgressFunc `location:"function"`
+}
+
+// DownloadDir 下载KS3目录到本地。
+func (c *S3) DownloadDir(request *DownloadDirInput) (*DirResult, error) {
+	return c.DownloadDirWithContext(context.Background(), request)
+}
+
+// DownloadDirWithContext 下载KS3目录到本地，支持上下文取消。
+func (c *S3) DownloadDirWithContext(ctx context.Context, request *DownloadDirInput) (*DirResult, error) {
+	return newDirDownloader(c, ctx, request).downloadDir()
+}
+
+// DirDownloader 目录下载实现。
+type DirDownloader struct {
+	client      *S3              // KS3客户端。
+	context     context.Context  // 上下文，用于取消。
+	request     *DownloadDirInput // 下载输入参数。
+	producerErr error            // 生产者错误。
+	done        chan struct{}    // 生产者完成信号。
+
+	localDir string // 解析后的本地目录绝对路径。
+
+	*TransferManager
+}
+
+func newDirDownloader(s3 *S3, ctx context.Context, request *DownloadDirInput) *DirDownloader {
+	return &DirDownloader{
+		client:          s3,
+		context:         ctx,
+		request:         request,
+		done:            make(chan struct{}),
+		TransferManager: newTransferManager(request.ProgressFn),
+	}
+}
+
+func (d *DirDownloader) downloadDir() (*DirResult, error) {
+	if err := d.validate(); err != nil {
+		return nil, err
+	}
+
+	jobs := aws.ToLong(d.request.Jobs)
+	fileCh := make(chan dirFileInfo, DefaultFileChanSize)
+
+	go d.produceObjects(fileCh)
+
+	var workerWg sync.WaitGroup
+	var i int64
+	for i = 0; i < jobs; i++ {
+		workerWg.Add(1)
+		go d.runWorker(fileCh, &workerWg)
+	}
+
+	workerWg.Wait()
+	<-d.done
+
+	if d.producerErr != nil {
+		return nil, d.producerErr
+	}
+	return d.setResult()
+}
+
+func (d *DirDownloader) produceObjects(fileCh chan<- dirFileInfo) {
+	defer close(d.done)
+	d.producerErr = d.listObjects(fileCh)
+	close(fileCh)
+}
+
+func (d *DirDownloader) validate() error {
+	request := d.request
+	if request == nil {
+		return errors.New("download dir request is required")
+	}
+
+	if aws.ToString(request.Bucket) == "" {
+		return errors.New("bucket is required")
+	}
+
+	if request.Prefix == nil {
+		request.Prefix = aws.String("")
+	}
+
+	downloadDir, err := toAbs(aws.ToString(request.DownloadDir))
+	if err != nil {
+		return err
+	}
+
+	if !DirExists(downloadDir) {
+		if mkErr := os.MkdirAll(downloadDir, DirPermMode); mkErr != nil {
+			return mkErr
+		}
+	}
+	d.localDir = downloadDir
+
+	if request.PartSize == nil {
+		request.PartSize = aws.Long(DefaultPartSize)
+	} else if aws.ToLong(request.PartSize) < MinPartSize {
+		request.PartSize = aws.Long(MinPartSize)
+	} else if aws.ToLong(request.PartSize) > MaxPartSize {
+		request.PartSize = aws.Long(MaxPartSize)
+	}
+
+	if aws.ToLong(request.Parallel) <= 0 {
+		request.Parallel = aws.Long(DefaultTaskNum)
+	}
+
+	if aws.ToLong(request.Jobs) <= 0 {
+		request.Jobs = aws.Long(DefaultJobs)
+	}
+
+	if request.SkipRule == nil {
+		request.SkipRule = aws.String(SkipNever)
+	}
+
+	return nil
+}
+
+func (d *DirDownloader) listObjects(fileCh chan<- dirFileInfo) error {
+	prefix := aws.ToString(d.request.Prefix)
+	paginator := d.client.NewListObjectsPaginator(&ListObjectsInput{
+		Bucket: d.request.Bucket,
+		Prefix: aws.String(prefix),
+	})
+
+	for paginator.HasNext() {
+		select {
+		case <-d.context.Done():
+			return d.context.Err()
+		default:
+		}
+
+		resp, err := paginator.NextPageWithContext(d.context)
+		if err != nil {
+			return err
+		}
+
+		for _, obj := range resp.Contents {
+			key := aws.ToString(obj.Key)
+			// 跳过目录标记对象
+			if strings.HasSuffix(key, "/") {
+				continue
+			}
+			// 计算本地文件路径
+			relPath := key
+			if prefix != "" && strings.HasPrefix(key, prefix) {
+				relPath = key[len(prefix):]
+			}
+			relPath = strings.TrimPrefix(relPath, "/")
+			localPath := filepath.Join(d.localDir, relPath)
+
+			// 创建父目录
+			parentDir := filepath.Dir(localPath)
+			if !DirExists(parentDir) {
+				if mkErr := os.MkdirAll(parentDir, DirPermMode); mkErr != nil {
+					return mkErr
+				}
+			}
+
+			select {
+			case fileCh <- dirFileInfo{
+				filePath:     localPath,
+				objectKey:    key,
+				objectSize:   aws.ToLong(obj.Size),
+				lastModified: getTimeValue(obj.LastModified),
+			}:
+			case <-d.context.Done():
+				return d.context.Err()
+			}
+		}
+	}
+	return nil
+}
+
+func (d *DirDownloader) runWorker(fileCh <-chan dirFileInfo, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for fi := range fileCh {
+		select {
+		case <-d.context.Done():
+			return
+		default:
+		}
+		if err := d.downloadSingleFile(fi); err != nil {
+			d.TransferManager.addFailure(fi.filePath, fi.objectKey, fi.objectSize, err)
+		}
+	}
+}
+
+func (d *DirDownloader) downloadSingleFile(fi dirFileInfo) error {
+	fileSize := fi.objectSize
+
+	if skip := d.shouldSkipDownload(fi); skip {
+		d.TransferManager.addSkip(fi.filePath, fi.objectKey, fileSize)
+		return nil
+	}
+
+	_, err := d.client.DownloadFileWithContext(d.context, &DownloadFileInput{
+		Bucket:               d.request.Bucket,
+		Key:                  aws.String(fi.objectKey),
+		DownloadFile:         aws.String(fi.filePath),
+		PartSize:             d.request.PartSize,
+		TaskNum:              d.request.Parallel,
+		EnableCheckpoint:     d.request.EnableCheckpoint,
+		CheckpointDir:        d.request.CheckpointDir,
+		SSECustomerAlgorithm: d.request.SSECustomerAlgorithm,
+		SSECustomerKey:       d.request.SSECustomerKey,
+		SSECustomerKeyMD5:    d.request.SSECustomerKeyMD5,
+	})
+	if err != nil {
+		return err
+	}
+	d.TransferManager.addSuccess(fi.filePath, fi.objectKey, fileSize, aws.ToBoolean(d.request.IgnoreSuccessFiles))
+	return nil
+}
+
+func (d *DirDownloader) shouldSkipDownload(fi dirFileInfo) bool {
+	rule := aws.ToString(d.request.SkipRule)
+	if rule == "" || rule == SkipNever {
+		return false
+	}
+
+	localInfo, err := os.Stat(fi.filePath)
+	if err != nil {
+		return false
+	}
+	localSize := localInfo.Size()
+	localModTime := localInfo.ModTime()
+
+	switch rule {
+	case SkipIfExists:
+		return true
+	case SkipIfSizeEquals:
+		return fi.objectSize == localSize
+	case SkipIfNewer:
+		return !localModTime.Before(fi.lastModified)
+	case SkipIfNewerAndSizeEquals:
+		return !localModTime.Before(fi.lastModified) && fi.objectSize == localSize
+	case SkipIfCrc64Equals:
+		resp, headErr := d.client.HeadObjectWithContext(d.context, &HeadObjectInput{
+			Bucket: d.request.Bucket,
+			Key:    aws.String(fi.objectKey),
+		})
+		if headErr != nil || resp.Metadata == nil {
+			return false
+		}
+		serverCrc := aws.ToString(resp.Metadata[HTTPHeaderAmzChecksumCrc64ecma])
+		if serverCrc == "" {
+			return false
+		}
+		localCrc := computeLocalCrc64(fi.filePath)
+		return localCrc != "" && localCrc == serverCrc
+	}
+	return false
+}
+
+

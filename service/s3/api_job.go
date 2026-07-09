@@ -32,8 +32,8 @@ type CreateJobRequest struct {
 	// 待处理的文件信息。
 	Manifest *JobManifest `locationName:"Manifest" type:"structure" required:"true"`
 
-	// 选择要执行的具体操作。支持批量解冻、批量修改ACL、批量删除操作。
-	// 单个任务中Operation只能设置一种操作类型（批量解冻/批量修改ACL/批量删除）。
+	// 选择要执行的具体操作。支持批量解冻、批量修改ACL、批量删除、批量打包压缩操作。
+	// 单个任务中Operation只能设置一种操作类型。
 	Operation *JobOperation `locationName:"Operation" type:"structure" required:"true"`
 
 	// 任务优先级。取值越大表示任务执行的优先级越高。
@@ -62,6 +62,35 @@ type JobOperation struct {
 
 	// 对本地冗余类型文件批量执行转同城冗余操作的具体参数。
 	KS3PutObjectDataRedundancyTransition *KS3PutObjectDataRedundancyTransition `locationName:"KS3PutObjectDataRedundancyTransition" type:"structure"`
+
+	// 对文件批量执行打包压缩操作的具体参数。
+	KS3CompressObject *KS3CompressObject `locationName:"KS3CompressObject" type:"structure"`
+}
+
+type KS3CompressObject struct {
+	// 打包文件的压缩格式，支持zip、tar、tar.gz格式。默认值为zip。
+	Format *string `locationName:"Format" type:"string"`
+
+	// 打包时如果单个文件出错，是否忽略错误继续打包。
+	// true：忽略错误继续打包后续的文件；false：遇到报错时终止打包任务，不返回压缩包。
+	// 默认值为false。
+	IgnoreError *bool `locationName:"IgnoreError" type:"boolean"`
+
+	// 打包完成后，输出打包文件的具体路径。
+	Output *CompressOutput `locationName:"Output" type:"structure"`
+}
+
+type CompressOutput struct {
+	// 输出打包文件的桶名称，格式示例：krn:ksc:ks3:::bucketname。
+	Bucket *string `locationName:"Bucket" type:"string"`
+
+	// 输出打包文件的前缀名称。如果桶内不存在该目录，系统自动创建Prefix后拼接ObjectName投递。
+	// 取值范围：0-512字节。
+	Prefix *string `locationName:"Prefix" type:"string"`
+
+	// 输出打包文件的名称，不能带斜杠/。当不指定该参数时，KS3将以固定命名投递至指定路径内。
+	// 取值范围：0-512字节。
+	ObjectName *string `locationName:"ObjectName" type:"string"`
 }
 
 type KS3RestoreObject struct {
@@ -268,7 +297,7 @@ type DescribeJobResult struct {
 	// 待处理的文件信息。
 	Manifest *JobManifest `locationName:"Manifest" type:"structure"`
 
-	// 具体操作。支持批量解冻、批量修改ACL、批量删除操作。
+	// 具体操作。支持批量解冻、批量修改ACL、批量删除、批量打包压缩操作。
 	Operation *JobOperation `locationName:"Operation" type:"structure"`
 
 	// 任务优先级。取值越大表示任务执行的优先级越高。
@@ -391,7 +420,7 @@ type JobMember struct {
 	// 任务描述。
 	Description *string `locationName:"Description" type:"string"`
 
-	// 具体操作。支持批量解冻、批量修改ACL、批量删除操作。
+	// 具体操作。支持批量解冻、批量修改ACL、批量删除、批量打包压缩操作。
 	Operation *string `locationName:"Operation" type:"string"`
 
 	// 任务创建时间。

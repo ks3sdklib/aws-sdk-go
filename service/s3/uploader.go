@@ -1,11 +1,11 @@
 package s3
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ks3sdklib/aws-sdk-go/aws"
-	"github.com/ks3sdklib/aws-sdk-go/internal/crc"
+	"hash/crc64"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,6 +15,9 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/ks3sdklib/aws-sdk-go/aws"
+	"github.com/ks3sdklib/aws-sdk-go/internal/crc"
 )
 
 type UploadFileInput struct {
@@ -130,7 +133,7 @@ type UploadFileOutput struct {
 }
 
 type FilePartFetcher interface {
-	Fetch(objectRange []int64) (io.ReadSeeker, error)
+	Fetch(ctx context.Context, objectRange []int64) (io.ReadSeeker, error)
 }
 
 func (c *S3) UploadFile(request *UploadFileInput) (*UploadFileOutput, error) {
@@ -150,7 +153,7 @@ type Uploader struct {
 
 	uploadCheckpoint *UploadCheckpoint
 
-	CompletedSize int64
+	completedSize int64
 
 	mu sync.Mutex
 
@@ -365,7 +368,7 @@ func (u *Uploader) multipartUpload() (*UploadFileOutput, error) {
 		serverCrc64, _ := strconv.ParseUint(aws.ToString(resp.ChecksumCRC64ECMA), 10, 64)
 		u.client.Config.LogDebug("check file crc64, client crc64:%d, server crc64:%d", clientCrc64, serverCrc64)
 		if serverCrc64 != 0 && clientCrc64 != serverCrc64 {
-			return nil, errors.New(fmt.Sprintf("crc64 check failed, client crc64:%d, server crc64:%d", clientCrc64, serverCrc64))
+			return nil, fmt.Errorf("crc64 check failed, client crc64:%d, server crc64:%d", clientCrc64, serverCrc64)
 		}
 	}
 
@@ -451,9 +454,12 @@ func (u *Uploader) uploadPart(task UploadPartTask) (CompletedPart, error) {
 		reader = io.NewSectionReader(fd, offset, actualPartSize)
 	} else {
 		var err error
-		reader, err = (*u.uploadFileRequest.FilePartFetcher).Fetch([]int64{offset, offset + actualPartSize - 1})
+		reader, err = (*u.uploadFileRequest.FilePartFetcher).Fetch(u.context, []int64{offset, offset + actualPartSize - 1})
 		if err != nil {
 			return partETag, err
+		}
+		if rc, ok := reader.(io.Closer); ok {
+			defer rc.Close()
 		}
 	}
 
@@ -541,8 +547,8 @@ func (u *Uploader) completeMultipartUpload(completedMultipartUpload *CompletedMu
 
 func (u *Uploader) publishProgress(actualPartSize int64) {
 	if u.uploadFileRequest.ProgressFn != nil {
-		atomic.AddInt64(&u.CompletedSize, actualPartSize)
-		u.uploadFileRequest.ProgressFn(actualPartSize, u.CompletedSize, aws.ToLong(u.uploadFileRequest.FileSize))
+		atomic.AddInt64(&u.completedSize, actualPartSize)
+		u.uploadFileRequest.ProgressFn(actualPartSize, u.completedSize, aws.ToLong(u.uploadFileRequest.FileSize))
 	}
 }
 
@@ -620,3 +626,813 @@ func (u *Uploader) normalizeUploadPath() error {
 
 	return nil
 }
+
+// UploadReaderInput 网络流上传输入参数。
+type UploadReaderInput struct {
+	// 存储桶名称。
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// 对象名称。
+	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+
+	// 待上传的网络流。
+	Body io.Reader `type:"blob" required:"true"`
+
+	// 分块大小，默认5MB。
+	PartSize *int64 `type:"integer"`
+
+	// 分块上传并发数，默认3。
+	TaskNum *int64 `type:"integer"`
+
+	// The canned ACL to apply to the object.
+	ACL *string `location:"header" locationName:"x-amz-acl" type:"string"`
+
+	// Specifies caching behavior along the request/reply chain.
+	CacheControl *string `location:"header" locationName:"Cache-Control" type:"string"`
+
+	// Specifies presentational information for the object.
+	ContentDisposition *string `location:"header" locationName:"Content-Disposition" type:"string"`
+
+	// Specifies what content encodings have been applied to the object and thus
+	// what decoding mechanisms must be applied to obtain the media-type referenced
+	// by the Content-Type header field.
+	ContentEncoding *string `location:"header" locationName:"Content-Encoding" type:"string"`
+
+	// A standard MIME type describing the format of the object data.
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// The date and time at which the object is no longer cacheable.
+	Expires *time.Time `location:"header" locationName:"Expires" type:"timestamp" timestampFormat:"rfc822"`
+
+	// A map of metadata to store with the object in S3.
+	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
+
+	// The type of storage to use for the object. Defaults to 'STANDARD'.
+	StorageClass *string `location:"header" locationName:"x-amz-storage-class" type:"string"`
+
+	// Specifies the object tag of the object. Multiple tags can be set at the same time, such as: TagA=A&TagB=B.
+	// Note: Key and Value need to be URL-encoded first. If an item does not have "=", the Value is considered to be an empty string.
+	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
+
+	// Specifies whether the object is forbidden to overwrite.
+	ForbidOverwrite *bool `location:"header" locationName:"x-amz-forbid-overwrite" type:"boolean"`
+
+	// Allows grantee to read the object data and its metadata.
+	GrantRead *string `location:"header" locationName:"x-amz-grant-read" type:"string"`
+
+	// Gives the grantee READ, READ_ACP, and WRITE_ACP permissions on the object.
+	GrantFullControl *string `location:"header" locationName:"x-amz-grant-full-control" type:"string"`
+
+	// The Server-side encryption algorithm used when storing this object in KS3, eg: AES256.
+	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
+
+	// Specifies the algorithm to use to when encrypting the object, eg: AES256.
+	SSECustomerAlgorithm *string `location:"header" locationName:"x-amz-server-side-encryption-customer-algorithm" type:"string"`
+
+	// Specifies the customer-provided encryption key for KS3 to use in encrypting data.
+	SSECustomerKey *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key" type:"string"`
+
+	// Specifies the 128-bit MD5 digest of the encryption key according to RFC 1321.
+	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
+
+	// Bandwidth limit for single-part upload, in bits. For example, 10 * 1024 * 1024 * 8 means 10MB/s.
+	TrafficLimit *int64 `location:"header" locationName:"x-kss-traffic-limit" type:"integer"`
+
+	// Progress callback function
+	ProgressFn aws.ProgressFunc `location:"function"`
+}
+
+// UploadReaderOutput 网络流上传输出参数。
+type UploadReaderOutput struct {
+	Bucket *string
+
+	Key *string
+
+	ETag *string
+
+	ChecksumCRC64ECMA *string
+}
+
+func (c *S3) UploadReader(request *UploadReaderInput) (*UploadReaderOutput, error) {
+	return c.UploadReaderWithContext(context.Background(), request)
+}
+
+func (c *S3) UploadReaderWithContext(ctx context.Context, request *UploadReaderInput) (*UploadReaderOutput, error) {
+	return newReaderUploader(c, ctx, request).upload()
+}
+
+// ReaderUploader 网络流上传实现。
+type ReaderUploader struct {
+	client  *S3
+	context context.Context
+	request *UploadReaderInput
+
+	parts         []*CompletedPart
+	uploadID      string
+	completedSize int64
+	mu            sync.Mutex
+	error         error
+	done          chan struct{}
+
+	clientCrc64 uint64
+	bufPool     sync.Pool
+}
+
+func newReaderUploader(s3 *S3, ctx context.Context, request *UploadReaderInput) *ReaderUploader {
+	return &ReaderUploader{
+		client:  s3,
+		context: ctx,
+		request: request,
+		parts:   make([]*CompletedPart, 0),
+		done:    make(chan struct{}),
+		bufPool: sync.Pool{
+			New: func() interface{} { return new(bytes.Buffer) },
+		},
+	}
+}
+
+func (s *ReaderUploader) upload() (*UploadReaderOutput, error) {
+	if err := s.validate(); err != nil {
+		return nil, err
+	}
+
+	buf := s.bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	n, err := io.CopyN(buf, s.request.Body, aws.ToLong(s.request.PartSize))
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+
+	if err == io.EOF {
+		s.computePartCrc64(buf, n)
+		resp, putErr := s.putObject(buf, n)
+		if putErr != nil {
+			return nil, putErr
+		}
+		output := s.getOutput(resp)
+		if err := s.checkCrc64(output); err != nil {
+			return nil, err
+		}
+		return output, nil
+	}
+
+	return s.multipartUpload(buf, n)
+}
+
+func (s *ReaderUploader) validate() error {
+	request := s.request
+	if request == nil {
+		return errors.New("upload reader request is required")
+	}
+
+	if aws.ToString(request.Bucket) == "" {
+		return errors.New("bucket is required")
+	}
+
+	if aws.ToString(request.Key) == "" {
+		return errors.New("key is required")
+	}
+
+	if request.Body == nil {
+		return errors.New("body is required")
+	}
+
+	if request.PartSize == nil {
+		request.PartSize = aws.Long(DefaultPartSize)
+	} else if aws.ToLong(request.PartSize) < MinPartSize {
+		request.PartSize = aws.Long(MinPartSize)
+	} else if aws.ToLong(request.PartSize) > MaxPartSize {
+		request.PartSize = aws.Long(MaxPartSize)
+	}
+
+	if aws.ToLong(request.TaskNum) <= 0 {
+		request.TaskNum = aws.Long(1)
+	}
+
+	return nil
+}
+
+func (s *ReaderUploader) putObject(buf *bytes.Buffer, contentLength int64) (*PutObjectOutput, error) {
+	resp, err := s.client.PutObjectWithContext(s.context, &PutObjectInput{
+		ACL:                  s.request.ACL,
+		Body:                 bytes.NewReader(buf.Bytes()),
+		Bucket:               s.request.Bucket,
+		CacheControl:         s.request.CacheControl,
+		ContentDisposition:   s.request.ContentDisposition,
+		ContentEncoding:      s.request.ContentEncoding,
+		ContentLength:        aws.Long(contentLength),
+		ContentType:          s.request.ContentType,
+		Expires:              s.request.Expires,
+		GrantFullControl:     s.request.GrantFullControl,
+		GrantRead:            s.request.GrantRead,
+		Key:                  s.request.Key,
+		Metadata:             s.request.Metadata,
+		Tagging:              s.request.Tagging,
+		ForbidOverwrite:      s.request.ForbidOverwrite,
+		SSECustomerAlgorithm: s.request.SSECustomerAlgorithm,
+		SSECustomerKey:       s.request.SSECustomerKey,
+		SSECustomerKeyMD5:    s.request.SSECustomerKeyMD5,
+		ServerSideEncryption: s.request.ServerSideEncryption,
+		StorageClass:         s.request.StorageClass,
+		TrafficLimit:         s.request.TrafficLimit,
+		ProgressFn:           s.request.ProgressFn,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (s *ReaderUploader) getOutput(resp *PutObjectOutput) *UploadReaderOutput {
+	return &UploadReaderOutput{
+		Bucket:            s.request.Bucket,
+		Key:               s.request.Key,
+		ETag:              resp.ETag,
+		ChecksumCRC64ECMA: resp.Metadata[HTTPHeaderAmzChecksumCrc64ecma],
+	}
+}
+
+// readerTask 网络流分块上传任务。
+type readerTask struct {
+	buf    *bytes.Buffer
+	num    int64
+	bufLen int64
+}
+
+func (s *ReaderUploader) readTask(tasks chan<- readerTask, firstBuf *bytes.Buffer, firstLen int64, wg *sync.WaitGroup) {
+	defer wg.Done()
+	defer close(tasks)
+
+	partNum := int64(1)
+	s.sendTask(tasks, readerTask{buf: firstBuf, num: partNum, bufLen: firstLen})
+
+	for {
+		select {
+		case <-s.done:
+			return
+		default:
+		}
+
+		buf := s.bufPool.Get().(*bytes.Buffer)
+		buf.Reset()
+		n, readErr := io.CopyN(buf, s.request.Body, aws.ToLong(s.request.PartSize))
+		if readErr != nil && readErr != io.EOF {
+			s.bufPool.Put(buf)
+			s.setError(readErr)
+			return
+		}
+		if n > 0 {
+			partNum++
+			s.computePartCrc64(buf, n)
+			task := readerTask{buf: buf, num: partNum, bufLen: n}
+			if !s.sendTask(tasks, task) {
+				s.bufPool.Put(buf)
+				return
+			}
+		} else {
+			s.bufPool.Put(buf)
+		}
+		if readErr == io.EOF {
+			return
+		}
+	}
+}
+
+func (s *ReaderUploader) sendTask(tasks chan<- readerTask, task readerTask) bool {
+	select {
+	case tasks <- task:
+		return true
+	case <-s.done:
+		return false
+	}
+}
+
+func (s *ReaderUploader) runTask(tasks <-chan readerTask, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for task := range tasks {
+		select {
+		case <-s.done:
+			return
+		default:
+		}
+
+		part, err := s.uploadPart(task)
+		if err != nil {
+			s.setError(err)
+			return
+		}
+
+		s.addPart(part)
+	}
+}
+
+func (s *ReaderUploader) multipartUpload(firstBuf *bytes.Buffer, firstLen int64) (*UploadReaderOutput, error) {
+	s.computePartCrc64(firstBuf, firstLen)
+
+	uploadID, err := s.initUploadID()
+	if err != nil {
+		return nil, err
+	}
+	s.uploadID = uploadID
+
+	tasks := make(chan readerTask, 1)
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go s.readTask(tasks, firstBuf, firstLen, &wg)
+
+	var i int64
+	for i = 0; i < aws.ToLong(s.request.TaskNum); i++ {
+		wg.Add(1)
+		go s.runTask(tasks, &wg)
+	}
+
+	wg.Wait()
+
+	if s.error != nil {
+		s.abortUpload(s.uploadID)
+		return nil, s.error
+	}
+
+	return s.completeUpload(s.uploadID)
+}
+
+func (s *ReaderUploader) initUploadID() (string, error) {
+	resp, err := s.client.CreateMultipartUploadWithContext(s.context, &CreateMultipartUploadInput{
+		Bucket:               s.request.Bucket,
+		Key:                  s.request.Key,
+		ACL:                  s.request.ACL,
+		CacheControl:         s.request.CacheControl,
+		ContentDisposition:   s.request.ContentDisposition,
+		ContentEncoding:      s.request.ContentEncoding,
+		ContentType:          s.request.ContentType,
+		Expires:              s.request.Expires,
+		Metadata:             s.request.Metadata,
+		StorageClass:         s.request.StorageClass,
+		Tagging:              s.request.Tagging,
+		ForbidOverwrite:      s.request.ForbidOverwrite,
+		GrantRead:            s.request.GrantRead,
+		GrantFullControl:     s.request.GrantFullControl,
+		ServerSideEncryption: s.request.ServerSideEncryption,
+		SSECustomerAlgorithm: s.request.SSECustomerAlgorithm,
+		SSECustomerKey:       s.request.SSECustomerKey,
+		SSECustomerKeyMD5:    s.request.SSECustomerKeyMD5,
+	})
+	if err != nil {
+		return "", err
+	}
+	return aws.ToString(resp.UploadID), nil
+}
+
+func (s *ReaderUploader) uploadPart(task readerTask) (*CompletedPart, error) {
+	defer s.bufPool.Put(task.buf)
+
+	resp, err := s.client.UploadPartWithContext(s.context, &UploadPartInput{
+		Bucket:               s.request.Bucket,
+		Key:                  s.request.Key,
+		UploadID:             aws.String(s.uploadID),
+		PartNumber:           aws.Long(task.num),
+		Body:                 bytes.NewReader(task.buf.Bytes()),
+		ContentLength:        aws.Long(task.bufLen),
+		SSECustomerAlgorithm: s.request.SSECustomerAlgorithm,
+		SSECustomerKey:       s.request.SSECustomerKey,
+		SSECustomerKeyMD5:    s.request.SSECustomerKeyMD5,
+		TrafficLimit:         s.request.TrafficLimit,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	part := &CompletedPart{
+		PartNumber:        aws.Long(task.num),
+		ETag:              resp.ETag,
+		ChecksumCRC64ECMA: resp.ChecksumCRC64ECMA,
+	}
+	s.publishProgress(task.bufLen)
+	return part, nil
+}
+
+func (s *ReaderUploader) addPart(part *CompletedPart) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.parts = append(s.parts, part)
+}
+
+func (s *ReaderUploader) completeUpload(uploadID string) (*UploadReaderOutput, error) {
+	sort.Sort(CompletedParts(s.parts))
+
+	resp, err := s.client.CompleteMultipartUploadWithContext(s.context, &CompleteMultipartUploadInput{
+		Bucket:          s.request.Bucket,
+		Key:             s.request.Key,
+		UploadID:        aws.String(uploadID),
+		MultipartUpload: &CompletedMultipartUpload{Parts: s.parts},
+		ForbidOverwrite: s.request.ForbidOverwrite,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	output := &UploadReaderOutput{
+		Bucket:            resp.Bucket,
+		Key:               resp.Key,
+		ETag:              resp.ETag,
+		ChecksumCRC64ECMA: resp.ChecksumCRC64ECMA,
+	}
+	if err := s.checkCrc64(output); err != nil {
+		return nil, err
+	}
+
+	return output, nil
+}
+
+func (s *ReaderUploader) computePartCrc64(buf *bytes.Buffer, bufLen int64) {
+	partCrc := crc64.Checksum(buf.Bytes()[:bufLen], crc64.MakeTable(crc64.ECMA))
+	s.clientCrc64 = crc.CRC64Combine(s.clientCrc64, partCrc, uint64(bufLen))
+}
+
+func (s *ReaderUploader) checkCrc64(output *UploadReaderOutput) error {
+	if !s.client.Config.CrcCheckEnabled {
+		return nil
+	}
+	serverCrc64, _ := strconv.ParseUint(aws.ToString(output.ChecksumCRC64ECMA), 10, 64)
+	s.client.Config.LogDebug("check file crc64, client crc64:%d, server crc64:%d", s.clientCrc64, serverCrc64)
+	if serverCrc64 != 0 && s.clientCrc64 != serverCrc64 {
+		return fmt.Errorf("crc64 check failed, client crc64:%d, server crc64:%d", s.clientCrc64, serverCrc64)
+	}
+	return nil
+}
+
+func (s *ReaderUploader) abortUpload(uploadID string) {
+	s.client.AbortMultipartUploadWithContext(s.context, &AbortMultipartUploadInput{
+		Bucket:   s.request.Bucket,
+		Key:      s.request.Key,
+		UploadID: aws.String(uploadID),
+	})
+}
+
+func (s *ReaderUploader) publishProgress(increment int64) {
+	if s.request.ProgressFn != nil {
+		atomic.AddInt64(&s.completedSize, increment)
+		s.request.ProgressFn(increment, s.completedSize, -1)
+	}
+}
+
+func (s *ReaderUploader) setError(err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.error == nil {
+		s.error = err
+		close(s.done)
+	}
+}
+
+// UploadDirInput 目录上传输入参数。
+type UploadDirInput struct {
+	// 待上传的本地目录路径。
+	DirPath *string `type:"string" required:"true"`
+
+	// 存储桶名称。
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	// 对象名称前缀，上传后每个对象的Key为 Prefix + 相对路径。
+	Prefix *string `type:"string"`
+
+	// 分块大小，默认5MB。
+	PartSize *int64 `type:"integer"`
+
+	// 文件并发数，即同时上传的文件数，默认3。
+	Jobs *int64 `type:"integer"`
+
+	// 块并发数，即单文件分块上传并发数，默认3。
+	Parallel *int64 `type:"integer"`
+
+	// 目录上传跳过策略，默认Never不跳过。可选值：IfExists/IfSizeEquals/IfNewer/IfNewerAndSizeEquals/IfCrc64Equals。
+	SkipRule *string `type:"string"`
+
+	// 是否不记录上传成功文件详情，默认记录。大目录上传时设为true可节省内存。
+	IgnoreSuccessFiles *bool `type:"boolean"`
+
+	// 是否跳过符号链接文件，默认跟随。设为true时跳过符号链接文件和目录。
+	SkipSymlinks *bool `type:"boolean"`
+
+	// 是否启用断点续传，默认不启用。
+	EnableCheckpoint *bool `type:"boolean"`
+
+	// 断点续传记录文件的存放目录。
+	CheckpointDir *string `type:"string"`
+
+	// 对象的预设ACL。
+	ACL *string `location:"header" locationName:"x-amz-acl" type:"string"`
+
+	// 指定请求/响应链上的缓存行为。
+	CacheControl *string `location:"header" locationName:"Cache-Control" type:"string"`
+
+	// 指定对象的展示信息。
+	ContentDisposition *string `location:"header" locationName:"Content-Disposition" type:"string"`
+
+	// 指定已应用于对象的内容编码。
+	ContentEncoding *string `location:"header" locationName:"Content-Encoding" type:"string"`
+
+	// 描述对象数据格式的标准MIME类型。
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+
+	// 存储在KS3中的对象元数据。
+	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
+
+	// 对象的存储类型，默认为STANDARD。
+	StorageClass *string `location:"header" locationName:"x-amz-storage-class" type:"string"`
+
+	// 指定对象标签。
+	Tagging *string `location:"header" locationName:"x-amz-tagging" type:"string"`
+
+	// 服务端加密算法，如AES256。
+	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string"`
+
+	// 指定加密对象时使用的算法。
+	SSECustomerAlgorithm *string `location:"header" locationName:"x-amz-server-side-encryption-customer-algorithm" type:"string"`
+
+	// 指定客户提供的加密密钥。
+	SSECustomerKey *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key" type:"string"`
+
+	// 指定加密密钥的128位MD5摘要。
+	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
+
+	// 目录上传进度回调，每次文件完成时调用。
+	ProgressFn DirProgressFunc `location:"function"`
+}
+
+
+// UploadDir 上传本地目录到KS3。
+func (c *S3) UploadDir(request *UploadDirInput) (*DirResult, error) {
+	return c.UploadDirWithContext(context.Background(), request)
+}
+
+// UploadDirWithContext 上传本地目录到KS3，支持上下文取消。
+func (c *S3) UploadDirWithContext(ctx context.Context, request *UploadDirInput) (*DirResult, error) {
+	return newDirUploader(c, ctx, request).uploadDir()
+}
+
+// DirUploader 目录上传实现。
+type DirUploader struct {
+	client      *S3             // KS3客户端。
+	context     context.Context // 上下文，用于取消。
+	request     *UploadDirInput // 上传输入参数。
+	producerErr error           // 生产者错误。
+	done        chan struct{}   // 生产者完成信号。
+
+	rootDir string // 解析后的根目录绝对路径。
+
+	*TransferManager
+}
+
+func newDirUploader(s3 *S3, ctx context.Context, request *UploadDirInput) *DirUploader {
+	return &DirUploader{
+		client:          s3,
+		context:         ctx,
+		request:         request,
+		done:            make(chan struct{}),
+		TransferManager: newTransferManager(request.ProgressFn),
+	}
+}
+
+func (u *DirUploader) uploadDir() (*DirResult, error) {
+	if err := u.validate(); err != nil {
+		return nil, err
+	}
+
+	jobs := aws.ToLong(u.request.Jobs)
+	fileCh := make(chan dirFileInfo, DefaultFileChanSize)
+
+	go u.produceFiles(fileCh)
+
+	var workerWg sync.WaitGroup
+	var i int64
+	for i = 0; i < jobs; i++ {
+		workerWg.Add(1)
+		go u.runWorker(fileCh, &workerWg)
+	}
+
+	workerWg.Wait()
+	<-u.done
+
+	if u.producerErr != nil {
+		return nil, u.producerErr
+	}
+	return u.setResult()
+}
+
+func (u *DirUploader) produceFiles(fileCh chan<- dirFileInfo) {
+	defer close(u.done)
+	u.producerErr = u.walk(u.rootDir, fileCh)
+	close(fileCh)
+}
+
+func (u *DirUploader) validate() error {
+	request := u.request
+	if request == nil {
+		return errors.New("upload dir request is required")
+	}
+
+	if aws.ToString(request.Bucket) == "" {
+		return errors.New("bucket is required")
+	}
+
+	if aws.ToString(request.DirPath) == "" {
+		return errors.New("dir path is required")
+	}
+
+	rootDir, err := toAbs(aws.ToString(request.DirPath))
+	if err != nil {
+		return err
+	}
+
+	dirInfo, err := os.Stat(rootDir)
+	if err != nil {
+		return err
+	}
+	if !dirInfo.IsDir() {
+		return fmt.Errorf("%s is not a directory", rootDir)
+	}
+
+	if request.Prefix == nil {
+		request.Prefix = aws.String("")
+	} else if !strings.HasSuffix(aws.ToString(request.Prefix), "/") && aws.ToString(request.Prefix) != "" {
+		request.Prefix = aws.String(aws.ToString(request.Prefix) + "/")
+	}
+
+	if request.PartSize == nil {
+		request.PartSize = aws.Long(DefaultPartSize)
+	} else if aws.ToLong(request.PartSize) < MinPartSize {
+		request.PartSize = aws.Long(MinPartSize)
+	} else if aws.ToLong(request.PartSize) > MaxPartSize {
+		request.PartSize = aws.Long(MaxPartSize)
+	}
+
+	if aws.ToLong(request.Parallel) <= 0 {
+		request.Parallel = aws.Long(DefaultTaskNum)
+	}
+
+	if aws.ToLong(request.Jobs) <= 0 {
+		request.Jobs = aws.Long(DefaultJobs)
+	}
+
+	if request.SkipRule == nil {
+		request.SkipRule = aws.String(SkipNever)
+	}
+
+	u.rootDir = rootDir
+	return nil
+}
+
+func (u *DirUploader) walk(rootDir string, fileCh chan<- dirFileInfo) error {
+	return u.walkDir(rootDir, rootDir, fileCh)
+}
+
+func (u *DirUploader) walkDir(dir, virtualBase string, fileCh chan<- dirFileInfo) error {
+	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		select {
+		case <-u.context.Done():
+			return u.context.Err()
+		default:
+		}
+		// 处理符号链接
+		if info.Mode()&os.ModeSymlink != 0 {
+			if aws.ToBoolean(u.request.SkipSymlinks) {
+				return nil
+			}
+			resolved, err := filepath.EvalSymlinks(path)
+			if err != nil {
+				u.client.Config.LogDebug("walkDir: skip symlink %s, EvalSymlinks failed: %v", path, err)
+				return nil
+			}
+			resolvedInfo, err := os.Stat(resolved)
+			if err != nil {
+				u.client.Config.LogDebug("walkDir: skip symlink %s, Stat failed: %v", path, err)
+				return nil
+			}
+			if resolvedInfo.IsDir() {
+				return u.walkDir(resolved, path, fileCh)
+			}
+			info = resolvedInfo
+		}
+		// 跳过非常规文件
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+		relPath, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+		virtualPath := filepath.Join(virtualBase, relPath)
+		objectKey := makeObjectName(u.rootDir, aws.ToString(u.request.Prefix), virtualPath)
+		select {
+		case fileCh <- dirFileInfo{
+			filePath:   path,
+			objectKey:  objectKey,
+			objectSize: info.Size(),
+		}:
+			return nil
+		case <-u.context.Done():
+			return u.context.Err()
+		}
+	})
+}
+
+func (u *DirUploader) runWorker(fileCh <-chan dirFileInfo, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for fi := range fileCh {
+		select {
+		case <-u.context.Done():
+			return
+		default:
+		}
+		if err := u.uploadSingleFile(fi); err != nil {
+			u.TransferManager.addFailure(fi.filePath, fi.objectKey, fi.objectSize, err)
+		}
+	}
+}
+
+func (u *DirUploader) uploadSingleFile(fi dirFileInfo) error {
+	info, err := os.Stat(fi.filePath)
+	if err != nil {
+		return err
+	}
+	fileSize := info.Size()
+	fileModTime := info.ModTime()
+
+	if skip := u.shouldSkip(fi, fileSize, fileModTime); skip {
+		u.TransferManager.addSkip(fi.filePath, fi.objectKey, fileSize)
+		return nil
+	}
+
+	_, err = u.client.UploadFileWithContext(u.context, &UploadFileInput{
+		Bucket:               u.request.Bucket,
+		Key:                  aws.String(fi.objectKey),
+		UploadFile:           aws.String(fi.filePath),
+		FileSize:             aws.Long(fileSize),
+		PartSize:             u.request.PartSize,
+		TaskNum:              u.request.Parallel,
+		EnableCheckpoint:     u.request.EnableCheckpoint,
+		CheckpointDir:        u.request.CheckpointDir,
+		ACL:                  u.request.ACL,
+		CacheControl:         u.request.CacheControl,
+		ContentDisposition:   u.request.ContentDisposition,
+		ContentEncoding:      u.request.ContentEncoding,
+		ContentType:          u.request.ContentType,
+		Metadata:             u.request.Metadata,
+		StorageClass:         u.request.StorageClass,
+		Tagging:              u.request.Tagging,
+		ServerSideEncryption: u.request.ServerSideEncryption,
+		SSECustomerAlgorithm: u.request.SSECustomerAlgorithm,
+		SSECustomerKey:       u.request.SSECustomerKey,
+		SSECustomerKeyMD5:    u.request.SSECustomerKeyMD5,
+	})
+	if err != nil {
+		return err
+	}
+	u.TransferManager.addSuccess(fi.filePath, fi.objectKey, fileSize, aws.ToBoolean(u.request.IgnoreSuccessFiles))
+	return nil
+}
+
+func (u *DirUploader) shouldSkip(fi dirFileInfo, fileSize int64, fileModTime time.Time) bool {
+	rule := aws.ToString(u.request.SkipRule)
+	if rule == "" || rule == SkipNever {
+		return false
+	}
+
+	resp, err := u.client.HeadObjectWithContext(u.context, &HeadObjectInput{
+		Bucket: u.request.Bucket,
+		Key:    aws.String(fi.objectKey),
+	})
+	if err != nil || resp == nil || aws.ToString(resp.ETag) == "" {
+		return false
+	}
+
+	switch rule {
+	case SkipIfExists:
+		return true
+	case SkipIfSizeEquals:
+		return aws.ToLong(resp.ContentLength) == fileSize
+	case SkipIfNewer:
+		return resp.LastModified != nil && !fileModTime.After(*resp.LastModified)
+	case SkipIfNewerAndSizeEquals:
+		return resp.LastModified != nil && !fileModTime.After(*resp.LastModified) && aws.ToLong(resp.ContentLength) == fileSize
+	case SkipIfCrc64Equals:
+		if resp.Metadata == nil {
+			return false
+		}
+		serverCrc := aws.ToString(resp.Metadata[HTTPHeaderAmzChecksumCrc64ecma])
+		if serverCrc == "" {
+			return false
+		}
+		localCrc := computeLocalCrc64(fi.filePath)
+		return localCrc != "" && localCrc == serverCrc
+	}
+	return false
+}
+
+
