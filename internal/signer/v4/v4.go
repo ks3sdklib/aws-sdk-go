@@ -264,12 +264,7 @@ func (v4 *signer) buildCanonicalHeaders() {
 
 func (v4 *signer) buildCanonicalString() {
 	v4.Request.URL.RawQuery = strings.Replace(v4.Query.Encode(), "+", "%20", -1)
-	uri := strings.Replace(v4.Request.URL.Opaque, "%2F", "/", -1)
-	if uri != "" {
-		uri = "/" + strings.Join(strings.Split(uri, "/")[3:], "/")
-	} else {
-		uri = v4.Request.URL.Path
-	}
+	uri := strings.Replace(v4.Request.URL.EscapedPath(), "%2F", "/", -1)
 	if uri == "" {
 		uri = "/"
 	}

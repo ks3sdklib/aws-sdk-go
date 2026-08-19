@@ -312,9 +312,8 @@ func buildQueryStrings(r *aws.Request, v reflect.Value, name string, query url.V
 	}
 }
 
-func updatePath(url *url.URL, cfg *aws.Config) {
-	urlPath := url.Path
-	scheme, query := url.Scheme, url.RawQuery
+func updatePath(u *url.URL, cfg *aws.Config) {
+	urlPath := u.Path
 
 	// path.Clean will remove duplicate leading /
 	// this will make deleting / started key impossible
@@ -326,14 +325,14 @@ func updatePath(url *url.URL, cfg *aws.Config) {
 		urlPath = cleanPath(urlPath)
 	}
 
-	// get formatted URL minus scheme, so we can build this into Opaque
-	url.Scheme, url.Path, url.RawQuery = "", "", ""
-	s := url.String()
-	url.Scheme = scheme
-	url.RawQuery = query
-
-	// build opaque URI
-	url.Opaque = s + urlPath
+	// 设 Path 为解码路径、RawPath 为 Amazon 编码路径，使请求行为 origin-form。
+	if decoded, err := url.PathUnescape(urlPath); err == nil {
+		u.Path = decoded
+		u.RawPath = urlPath
+	} else {
+		u.Path = urlPath
+		u.RawPath = ""
+	}
 }
 
 func cleanPath(urlPath string) string {
