@@ -248,6 +248,8 @@ func (v2 *signer) buildCanonicalHeaders() {
 func (v2 *signer) buildCanonicalResource() {
 	v2.Request.URL.RawQuery = strings.Replace(v2.Query.Encode(), "+", "%20", -1)
 
+	// 从 EscapedPath() 取待签名 path。updatePath 已改设 Path/RawPath（不再设 Opaque），
+	// 读 EscapedPath() 得到 Amazon 编码的 path，与请求行发送字节一致，重签时输入稳定。
 	uri := v2.Request.URL.EscapedPath()
 	pathStyle := v2.awsRequest.Config.S3ForcePathStyle
 
@@ -265,6 +267,8 @@ func (v2 *signer) buildCanonicalResource() {
 		}
 	}
 
+	// uri 来自 EscapedPath，virtual-host/DomainMode 下不含桶，需拼回桶得到签名用的 /bucket/key：
+	// virtual-host 从 Host 拆桶，DomainMode 从入参取桶，path-style 桶已在 uri 中。
 	if bucketInHost != "" {
 		if uri == "/" {
 			uri = "/" + bucketInHost + "/"
