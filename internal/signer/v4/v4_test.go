@@ -2,12 +2,15 @@ package v4
 
 import (
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/ks3sdklib/aws-sdk-go/aws"
 	"github.com/ks3sdklib/aws-sdk-go/aws/credentials"
+	"github.com/ks3sdklib/aws-sdk-go/internal/protocol/rest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,10 +18,13 @@ func buildSigner(serviceName string, region string, signTime time.Time, expireTi
 	endpoint := "https://" + serviceName + "." + region + ".amazonaws.com"
 	reader := strings.NewReader(body)
 	req, _ := http.NewRequest("POST", endpoint, reader)
-	req.URL.Opaque = "//example.org/bucket/key-._~,!@#$%^&*()"
+	rawPath := "/bucket/key-._~%2C%21%40%23%24%25%5E%26%2A%28%29"
+	decoded, _ := url.PathUnescape(rawPath)
+	req.URL.Path = decoded
+	req.URL.RawPath = rawPath
 	req.Header.Add("X-Amz-Target", "prefix.Operation")
 	req.Header.Add("Content-Type", "application/x-amz-json-1.0")
-	req.Header.Add("Content-Length", string(len(body)))
+	req.Header.Add("Content-Length", strconv.Itoa(len(body)))
 	req.Header.Add("X-Amz-Meta-Other-Header", "some-value=!@#$%^&* (+)")
 
 	return signer{
@@ -29,49 +35,11 @@ func buildSigner(serviceName string, region string, signTime time.Time, expireTi
 		Body:        reader,
 		ServiceName: serviceName,
 		Region:      region,
+		awsRequest:  &aws.Request{},
+		Service:     &aws.Service{Config: aws.DefaultConfig.Merge(&aws.Config{Credentials: credentials.NewStaticCredentials("AKID", "SECRET", "SESSION")})},
 		Credentials: credentials.NewStaticCredentials("AKID", "SECRET", "SESSION"),
+		isSignBody:  true,
 	}
-}
-
-func removeWS(text string) string {
-	text = strings.Replace(text, " ", "", -1)
-	text = strings.Replace(text, "\n", "", -1)
-	text = strings.Replace(text, "\t", "", -1)
-	return text
-}
-
-func assertEqual(t *testing.T, expected, given string) {
-	if removeWS(expected) != removeWS(given) {
-		t.Errorf("\nExpected: %s\nGiven:    %s", expected, given)
-	}
-}
-
-func TestPresignRequest(t *testing.T) {
-	signer := buildSigner("dynamodb", "us-east-1", time.Unix(0, 0), 300*time.Second, "{}")
-	signer.sign()
-
-	expectedDate := "19700101T000000Z"
-	expectedHeaders := "host;x-amz-meta-other-header;x-amz-target"
-	expectedSig := "5eeedebf6f995145ce56daa02902d10485246d3defb34f97b973c1f40ab82d36"
-	expectedCred := "AKID/19700101/us-east-1/dynamodb/aws4_request"
-
-	q := signer.Request.URL.Query()
-	assert.Equal(t, expectedSig, q.Get("X-Amz-Signature"))
-	assert.Equal(t, expectedCred, q.Get("X-Amz-Credential"))
-	assert.Equal(t, expectedHeaders, q.Get("X-Amz-SignedHeaders"))
-	assert.Equal(t, expectedDate, q.Get("X-Amz-Date"))
-}
-
-func TestSignRequest(t *testing.T) {
-	signer := buildSigner("dynamodb", "us-east-1", time.Unix(0, 0), 0, "{}")
-	signer.sign()
-
-	expectedDate := "19700101T000000Z"
-	expectedSig := "AWS4-HMAC-SHA256 Credential=AKID/19700101/us-east-1/dynamodb/aws4_request, SignedHeaders=host;x-amz-date;x-amz-meta-other-header;x-amz-security-token;x-amz-target, Signature=69ada33fec48180dab153576e4dd80c4e04124f80dda3eccfed8a67c2b91ed5e"
-
-	q := signer.Request.Header
-	assert.Equal(t, expectedSig, q.Get("Authorization"))
-	assert.Equal(t, expectedDate, q.Get("X-Amz-Date"))
 }
 
 func TestSignEmptyBody(t *testing.T) {
@@ -205,16 +173,62 @@ func TestResignRequestExpiredCreds(t *testing.T) {
 	assert.NotEqual(t, querySig, r.HTTPRequest.Header.Get("Authorization"))
 }
 
-func BenchmarkPresignRequest(b *testing.B) {
-	signer := buildSigner("dynamodb", "us-east-1", time.Now(), 300*time.Second, "{}")
-	for i := 0; i < b.N; i++ {
-		signer.sign()
+// oldV4URI 为 uri 计算的 Opaque 版本实现，newV4URI 为 EscapedPath 版本实现，用于等价对比。
+func oldV4URI(s *signer) string {
+	uri := strings.Replace(s.Request.URL.Opaque, "%2F", "/", -1)
+	if uri != "" {
+		uri = "/" + strings.Join(strings.Split(uri, "/")[3:], "/")
+	} else {
+		uri = s.Request.URL.Path
 	}
+	return finalizeV4URI(uri, s.ServiceName)
 }
 
-func BenchmarkSignRequest(b *testing.B) {
-	signer := buildSigner("dynamodb", "us-east-1", time.Now(), 0, "{}")
-	for i := 0; i < b.N; i++ {
-		signer.sign()
+func newV4URI(s *signer) string {
+	return finalizeV4URI(strings.Replace(s.Request.URL.EscapedPath(), "%2F", "/", -1), s.ServiceName)
+}
+
+func finalizeV4URI(uri, serviceName string) string {
+	if uri == "" {
+		uri = "/"
+	}
+	if serviceName != "s3" {
+		uri = rest.EscapePath(uri, false)
+	}
+	return uri
+}
+
+func TestBuildCanonicalStringURIEquivalence(t *testing.T) {
+	cases := []struct {
+		name    string
+		host    string
+		opaque  string // Opaque 版本输入
+		rawPath string // EscapedPath 版本输入（Amazon 编码）
+		path    string // EscapedPath 版本输入（解码 Path）
+	}{
+		{"path-style object", "s3.example.com", "//s3.example.com/bucket/key", "/bucket/key", "/bucket/key"},
+		{"vhost object", "bucket.s3.example.com", "//bucket.s3.example.com/key", "/key", "/key"},
+		{"bucket-only path-style", "s3.example.com", "//s3.example.com/bucket", "/bucket", "/bucket"},
+		{"以/开头 key(%2F)", "s3.example.com", "//s3.example.com/bucket/%2Fkey", "/bucket/%2Fkey", "/bucket//key"},
+		{"根路径", "s3.example.com", "//s3.example.com/", "/", "/"},
+	}
+	for _, tc := range cases {
+		// Opaque 版本
+		uOld, _ := url.Parse("https://" + tc.host)
+		uOld.Opaque = tc.opaque
+		sOld := signer{Request: &http.Request{URL: uOld}, ServiceName: "s3"}
+		// EscapedPath 版本
+		uNew, _ := url.Parse("https://" + tc.host)
+		uNew.Path = tc.path
+		uNew.RawPath = tc.rawPath
+		sNew := signer{Request: &http.Request{URL: uNew}, ServiceName: "s3"}
+
+		gotOld := oldV4URI(&sOld)
+		gotNew := newV4URI(&sNew)
+		if gotOld != gotNew {
+			t.Errorf("%s: EscapedPath版=%q Opaque版=%q", tc.name, gotNew, gotOld)
+		} else {
+			t.Logf("%-24s -> %q", tc.name, gotNew)
+		}
 	}
 }

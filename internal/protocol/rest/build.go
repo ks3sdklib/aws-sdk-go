@@ -312,13 +312,11 @@ func buildQueryStrings(r *aws.Request, v reflect.Value, name string, query url.V
 	}
 }
 
-func updatePath(url *url.URL, cfg *aws.Config) {
-	urlPath := url.Path
-	scheme, query := url.Scheme, url.RawQuery
+func updatePath(u *url.URL, cfg *aws.Config) {
+	urlPath := u.Path
 
-	// path.Clean will remove duplicate leading /
-	// this will make deleting / started key impossible
-	// so escape it here first
+	// path.Clean 会折叠重复的前导 /，导致无法删除以 / 开头的 key，
+	// 这里先把 // 替换成 /%2F 保护起来。
 	urlPath = strings.Replace(urlPath, "//", "/%2F", -1)
 
 	// 新增参数控制path clean，默认值为true
@@ -326,14 +324,22 @@ func updatePath(url *url.URL, cfg *aws.Config) {
 		urlPath = cleanPath(urlPath)
 	}
 
-	// get formatted URL minus scheme, so we can build this into Opaque
-	url.Scheme, url.Path, url.RawQuery = "", "", ""
-	s := url.String()
-	url.Scheme = scheme
-	url.RawQuery = query
-
-	// build opaque URI
-	url.Opaque = s + urlPath
+	// 设置 Path 为解码路径、RawPath 为 Amazon 编码路径。
+	// 改设后 Opaque 为空，RequestURI() 走 EscapedPath() 返回 "/path"（origin-form）；
+	// 签名器改读 EscapedPath()，签名与发送共用同一份 path，重签时输入稳定、幂等。
+	//
+	// urlPath 来自 buildURI 的 EscapePath，是 Amazon 编码态（如 /bucket/a%20b）；
+	// 而 url.URL.Path 字段规定存解码态（编码形式放 RawPath），故先 PathUnescape
+	// 解码成 /bucket/a b 再设 Path，编码态 urlPath 同时存到 RawPath，避免 Go
+	// 重新编码。
+	decoded, err := url.PathUnescape(urlPath)
+	if err == nil {
+		u.Path = decoded
+		u.RawPath = urlPath
+	} else {
+		u.Path = urlPath
+		u.RawPath = ""
+	}
 }
 
 func cleanPath(urlPath string) string {

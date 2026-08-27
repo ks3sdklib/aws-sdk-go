@@ -264,12 +264,9 @@ func (v4 *signer) buildCanonicalHeaders() {
 
 func (v4 *signer) buildCanonicalString() {
 	v4.Request.URL.RawQuery = strings.Replace(v4.Query.Encode(), "+", "%20", -1)
-	uri := strings.Replace(v4.Request.URL.Opaque, "%2F", "/", -1)
-	if uri != "" {
-		uri = "/" + strings.Join(strings.Split(uri, "/")[3:], "/")
-	} else {
-		uri = v4.Request.URL.Path
-	}
+	// 从 EscapedPath() 取待签名 path（updatePath 已改设 Path/RawPath，不再设 Opaque），
+	// 与请求行发送字节一致。保留 %2F -> / 替换以维持 V4 既有行为。
+	uri := strings.Replace(v4.Request.URL.EscapedPath(), "%2F", "/", -1)
 	if uri == "" {
 		uri = "/"
 	}

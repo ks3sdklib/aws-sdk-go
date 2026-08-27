@@ -246,48 +246,48 @@ func (v2 *signer) buildCanonicalHeaders() {
 }
 
 func (v2 *signer) buildCanonicalResource() {
-	endpoint := v2.Service.Endpoint
-
 	v2.Request.URL.RawQuery = strings.Replace(v2.Query.Encode(), "+", "%20", -1)
-	url := v2.Request.URL.String()
-	//在aws.service.go,buildEndpoint会把sheme也加上
-	pathStyle := strings.HasPrefix(url, endpoint)
-	uri := v2.Request.URL.Opaque
+
+	// 从 EscapedPath() 取待签名 path。updatePath 已改设 Path/RawPath（不再设 Opaque），
+	// 读 EscapedPath() 得到 Amazon 编码的 path，与请求行发送字节一致，重签时输入稳定。
+	uri := v2.Request.URL.EscapedPath()
+	pathStyle := v2.awsRequest.Config.S3ForcePathStyle
+
 	bucketInHost := ""
-	if !pathStyle {
-		if strings.HasPrefix(url, "http://") {
-			url = url[7:]
-			endpoint = endpoint[7:]
-		} else if strings.HasPrefix(url, "https://") {
-			url = url[8:]
-			endpoint = endpoint[8:]
-		}
-		bucketInHost = url[0 : strings.Index(url, endpoint)-1]
+	if !pathStyle && !v2.awsRequest.Config.DomainMode {
+		bucketInHost = v2.bucketInHost()
 	}
-	if uri != "" {
-		uris := strings.Split(uri, "/")[3:]
-		append := false
-		if len(uris) == 1 && uris[0] != "" && bucketInHost == "" {
-			//只有bucket
-			append = true
-		} else if len(uris) == 0 && bucketInHost != "" {
-			append = true
+
+	// path 中只有桶没有 key 时，补尾斜杠成 /bucket/
+	appendSlash := false
+	if bucketInHost == "" && !v2.awsRequest.Config.DomainMode {
+		seg := strings.Split(strings.Trim(uri, "/"), "/")
+		if len(seg) == 1 && seg[0] != "" {
+			appendSlash = true
 		}
-		uri = "/" + strings.Join(strings.Split(uri, "/")[3:], "/")
-		if bucketInHost != "" {
+	}
+
+	// uri 来自 EscapedPath，virtual-host/DomainMode 下不含桶，需拼回桶得到签名用的 /bucket/key：
+	// virtual-host 从 Host 拆桶，DomainMode 从入参取桶，path-style 桶已在 uri 中。
+	if bucketInHost != "" {
+		if uri == "/" {
+			uri = "/" + bucketInHost + "/"
+		} else {
 			uri = "/" + bucketInHost + uri
 		}
-		if v2.awsRequest.Config.DomainMode {
-			b := awsutil.ValuesAtPath(v2.awsRequest.Params, "Bucket")
+	} else if v2.awsRequest.Config.DomainMode {
+		if b := awsutil.ValuesAtPath(v2.awsRequest.Params, "Bucket"); len(b) > 0 {
 			bucket := b[0].(string)
-			uri = "/" + bucket + uri
-			append = false
+			if uri == "/" {
+				uri = "/" + bucket + "/"
+			} else {
+				uri = "/" + bucket + uri
+			}
 		}
-		if append {
-			uri += "/"
-		}
-	} else {
-		uri = v2.Request.URL.Path
+	}
+
+	if appendSlash && !strings.HasSuffix(uri, "/") {
+		uri += "/"
 	}
 	if uri == "" {
 		uri = "/"
@@ -321,6 +321,21 @@ func (v2 *signer) buildCanonicalResource() {
 	} else {
 		v2.canonicalResource = uri + "?" + queryString
 	}
+}
+
+// bucketInHost 从 URL.Host 拆出 virtual-host 风格的桶名（bucket.endpoint）。
+func (v2 *signer) bucketInHost() string {
+	host := v2.Request.URL.Host
+	endpoint := v2.Service.Endpoint
+	endpointHost := strings.TrimPrefix(endpoint, "http://")
+	endpointHost = strings.TrimPrefix(endpointHost, "https://")
+	if host == endpointHost {
+		return ""
+	}
+	if idx := strings.Index(host, "."+endpointHost); idx > 0 {
+		return host[:idx]
+	}
+	return ""
 }
 
 func (v2 *signer) buildStringToSign() {
